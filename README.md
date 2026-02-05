@@ -97,14 +97,3 @@ Siehe [docs/](./docs/) für:
 ## 📝 Lizenz
 
 MIT License - siehe [LICENSE](LICENSE)
-
-## 🗺️ Roadmap
-
-- [ ] **Phase 1**: Projekt-Setup & Grundstruktur
-- [ ] **Phase 2**: Backend API & Datenbank
-- [ ] **Phase 3**: WebSocket Integration
-- [ ] **Phase 4**: Frontend Grundgerüst
-- [ ] **Phase 5**: Moderator-Interface
-- [ ] **Phase 6**: Spieler-Interface
-- [ ] **Phase 7**: Testing & Bug-Fixes
-- [ ] **Phase 8**: Deployment & Dokumentation
