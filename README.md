@@ -94,22 +94,9 @@ Siehe [docs/](./docs/) für:
 - [Projektstruktur](./docs/Projektstruktur.md) - Ordnerstruktur
 - [Quickstart](./docs/QUICKSTART.md) - Schnelleinstieg
 
-## 🤝 Contributing
-
-1. Fork das Repository
-2. Erstelle einen Feature-Branch (`git checkout -b feature/amazing-feature`)
-3. Commit deine Änderungen (`git commit -m 'Add amazing feature'`)
-4. Push zum Branch (`git push origin feature/amazing-feature`)
-5. Öffne einen Pull Request
-
 ## 📝 Lizenz
 
 MIT License - siehe [LICENSE](LICENSE)
-
-## 👥 Team
-
-- Entwickelt im Rahmen eines Programmierkurses
-- Kontakt: [GitHub Issues](https://github.com/anshamray/Kahood/issues)
 
 ## 🗺️ Roadmap
 
