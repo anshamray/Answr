@@ -3,6 +3,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { initializeSocket } from './socket/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -29,16 +30,8 @@ app.get('/', (req, res) => {
   });
 });
 
-// WebSocket connection handling
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  // TODO: Implement game logic
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
-});
+// Initialize WebSocket handler
+const { activeSessions } = initializeSocket(io);
 
 // Start server
 const PORT = process.env.PORT || 3000;

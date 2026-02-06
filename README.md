@@ -12,7 +12,7 @@ Entwicklung einer webbasierten Echtzeit-Quizplattform für Bildungseinrichtungen
 answr/
 ├── backend/          # Node.js/Express Server + Socket.io
 ├── frontend/         # Svelte Client-Anwendung
-├── docs/             # Dokumentation und Lastenheft
+├── docs/             # Dokumentation
 └── docker/           # Docker-Konfiguration (später)
 ```
 
@@ -88,7 +88,6 @@ Frontend läuft auf: `http://localhost:5173`
 ## 📚 Dokumentation
 
 Siehe [docs/](./docs/) für:
-- [Lastenheft](./docs/Answr_Lastenheft.docx) - Anforderungsdokument
 - [API-Dokumentation](./docs/API.md) - REST & WebSocket Spezifikation
 - [Architektur](./docs/Architektur.md) - Systemarchitektur
 - [Projektstruktur](./docs/Projektstruktur.md) - Ordnerstruktur
