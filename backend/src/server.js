@@ -23,7 +23,7 @@ app.use(express.json());
 // Basic route
 app.get('/', (req, res) => {
   res.json({ 
-    message: 'Kahood API Server',
+    message: 'Answr API Server',
     version: '0.1.0',
     status: 'running'
   });

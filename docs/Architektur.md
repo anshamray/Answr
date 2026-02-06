@@ -1,4 +1,4 @@
-# Kahood - System-Architektur
+# Answr - System-Architektur
 
 ## Übersicht
 

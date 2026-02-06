@@ -1,7 +1,7 @@
-# Kahood - Projektstruktur
+# Answr - Projektstruktur
 
 ```
-kahood/
+answr/
 │
 ├── README.md                      # Haupt-Dokumentation
 ├── LICENSE                        # MIT Lizenz
@@ -80,7 +80,7 @@ kahood/
 │           └── userStore.js
 │
 ├── docs/                         # Dokumentation
-│   ├── Kahood_Lastenheft.docx   # Original Lastenheft
+│   ├── Answr_Lastenheft.docx   # Original Lastenheft
 │   ├── Architektur.md           # System-Architektur
 │   └── API.md                   # API-Dokumentation (bald)
 │

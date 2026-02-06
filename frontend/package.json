@@ -1,7 +1,7 @@
 {
-  "name": "kahood-frontend",
+  "name": "answr-frontend",
   "version": "0.1.0",
-  "description": "Kahood Quiz Platform - Frontend",
+  "description": "Answr Quiz Platform - Frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -29,7 +29,7 @@
 </style>
 
 <main>
-  <h1>🎮 Kahood</h1>
+  <h1>🎮 Answr</h1>
   
   <div class="placeholder">
     <p>Quiz-Plattform in Entwicklung...</p>
