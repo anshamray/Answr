@@ -1,6 +1,6 @@
-# Kahood Frontend
+# Answr Frontend
 
-Svelte-basiertes Frontend für die Kahood Quiz-Plattform.
+Svelte-basiertes Frontend für die Answr Quiz-Plattform.
 
 ## Setup
 

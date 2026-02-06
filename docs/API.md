@@ -1,4 +1,4 @@
-# Kahood API Specification
+# Answr API Specification
 
 Based on the requirements from the Lastenheft, this document defines the REST API endpoints and WebSocket events.
 

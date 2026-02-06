@@ -9,7 +9,7 @@ Entwicklung einer webbasierten Echtzeit-Quizplattform für Bildungseinrichtungen
 ## 🏗️ Projektstruktur
 
 ```
-kahood/
+answr/
 ├── backend/          # Node.js/Express Server + Socket.io
 ├── frontend/         # Svelte Client-Anwendung
 ├── docs/             # Dokumentation und Lastenheft
@@ -28,8 +28,8 @@ kahood/
 
 ```bash
 # Repository klonen
-git clone https://github.com/anshamray/Kahood.git
-cd Kahood
+git clone https://github.com/anshamray/Answr.git
+cd Answr
 
 # Backend installieren
 cd backend
@@ -88,7 +88,7 @@ Frontend läuft auf: `http://localhost:5173`
 ## 📚 Dokumentation
 
 Siehe [docs/](./docs/) für:
-- [Lastenheft](./docs/Kahood_Lastenheft.docx) - Anforderungsdokument
+- [Lastenheft](./docs/Answr_Lastenheft.docx) - Anforderungsdokument
 - [API-Dokumentation](./docs/API.md) - REST & WebSocket Spezifikation
 - [Architektur](./docs/Architektur.md) - Systemarchitektur
 - [Projektstruktur](./docs/Projektstruktur.md) - Ordnerstruktur

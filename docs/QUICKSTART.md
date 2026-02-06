@@ -1,4 +1,4 @@
-# Kahood Quick-Start Guide 🚀
+# Answr Quick-Start Guide 🚀
 
 Schnellanleitung zum Einrichten des Projekts.
 
@@ -23,8 +23,8 @@ Falls nicht installiert:
 
 ```bash
 # Repository klonen
-git clone https://github.com/anshamray/Kahood.git
-cd Kahood
+git clone https://github.com/anshamray/Answr.git
+cd Answr
 ```
 
 ## 2. Backend einrichten
@@ -39,7 +39,7 @@ npm install
 cp .env.example .env
 
 # Optional: MongoDB Connection String anpassen in .env
-# MONGODB_URI=mongodb://localhost:27017/kahood
+# MONGODB_URI=mongodb://localhost:27017/answr
 ```
 
 ## 3. Frontend einrichten
@@ -59,7 +59,7 @@ npm install
 mongod
 
 # Option B: Mit Docker
-docker run -d -p 27017:27017 --name kahood-mongo mongo:latest
+docker run -d -p 27017:27017 --name answr-mongo mongo:latest
 
 # Option C: MongoDB Atlas (Cloud) verwenden
 # → Erstelle kostenlose Datenbank auf mongodb.com
@@ -84,7 +84,7 @@ npm run dev
 
 Öffne Browser: http://localhost:5173
 
-Du solltest die Kahood Landing Page sehen!
+Du solltest die Answr Landing Page sehen!
 
 ## Typische Probleme
 
@@ -103,7 +103,7 @@ Du solltest die Kahood Landing Page sehen!
 
 1. Lies die [Projektstruktur](docs/Projektstruktur.md)
 2. Schau dir die [Architektur](docs/Architektur.md) an
-3. Lies das [Lastenheft](docs/Kahood_Lastenheft.docx)
+3. Lies das [Lastenheft](docs/Answr_Lastenheft.docx)
 4. Starte mit der Entwicklung!
 
 ## Git Workflow
@@ -126,7 +126,7 @@ git push origin feature/mein-feature
 
 ## Hilfe gebraucht?
 
-- Erstelle ein [GitHub Issue](https://github.com/anshamray/Kahood/issues)
+- Erstelle ein [GitHub Issue](https://github.com/anshamray/Answr/issues)
 - Lies die [Contributing Guidelines](CONTRIBUTING.md)
 
 Viel Erfolg! 🎉
