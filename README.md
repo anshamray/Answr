@@ -1,4 +1,4 @@
-# Kahood 🎮
+# Answr 🎮
 
 Eine Open-Source Quiz-Plattform als datenschutzfreundliche Alternative zu Kahoot.
 
