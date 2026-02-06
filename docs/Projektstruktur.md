@@ -107,14 +107,16 @@ GitHub-spezifische Dateien wie Issue-Templates.
 ## Nächste Schritte
 
 1. ✅ Grundstruktur erstellt
-2. [ ] Dependencies installieren (`npm install`)
-3. [ ] MongoDB Setup
-4. [ ] Datenmodelle implementieren
-5. [ ] REST API Endpoints
-6. [ ] WebSocket Events
-7. [ ] Frontend Komponenten
-8. [ ] Testing
-9. [ ] Deployment
+2. ✅ Dependencies installieren (`npm install`)
+3. ✅ MongoDB Setup (`src/config/database.js`)
+4. ✅ User-Model implementiert
+5. ✅ Auth API Endpoints (`/api/auth/*`)
+6. [ ] Quiz/Session Datenmodelle
+7. [ ] Quiz/Session API Endpoints
+8. [ ] WebSocket Events
+9. [ ] Frontend Komponenten
+10. [ ] Testing
+11. [ ] Deployment
 
 ## Entwicklung starten
 
