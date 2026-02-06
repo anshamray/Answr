@@ -3,10 +3,15 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { connectDatabase } from './config/database.js';
 import { initializeSocket } from './socket/index.js';
+import authRoutes from './routes/auth.js';
 
 // Load environment variables
 dotenv.config();
+
+// Connect to MongoDB
+connectDatabase();
 
 const app = express();
 const server = http.createServer(app);
@@ -23,12 +28,15 @@ app.use(express.json());
 
 // Basic route
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Answr API Server',
     version: '0.1.0',
     status: 'running'
   });
 });
+
+// API Routes
+app.use('/api/auth', authRoutes);
 
 // Initialize WebSocket handler
 const { activeSessions } = initializeSocket(io);

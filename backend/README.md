@@ -28,11 +28,12 @@ src/
 └── utils/              # Hilfsfunktionen
 ```
 
-## API Endpoints (geplant)
+## API Endpoints
 
-### Authentifizierung
+### Authentifizierung ✅
+- `POST /api/auth/register` - Moderator Registrierung
 - `POST /api/auth/login` - Moderator Login
-- `POST /api/auth/register` - Moderator Registrierung (optional)
+- `GET /api/auth/me` - Aktueller User (geschützt)
 
 ### Quiz-Verwaltung
 - `GET /api/quizzes` - Alle Quizze abrufen
