@@ -3,8 +3,8 @@
  * Manages WebSocket connections and routes events to appropriate handlers
  */
 
-// Placeholder imports for future event handlers
-// import { registerPlayerEvents } from './playerEvents.js';
+// Event handler registrations
+import { registerPlayerEvents } from './playerEvents.js';
 // import { registerModeratorEvents } from './moderatorEvents.js';
 
 /**
@@ -20,11 +20,8 @@ export function initializeSocket(io) {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
 
-    // Store reference to activeSessions on socket for use in event handlers
-    socket.activeSessions = activeSessions;
-
     // Register player events (WS-2)
-    // registerPlayerEvents(io, socket, activeSessions);
+    registerPlayerEvents(io, socket, activeSessions);
 
     // Register moderator events (WS-3, WS-4)
     // registerModeratorEvents(io, socket, activeSessions);
@@ -32,21 +29,34 @@ export function initializeSocket(io) {
     // Handle disconnect
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id);
+      const sessionPin = socket.data?.sessionPin;
+      const playerId = socket.data?.playerId;
 
-      // Clean up player from any session they were in
-      for (const [pin, session] of activeSessions) {
-        if (session.players && session.players.has(socket.id)) {
-          session.players.delete(socket.id);
-          console.log(`Player removed from session ${pin}`);
+      // If this socket belonged to a player, mark them as disconnected
+      if (sessionPin && playerId) {
+        const session = activeSessions.get(sessionPin);
+        if (session && session.players && session.players.has(playerId)) {
+          const player = session.players.get(playerId);
+          if (player) {
+            player.isConnected = false;
+            player.disconnectedAt = new Date();
+            console.log(`Player ${playerId} marked disconnected from session ${sessionPin}`);
 
-          // Notify remaining players in the session
-          io.to(pin).emit('player:left', {
-            playerId: socket.id,
-            playerCount: session.players.size
-          });
+            const connectedCount = Array.from(session.players.values()).filter(
+              (p) => p.isConnected
+            ).length;
+
+            // Notify remaining players in the session
+            io.to(sessionPin).emit('player:left', {
+              playerId,
+              playerCount: connectedCount
+            });
+          }
         }
+      }
 
-        // If host disconnects, notify players
+      // Also check if this socket was the host for any session
+      for (const [pin, session] of activeSessions) {
         if (session.hostSocketId === socket.id) {
           console.log(`Host disconnected from session ${pin}`);
           io.to(pin).emit('session:hostDisconnected');
