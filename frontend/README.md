@@ -1,6 +1,6 @@
-# Answr Frontend
+# Answr Frontend (Vue 3)
 
-Svelte-basiertes Frontend für die Answr Quiz-Plattform.
+Vue-3-basiertes Frontend für die Answr Quiz-Plattform, gebaut mit Vite.
 
 ## Setup
 
@@ -18,13 +18,11 @@ Frontend läuft auf: http://localhost:5173
 
 ```
 src/
-├── main.js             # Entry Point
-├── App.svelte          # Haupt-App-Komponente
-├── lib/                # Utilities & Services
-│   └── socket.js       # WebSocket Service
-├── components/         # Wiederverwendbare Komponenten
-├── routes/             # Seiten/Views
-└── stores/             # Svelte Stores für State Management
+├── main.js             # Vue Entry Point
+├── App.vue             # Haupt-App-Komponente
+├── styles.css          # Globale Styles
+└── lib/                # Utilities & Services
+    └── socket.js       # WebSocket Service
 ```
 
 ## Geplante Views
@@ -39,7 +37,7 @@ src/
 
 ## Geplante Komponenten
 
-- `QuizCard` - Quiz-Vorschau
+- `QuizCard` - Quiz-Vorschau (Vue-Komponente)
 - `QuestionEditor` - Frage bearbeiten
 - `AnswerButton` - Antwort-Button für Spieler
 - `Leaderboard` - Ranglisten-Anzeige
