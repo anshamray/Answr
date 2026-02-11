@@ -66,7 +66,7 @@ docker run -d -p 27017:27017 --name answr-mongo mongo:latest
 # → Connection String in backend/.env eintragen
 ```
 
-## 5. Entwicklung starten
+## 5. Entwicklung starten (ohne Docker)
 
 ```bash
 # Terminal 1 - Backend
@@ -80,7 +80,33 @@ npm run dev
 # → Läuft auf http://localhost:5173
 ```
 
-## 6. Testen
+## 6. Alternative: Backend + MongoDB mit Docker
+
+Wenn du MongoDB und das Backend nicht lokal installieren/konfigurieren möchtest, kannst du im Projekt-Root Docker Compose verwenden:
+
+```bash
+cd Answr
+docker compose up --build
+```
+
+- MongoDB läuft dann im Container `answr-mongo`
+- Backend läuft im Container `answr-backend` auf `http://localhost:3000`
+
+Das Frontend startest du wie gewohnt lokal:
+
+```bash
+cd frontend
+npm install   # falls noch nicht erfolgt
+npm run dev   # → http://localhost:5173
+```
+
+Beenden der Container:
+
+```bash
+docker compose down
+```
+
+## 7. Testen
 
 Öffne Browser: http://localhost:5173
 
