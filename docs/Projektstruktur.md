@@ -44,40 +44,19 @@ answr/
 │       ├── quiz.test.js
 │       └── session.test.js
 │
-├── frontend/                     # Svelte Frontend
+├── frontend/                     # Vue 3 Frontend (Vite)
 │   ├── package.json             # NPM Dependencies
 │   ├── vite.config.js           # Vite Konfiguration
 │   ├── index.html               # HTML Entry Point
 │   ├── README.md                # Frontend-Dokumentation
 │   │
 │   └── src/
-│       ├── main.js              # App Entry Point
-│       ├── App.svelte           # Haupt-Komponente
+│       ├── main.js              # Vue App Entry Point
+│       ├── App.vue              # Haupt-Komponente
+│       ├── styles.css           # Globale Styles
 │       │
-│       ├── lib/                 # Services & Utils
-│       │   ├── socket.js       # WebSocket Service
-│       │   └── api.js          # REST API Client
-│       │
-│       ├── components/          # Wiederverwendbare Komponenten
-│       │   ├── QuizCard.svelte
-│       │   ├── QuestionEditor.svelte
-│       │   ├── AnswerButton.svelte
-│       │   ├── Leaderboard.svelte
-│       │   ├── Timer.svelte
-│       │   └── PinDisplay.svelte
-│       │
-│       ├── routes/              # Seiten/Views
-│       │   ├── Home.svelte
-│       │   ├── ModeratorDashboard.svelte
-│       │   ├── QuizCreator.svelte
-│       │   ├── GameLobby.svelte
-│       │   ├── ModeratorControl.svelte
-│       │   ├── PlayerView.svelte
-│       │   └── Results.svelte
-│       │
-│       └── stores/              # Svelte Stores
-│           ├── gameState.js
-│           └── userStore.js
+│       └── lib/                 # Services & Utils
+│           └── socket.js       # WebSocket Service
 │
 ├── docs/                         # Dokumentation
 │   ├── Answr_Lastenheft.docx   # Original Lastenheft
@@ -96,7 +75,7 @@ answr/
 Node.js Backend mit Express und Socket.io. Enthält REST API und WebSocket-Logik.
 
 ### `/frontend`
-Svelte Frontend mit Vite als Build-Tool. Alle UI-Komponenten und Views.
+Vue 3 Frontend mit Vite als Build-Tool. Hier lebt die Client-App für Moderator- und Spieler-Interface.
 
 ### `/docs`
 Projektdokumentation, Lastenheft und Architektur-Diagramme.

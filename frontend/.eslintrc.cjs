@@ -1,3 +1,5 @@
+/* eslint-env node */
+
 module.exports = {
   root: true,
   env: {
@@ -10,14 +12,14 @@ module.exports = {
   },
   extends: [
     'eslint:recommended',
-    'plugin:svelte/recommended',
+    'plugin:vue/vue3-recommended',
     'prettier'
   ],
-  plugins: ['svelte'],
+  plugins: ['vue'],
   overrides: [
     {
-      files: ['*.svelte'],
-      parser: 'svelte-eslint-parser',
+      files: ['*.vue'],
+      parser: 'vue-eslint-parser',
       parserOptions: {
         parser: '@typescript-eslint/parser'
       }
