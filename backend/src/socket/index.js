@@ -5,7 +5,7 @@
 
 // Event handler registrations
 import { registerPlayerEvents } from './playerEvents.js';
-// import { registerModeratorEvents } from './moderatorEvents.js';
+import { registerModeratorEvents } from './moderatorEvents.js';
 
 /**
  * Initialize the socket handler
@@ -24,7 +24,7 @@ export function initializeSocket(io) {
     registerPlayerEvents(io, socket, activeSessions);
 
     // Register moderator events (WS-3, WS-4)
-    // registerModeratorEvents(io, socket, activeSessions);
+    registerModeratorEvents(io, socket, activeSessions);
 
     // Handle disconnect
     socket.on('disconnect', () => {
