@@ -4,8 +4,8 @@
  */
 
 // Event handler registrations
-import { registerPlayerEvents } from './playerEvents.js';
 import { registerModeratorEvents } from './moderatorEvents.js';
+import { registerPlayerEvents } from './playerEvents.js';
 
 /**
  * Initialize the socket handler
