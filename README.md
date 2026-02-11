@@ -55,6 +55,26 @@ npm run dev
 Backend läuft auf: `http://localhost:3000`  
 Frontend läuft auf: `http://localhost:5173`
 
+### Code-Qualität (Linting & Formatting)
+
+Im Projekt sind ESLint und Prettier für Backend und Frontend konfiguriert.
+
+```bash
+# Backend
+cd backend
+npm run lint        # ESLint Check
+npm run lint:fix    # ESLint mit Auto-Fix
+npm run format      # Prettier Check
+npm run format:fix  # Prettier Auto-Fix
+
+# Frontend
+cd frontend
+npm run lint        # ESLint Check (inkl. Svelte)
+npm run lint:fix
+npm run format
+npm run format:fix
+```
+
 ## 📋 Features (geplant)
 
 ### MVP (Must-Have)
