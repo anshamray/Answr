@@ -229,8 +229,12 @@ export function registerPlayerEvents(io, socket, activeSessions) {
         player.lastSeenAt = now;
       }
 
-      // We intentionally do not emit anything here yet; game/leaderboard
-      // events will be emitted from moderator/game logic in later tasks.
+      // Simple acknowledgement so the UI can verify the backend received the answer
+      socket.emit('player:answer:ack', {
+        questionId,
+        answerId,
+        receivedAt: now.toISOString()
+      });
     } catch (error) {
       console.error('Error in player:answer handler:', error);
       emitPlayerError(socket, 'INTERNAL_ERROR', 'An unexpected error occurred while submitting your answer.');

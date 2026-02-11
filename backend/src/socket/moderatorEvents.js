@@ -59,6 +59,20 @@ function getConnectedPlayers(session) {
 }
 
 /**
+ * Generate a unique 6-digit numeric PIN for a session.
+ * Ensures no collision with current in-memory sessions.
+ * @param {Map<string, any>} activeSessions
+ * @returns {string}
+ */
+function generateNumericPin(activeSessions) {
+  let pin;
+  do {
+    pin = String(Math.floor(100000 + Math.random() * 900000)); // 100000–999999
+  } while (activeSessions.has(pin));
+  return pin;
+}
+
+/**
  * Register all moderator-related Socket.io event handlers (WS-3)
  *
  * @param {import('socket.io').Server} io
@@ -78,16 +92,14 @@ export function registerModeratorEvents(io, socket, activeSessions) {
     try {
       const { pin, quizId } = payload || {};
 
-      if (!pin || typeof pin !== 'string') {
-        emitModeratorError(socket, 'VALIDATION_ERROR', 'Session PIN is required.');
-        return;
-      }
+      let sessionPin =
+        typeof pin === 'string'
+          ? pin.trim()
+          : '';
 
-      const sessionPin = pin.trim();
-
+      // If no PIN was provided by the client, generate a 6-digit numeric PIN on the server
       if (!sessionPin) {
-        emitModeratorError(socket, 'VALIDATION_ERROR', 'Session PIN must not be empty.');
-        return;
+        sessionPin = generateNumericPin(activeSessions);
       }
 
       let session = activeSessions.get(sessionPin);
