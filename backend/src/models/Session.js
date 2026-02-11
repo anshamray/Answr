@@ -3,7 +3,7 @@
 // Struktur:
 // - id
 // - quizId
-// - pin (wortbasiert)
+// - pin (6-stellige numerische PIN)
 // - status (waiting, active, finished)
 // - participants: [Participant]
 // - currentQuestionIndex

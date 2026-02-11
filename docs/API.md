@@ -215,7 +215,7 @@ file: <binary>
 {
   "id": "string",
   "quizId": "string",
-  "pin": "apple-banana-cherry",  // Word-based PIN (fSZ2)
+  "pin": "483912",  // 6-digit numeric PIN (fSZ2)
   "status": "lobby",
   "createdAt": "ISO8601",
   "expiresAt": "ISO8601"  // +2 hours (fSZ6)
@@ -384,7 +384,7 @@ Connection: `io.connect('http://localhost:3000')`
   _id: ObjectId,
   quizId: ObjectId (ref: Quiz),
   moderatorId: ObjectId (ref: User),
-  pin: String (unique, word-based),
+  pin: String (unique, 6-digit numeric),
   status: Enum ['lobby', 'playing', 'paused', 'finished'],
   currentQuestionIndex: Number,
   createdAt: Date,

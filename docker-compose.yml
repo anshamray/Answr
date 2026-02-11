@@ -1,0 +1,30 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: answr-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: answr-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGODB_URI: mongodb://mongo:27017/answr
+      CORS_ORIGIN: http://localhost:5173
+      JWT_SECRET: REDACTED_JWT_SECRET
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo-data:
+
