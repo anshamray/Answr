@@ -11,20 +11,22 @@ Entwicklung einer webbasierten Echtzeit-Quizplattform für Bildungseinrichtungen
 ```
 answr/
 ├── backend/          # Node.js/Express Server + Socket.io
-├── frontend/         # Svelte Client-Anwendung
+├── frontend/         # Vue 3 Client-Anwendung (Vite)
 ├── docs/             # Dokumentation
-└── docker/           # Docker-Konfiguration (später)
+├── docker-compose.yml# Docker Compose (MongoDB + Backend)
 ```
 
 ## 🚀 Quick Start
 
-### Voraussetzungen
+### Variante A: Lokale Entwicklung (ohne Docker)
+
+#### Voraussetzungen
 
 - Node.js >= 18.x
 - npm >= 9.x
 - MongoDB >= 6.x (lokal oder Docker)
 
-### Installation
+#### Installation
 
 ```bash
 # Repository klonen
@@ -40,7 +42,7 @@ cd ../frontend
 npm install
 ```
 
-### Entwicklung starten
+#### Entwicklung starten
 
 ```bash
 # Terminal 1 - Backend starten
@@ -54,6 +56,40 @@ npm run dev
 
 Backend läuft auf: `http://localhost:3000`  
 Frontend läuft auf: `http://localhost:5173`
+
+### Variante B: Mit Docker (MongoDB + Backend)
+
+Wenn du nur einen Befehl für Datenbank + Backend verwenden möchtest, kannst du Docker Compose nutzen.
+
+#### Voraussetzungen
+
+- Docker
+- Docker Compose (`docker compose` CLI)
+
+#### Starten
+
+Im Projektroot:
+
+```bash
+docker compose up --build
+```
+
+- Startet **MongoDB** (Container `answr-mongo`)
+- Startet das **Backend** (Container `answr-backend`) auf `http://localhost:3000`
+
+Das Frontend läuft weiterhin lokal über Vite:
+
+```bash
+cd frontend
+npm install        # einmalig
+npm run dev        # http://localhost:5173
+```
+
+#### Stoppen
+
+```bash
+docker compose down
+```
 
 ### Code-Qualität (Linting & Formatting)
 
