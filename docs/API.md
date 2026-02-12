@@ -110,7 +110,7 @@ Authorization: Bearer <token>
   "questions": [
     {
       "id": "string",
-      "type": "multiple-choice | true-false | slider | puzzle | free-text",
+      "type": "multiple-choice | true-false | slider | puzzle | type-answer | poll | ...",
       "text": "string",
       "mediaUrl": "string (optional)",
       "timeLimit": 30,
@@ -143,7 +143,7 @@ Authorization: Bearer <token>
 ```json
 // Request
 {
-  "type": "multiple-choice | true-false | slider | puzzle | free-text",
+  "type": "multiple-choice | true-false | slider | puzzle | type-answer | poll | ...",
   "text": "What is 2 + 2?",
   "mediaUrl": "string (optional)",
   "timeLimit": 30,
@@ -365,18 +365,29 @@ Connection: `io.connect('http://localhost:3000')`
 {
   _id: ObjectId,
   quizId: ObjectId (ref: Quiz),
-  type: Enum ['multiple-choice', 'true-false', 'slider', 'puzzle', 'free-text'],
-  text: String,
+  type: Enum ['multiple-choice', 'true-false', 'slider', 'puzzle', 'type-answer', 'poll', ...],
+  text: String,  // max 120 chars
+  textToReadAloud: String,  // for Puzzle, Quiz+Audio
   mediaUrl: String,
-  timeLimit: Number (5-300, default: 30),
+  mediaType: String,  // 'image' | 'video' | 'audio'
+  timeLimit: Number,  // 5–240 seconds
+  points: Number,  // 0 | 1000 | 2000
   order: Number,
   answers: [{
     _id: ObjectId,
     text: String,
-    isCorrect: Boolean
-  }]
+    imageUrl: String,
+    isCorrect: Boolean,
+    order: Number
+  }],
+  allowMultipleAnswers: Boolean,
+  sliderConfig: { min, max, unit, correctValue, margin },
+  pinConfig: { x, y, radius },
+  scaleConfig: { scaleType, min, max, startLabel, endLabel },
+  brainstormConfig: { maxIdeas, votingTime }
 }
 ```
+*Full question type list and validation: docs/QuestionTypes.md*
 
 ### Session
 ```javascript

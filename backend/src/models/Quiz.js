@@ -1,13 +1,32 @@
-// TODO: Mongoose Model für Quiz
-// 
-// Struktur:
-// - id
-// - moderatorId
-// - title
-// - description
-// - category
-// - questions: [Question]
-// - createdAt
-// - updatedAt
+import mongoose from 'mongoose';
 
-export default {};
+const quizSchema = new mongoose.Schema({
+  moderatorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  category: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  questions: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Question'
+  }]
+}, {
+  timestamps: true
+});
+
+export default mongoose.model('Quiz', quizSchema);
