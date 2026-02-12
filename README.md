@@ -135,7 +135,7 @@ npm run format:fix
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: Svelte 4 + Vite
+- **Frontend**: Vue + Vite
 - **Backend**: Node.js + Express.js
 - **Echtzeit**: Socket.io
 - **Datenbank**: MongoDB + Mongoose
