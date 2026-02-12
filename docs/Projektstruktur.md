@@ -7,6 +7,7 @@ answr/
 ├── LICENSE                        # MIT Lizenz
 ├── CONTRIBUTING.md                # Contribution Guidelines
 ├── .gitignore                     # Git Ignore Regeln
+├── docker-compose.yml             # Docker Compose (MongoDB + Backend)
 │
 ├── backend/                       # Node.js Backend
 │   ├── package.json              # NPM Dependencies
@@ -17,28 +18,38 @@ answr/
 │   │   ├── server.js            # Hauptserver (Express + Socket.io)
 │   │   │
 │   │   ├── models/              # Mongoose Datenmodelle
+│   │   │   ├── User.js         # User/Moderator-Schema
 │   │   │   ├── Quiz.js         # Quiz-Schema
-│   │   │   ├── Session.js      # Session-Schema
-│   │   │   └── User.js         # User-Schema (optional)
+│   │   │   ├── Question.js     # Frage-Schema (mit Answers embedded)
+│   │   │   ├── Session.js      # Session-Schema (TTL-Index, 2h Ablauf)
+│   │   │   ├── Participant.js  # Teilnehmer-Schema
+│   │   │   └── Submission.js   # Antwort-Einreichung-Schema
 │   │   │
 │   │   ├── routes/              # REST API Routes
 │   │   │   ├── auth.js         # Authentifizierung
-│   │   │   ├── quizzes.js      # Quiz-Management
+│   │   │   ├── quizzes.js      # Quiz-CRUD
 │   │   │   └── sessions.js     # Session-Management
 │   │   │
 │   │   ├── controllers/         # Business Logic
+│   │   │   ├── authController.js
 │   │   │   ├── quizController.js
 │   │   │   └── sessionController.js
 │   │   │
+│   │   ├── socket/              # WebSocket Event-Handler
+│   │   │   ├── index.js        # Socket-Initialisierung & Connection-Handling
+│   │   │   ├── moderatorEvents.js # Moderator-Events (join, start, next, etc.)
+│   │   │   ├── playerEvents.js    # Spieler-Events (join, answer, reconnect)
+│   │   │   └── gameEvents.js      # Broadcast-Helpers (lobby, question, etc.)
+│   │   │
 │   │   ├── middleware/          # Custom Middleware
-│   │   │   └── auth.js         # JWT Verification
+│   │   │   ├── auth.js         # JWT Verification (authenticate, optionalAuth)
+│   │   │   └── validate.js     # Request Body Validation
 │   │   │
 │   │   ├── config/              # Konfiguration
 │   │   │   └── database.js     # MongoDB Connection
 │   │   │
 │   │   └── utils/               # Hilfsfunktionen
-│   │       ├── pinGenerator.js # Wortbasierte PINs
-│   │       └── scoreCalculator.js
+│   │       └── pinGenerator.js # 6-stellige numerische PIN-Generierung
 │   │
 │   └── tests/                   # Tests (Jest)
 │       ├── quiz.test.js
@@ -52,16 +63,19 @@ answr/
 │   │
 │   └── src/
 │       ├── main.js              # Vue App Entry Point
-│       ├── App.vue              # Haupt-Komponente
+│       ├── App.vue              # Haupt-Komponente (Test-Interface)
 │       ├── styles.css           # Globale Styles
 │       │
 │       └── lib/                 # Services & Utils
-│           └── socket.js       # WebSocket Service
+│           └── socket.js       # WebSocket Service (Socket.io Client)
 │
 ├── docs/                         # Dokumentation
 │   ├── Answr_Lastenheft.docx   # Original Lastenheft
-│   ├── Architektur.md           # System-Architektur
-│   └── API.md                   # API-Dokumentation (bald)
+│   ├── Architektur.md           # System-Architektur (Mermaid-Diagramme)
+│   ├── API.md                   # API-Dokumentation (REST + WebSocket)
+│   ├── Projektstruktur.md       # Diese Datei
+│   ├── QuestionTypes.md         # Fragetypen-Referenz
+│   └── QUICKSTART.md            # Schnelleinstieg
 │
 └── .github/                      # GitHub Konfiguration
     └── ISSUE_TEMPLATE/
@@ -75,7 +89,7 @@ answr/
 Node.js Backend mit Express und Socket.io. Enthält REST API und WebSocket-Logik.
 
 ### `/frontend`
-Vue 3 Frontend mit Vite als Build-Tool. Hier lebt die Client-App für Moderator- und Spieler-Interface.
+Vue 3 Frontend mit Vite als Build-Tool. Aktuell ein Test-Interface für WebSocket-Events; die vollständige Svelte-App ist geplant.
 
 ### `/docs`
 Projektdokumentation, Lastenheft und Architektur-Diagramme.
@@ -83,19 +97,25 @@ Projektdokumentation, Lastenheft und Architektur-Diagramme.
 ### `/.github`
 GitHub-spezifische Dateien wie Issue-Templates.
 
-## Nächste Schritte
+## Fortschritt
 
 1. ✅ Grundstruktur erstellt
 2. ✅ Dependencies installieren (`npm install`)
 3. ✅ MongoDB Setup (`src/config/database.js`)
 4. ✅ User-Model implementiert
 5. ✅ Auth API Endpoints (`/api/auth/*`)
-6. [ ] Quiz/Session Datenmodelle
-7. [ ] Quiz/Session API Endpoints
-8. [ ] WebSocket Events
-9. [ ] Frontend Komponenten
-10. [ ] Testing
-11. [ ] Deployment
+6. ✅ Quiz-Model + CRUD API (`/api/quizzes/*`)
+7. ✅ Question-Model (mit Validierung: 2–6 Answers für Multiple-Choice)
+8. ✅ Session-Model (TTL-Index, 2h Auto-Ablauf)
+9. ✅ Participant-Model
+10. ✅ Submission-Model
+11. ✅ Session API Endpoints (`/api/sessions/*`)
+12. ✅ PIN-Generator Utility (6-stellig numerisch)
+13. ✅ WebSocket Events (Moderator, Player, Game)
+14. [ ] Question CRUD API Endpoints
+15. [ ] Frontend Komponenten (Svelte)
+16. [ ] Testing
+17. [ ] Deployment
 
 ## Entwicklung starten
 
