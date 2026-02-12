@@ -30,46 +30,19 @@
  * }
  */
 
+import { PLAYER_EVENTS, ERROR_CODES } from './events.js';
+import {
+  RECONNECT_WINDOW_MS,
+  MAX_PLAYERS_PER_SESSION,
+  emitPlayerError,
+  getOrInitPlayers,
+  getConnectedPlayers,
+  validateJoinPayload,
+  checkSessionState,
+  createPlayerEntry
+} from './sessionUtils.js';
 import { broadcastLobbyUpdate } from './gameEvents.js';
-
-const RECONNECT_WINDOW_MS = 30_000;
-const MAX_PLAYERS_PER_SESSION = 32;
-
-/**
- * Emit a structured player error
- * @param {import('socket.io').Socket} socket
- * @param {string} code
- * @param {string} message
- */
-function emitPlayerError(socket, code, message) {
-  socket.emit('player:error', { code, message });
-}
-
-/**
- * Small helper to generate a stable player id that can survive reconnects.
- * (Client receives this via `player:joined` and must send it on reconnect.)
- */
-function generatePlayerId() {
-  return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-}
-
-/**
- * Safely get or initialize the players Map for a session
- */
-function getOrInitPlayers(session) {
-  if (!session.players) {
-    session.players = new Map();
-  }
-  return session.players;
-}
-
-/**
- * Get connected players for lobby updates
- */
-function getConnectedPlayers(session) {
-  const players = session.players ? Array.from(session.players.values()) : [];
-  return players.filter((p) => p.isConnected);
-}
+import { clearQuestionTimer, endCurrentQuestion } from './broadcastEvents.js';
 
 /**
  * Register all player-related Socket.io event handlers (WS-2)
@@ -80,62 +53,70 @@ function getConnectedPlayers(session) {
  */
 export function registerPlayerEvents(io, socket, activeSessions) {
   /**
-   * player:join
-   * Payload: { pin, name, avatar? }
+   * player:check-pin
+   * Payload: { pin }
+   *
+   * Lightweight PIN validation — checks whether a session with the given PIN
+   * exists and is in the lobby state.  Does NOT create a player entry.
+   * Responds with:
+   *   - player:pin-valid   { pin }            on success
+   *   - player:pin-invalid { code, message }  on failure
    */
-  socket.on('player:join', (payload) => {
+  socket.on(PLAYER_EVENTS.CHECK_PIN, (payload) => {
     try {
-      const { pin, name, avatar } = payload || {};
+      const { pin: rawPin } = payload || {};
 
-      if (!pin || typeof pin !== 'string' || !name || typeof name !== 'string') {
-        emitPlayerError(socket, 'VALIDATION_ERROR', 'PIN and name are required.');
+      if (!rawPin || typeof rawPin !== 'string') {
+        socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.VALIDATION_ERROR, message: 'PIN is required.' });
         return;
       }
 
-      const trimmedName = name.trim();
-      if (!trimmedName) {
-        emitPlayerError(socket, 'VALIDATION_ERROR', 'Name must not be empty.');
-        return;
-      }
-
-      const sessionPin = pin.trim();
+      const sessionPin = rawPin.trim();
       const session = activeSessions.get(sessionPin);
 
       if (!session) {
-        emitPlayerError(socket, 'PIN_INVALID', 'No session found for this PIN.');
+        socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.PIN_INVALID, message: 'No session found for this PIN.' });
         return;
       }
 
-      const players = getOrInitPlayers(session);
-
-      // Enforce maximum players per session
-      const connectedPlayerCount = getConnectedPlayers(session).length;
-      if (connectedPlayerCount >= MAX_PLAYERS_PER_SESSION) {
-        emitPlayerError(socket, 'SESSION_FULL', 'This session is already full.');
-        return;
-      }
-
-      // Optional: only allow joins while in lobby
       if (session.status && session.status !== 'lobby') {
-        emitPlayerError(socket, 'QUIZ_IN_PROGRESS', 'Game already started. Joining is closed.');
+        socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.QUIZ_IN_PROGRESS, message: 'Game already started.' });
         return;
       }
 
-      const playerId = generatePlayerId();
-      const now = new Date();
+      socket.emit(PLAYER_EVENTS.PIN_VALID, { pin: sessionPin });
+    } catch (error) {
+      console.error('Error in player:check-pin handler:', error);
+      socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.INTERNAL_ERROR, message: 'An unexpected error occurred.' });
+    }
+  });
 
-      const player = {
-        id: playerId,
-        socketId: socket.id,
-        nickname: trimmedName,
-        avatar: typeof avatar === 'string' ? avatar : null,
-        score: 0,
-        isConnected: true,
-        joinedAt: now,
-        lastSeenAt: now,
-        disconnectedAt: null
-      };
+  /**
+   * player:join
+   * Payload: { pin, name, avatar? }
+   */
+  socket.on(PLAYER_EVENTS.JOIN, (payload) => {
+    try {
+      // Validate payload
+      const validation = validateJoinPayload(payload);
+      if (!validation.valid) {
+        emitPlayerError(socket, validation.error.code, validation.error.message);
+        return;
+      }
 
+      const { pin: sessionPin, name, avatar } = validation;
+      const session = activeSessions.get(sessionPin);
+
+      // Check session state
+      const stateCheck = checkSessionState(session, MAX_PLAYERS_PER_SESSION);
+      if (!stateCheck.canJoin) {
+        emitPlayerError(socket, stateCheck.error.code, stateCheck.error.message);
+        return;
+      }
+
+      // Create player and add to session
+      const players = getOrInitPlayers(session);
+      const { id: playerId, player } = createPlayerEntry(name, socket.id, avatar);
       players.set(playerId, player);
 
       // Track session/player on the socket for quick lookup on disconnect
@@ -146,7 +127,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       socket.join(sessionPin);
 
       // Notify the joining player
-      socket.emit('player:joined', {
+      socket.emit(PLAYER_EVENTS.JOINED, {
         playerId,
         sessionId: sessionPin
       });
@@ -161,7 +142,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
     } catch (error) {
       console.error('Error in player:join handler:', error);
-      emitPlayerError(socket, 'INTERNAL_ERROR', 'An unexpected error occurred while joining.');
+      emitPlayerError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while joining.');
     }
   });
 
@@ -172,32 +153,37 @@ export function registerPlayerEvents(io, socket, activeSessions) {
    * For now we only validate & buffer the submission in memory.
    * Scoring and game progression will be handled in WS-3/WS-4 tasks.
    */
-  socket.on('player:answer', (payload) => {
+  socket.on(PLAYER_EVENTS.ANSWER, (payload) => {
     try {
-      const { questionId, answerId, timeTaken } = payload || {};
-
-      if (!questionId || typeof questionId !== 'string' || !answerId || typeof answerId !== 'string') {
-        emitPlayerError(socket, 'VALIDATION_ERROR', 'questionId and answerId are required.');
-        return;
-      }
+      let { questionId, answerId, timeTaken } = payload || {};
 
       const sessionPin = socket.data.sessionPin;
       const playerId = socket.data.playerId;
 
       if (!sessionPin || !playerId) {
-        emitPlayerError(socket, 'SESSION_EXPIRED', 'You are not part of an active session.');
+        emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'You are not part of an active session.');
         return;
       }
 
       const session = activeSessions.get(sessionPin);
 
+      // Fall back to the server's current question ID if the client didn't send one
+      if (!questionId || typeof questionId !== 'string') {
+        questionId = session?.currentQuestionId;
+      }
+
+      if (!questionId || !answerId || typeof answerId !== 'string') {
+        emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'answerId is required.');
+        return;
+      }
+
       if (!session || !session.players || !session.players.has(playerId)) {
-        emitPlayerError(socket, 'SESSION_EXPIRED', 'Session no longer available.');
+        emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'Session no longer available.');
         return;
       }
 
       if (session.status && session.status !== 'playing') {
-        emitPlayerError(socket, 'VALIDATION_ERROR', 'You cannot submit an answer right now.');
+        emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'You cannot submit an answer right now.');
         return;
       }
 
@@ -230,14 +216,38 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       }
 
       // Simple acknowledgement so the UI can verify the backend received the answer
-      socket.emit('player:answer:ack', {
+      socket.emit(PLAYER_EVENTS.ANSWER_ACK, {
         questionId,
         answerId,
         receivedAt: now.toISOString()
       });
+
+      // Notify everyone in the room about the new answer count (no answer details)
+      const answerCount = questionAnswers.size;
+      io.to(sessionPin).emit(PLAYER_EVENTS.ANSWER_RECEIVED, {
+        questionId,
+        answerCount
+      });
+
+      // Send detailed answer info to host socket only (for distribution tracking)
+      const hostSocketId = session.hostSocketId;
+      if (hostSocketId) {
+        io.to(hostSocketId).emit(PLAYER_EVENTS.ANSWER_DETAIL, {
+          questionId,
+          answerId,
+          answerCount
+        });
+      }
+
+      // Auto-end question when every connected player has answered
+      const connectedCount = getConnectedPlayers(session).length;
+      if (connectedCount > 0 && answerCount >= connectedCount && !session.questionEnded) {
+        clearQuestionTimer(session);
+        endCurrentQuestion(io, sessionPin, session);
+      }
     } catch (error) {
       console.error('Error in player:answer handler:', error);
-      emitPlayerError(socket, 'INTERNAL_ERROR', 'An unexpected error occurred while submitting your answer.');
+      emitPlayerError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while submitting your answer.');
     }
   });
 
@@ -248,14 +258,14 @@ export function registerPlayerEvents(io, socket, activeSessions) {
    * Allows a player to rejoin within a 30s window after disconnect.
    * We tolerate the documented typo `odlfPlayerId` and also accept `oldPlayerId`.
    */
-  socket.on('player:reconnect', (payload) => {
+  socket.on(PLAYER_EVENTS.RECONNECT, (payload) => {
     try {
       const { sessionId, odlfPlayerId, oldPlayerId } = payload || {};
 
       const playerId = odlfPlayerId || oldPlayerId;
 
       if (!sessionId || typeof sessionId !== 'string' || !playerId || typeof playerId !== 'string') {
-        emitPlayerError(socket, 'VALIDATION_ERROR', 'sessionId and playerId are required for reconnect.');
+        emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'sessionId and playerId are required for reconnect.');
         return;
       }
 
@@ -263,30 +273,30 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       const session = activeSessions.get(sessionPin);
 
       if (!session || !session.players) {
-        emitPlayerError(socket, 'SESSION_EXPIRED', 'Session not found or already finished.');
+        emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'Session not found or already finished.');
         return;
       }
 
       const player = session.players.get(playerId);
 
       if (!player) {
-        emitPlayerError(socket, 'NOT_FOUND', 'Player not found in this session.');
+        emitPlayerError(socket, ERROR_CODES.NOT_FOUND, 'Player not found in this session.');
         return;
       }
 
       if (player.isConnected) {
-        emitPlayerError(socket, 'VALIDATION_ERROR', 'Player is already connected.');
+        emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'Player is already connected.');
         return;
       }
 
       if (!player.disconnectedAt) {
-        emitPlayerError(socket, 'SESSION_EXPIRED', 'Reconnect window has expired.');
+        emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'Reconnect window has expired.');
         return;
       }
 
       const elapsed = Date.now() - player.disconnectedAt.getTime();
       if (elapsed > RECONNECT_WINDOW_MS) {
-        emitPlayerError(socket, 'SESSION_EXPIRED', 'Reconnect window has expired.');
+        emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'Reconnect window has expired.');
         // Optional: clean up player entry once reconnect window is over
         session.players.delete(playerId);
         return;
@@ -304,7 +314,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       socket.join(sessionPin);
 
       // Notify the reconnecting client using the same event shape as initial join
-      socket.emit('player:joined', {
+      socket.emit(PLAYER_EVENTS.JOINED, {
         playerId,
         sessionId: sessionPin
       });
@@ -319,8 +329,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
     } catch (error) {
       console.error('Error in player:reconnect handler:', error);
-      emitPlayerError(socket, 'INTERNAL_ERROR', 'An unexpected error occurred while reconnecting.');
+      emitPlayerError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while reconnecting.');
     }
   });
 }
-

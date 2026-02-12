@@ -8,6 +8,7 @@ import { initializeSocket } from './socket/index.js';
 import authRoutes from './routes/auth.js';
 import quizRoutes from './routes/quizzes.js';
 import sessionRoutes from './routes/sessions.js';
+import libraryRoutes from './routes/library.js';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/library', libraryRoutes);
 
 // Initialize WebSocket handler
 const { activeSessions } = initializeSocket(io);

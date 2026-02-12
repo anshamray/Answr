@@ -24,9 +24,44 @@ const quizSchema = new mongoose.Schema({
   questions: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Question'
-  }]
+  }],
+
+  // Library fields
+  isPublished: {
+    type: Boolean,
+    default: false
+  },
+  isOfficial: {
+    type: Boolean,
+    default: false
+  },
+  publishedAt: {
+    type: Date,
+    default: null
+  },
+  playCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  tags: [{
+    type: String,
+    trim: true,
+    lowercase: true
+  }],
+  // Original quiz this was cloned from (null if original)
+  clonedFrom: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quiz',
+    default: null
+  }
 }, {
   timestamps: true
 });
+
+// Index for efficient library browsing
+quizSchema.index({ isPublished: 1, publishedAt: -1 });
+quizSchema.index({ isPublished: 1, playCount: -1 });
+quizSchema.index({ tags: 1 });
 
 export default mongoose.model('Quiz', quizSchema);

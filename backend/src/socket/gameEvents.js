@@ -3,6 +3,8 @@
  * Helper functions to emit game events to session rooms
  */
 
+import { GAME_EVENTS, LOBBY_EVENTS } from './events.js';
+
 /**
  * Broadcast an event to all clients in a session
  * @param {Server} io - Socket.io server instance
@@ -21,7 +23,7 @@ export function broadcastToSession(io, sessionPin, event, data) {
  * @param {Array} players - Array of player objects { id, nickname, avatar }
  */
 export function broadcastLobbyUpdate(io, sessionPin, players) {
-  io.to(sessionPin).emit('lobby:update', {
+  io.to(sessionPin).emit(LOBBY_EVENTS.UPDATE, {
     players,
     playerCount: players.length
   });
@@ -34,7 +36,8 @@ export function broadcastLobbyUpdate(io, sessionPin, players) {
  * @param {Object} questionData - Question data { questionNumber, totalQuestions, text, options, timeLimit }
  */
 export function broadcastQuestion(io, sessionPin, questionData) {
-  io.to(sessionPin).emit('game:question', {
+  io.to(sessionPin).emit(GAME_EVENTS.QUESTION, {
+    questionId: questionData.questionId,
     questionNumber: questionData.questionNumber,
     totalQuestions: questionData.totalQuestions,
     text: questionData.text,
@@ -50,20 +53,20 @@ export function broadcastQuestion(io, sessionPin, questionData) {
  * @param {number} remaining - Remaining time in seconds
  */
 export function broadcastTimer(io, sessionPin, remaining) {
-  io.to(sessionPin).emit('game:timer', {
+  io.to(sessionPin).emit(GAME_EVENTS.TIMER, {
     remaining
   });
 }
 
 /**
- * Broadcast that a question has ended with the correct answer
+ * Broadcast that a question has ended with the correct answer IDs
  * @param {Server} io - Socket.io server instance
  * @param {string} sessionPin - The session PIN
- * @param {Object} correctAnswer - Correct answer data { optionIndex, optionText }
+ * @param {Object} data - { correctAnswerIds: string[] }
  */
-export function broadcastQuestionEnd(io, sessionPin, correctAnswer) {
-  io.to(sessionPin).emit('game:questionEnd', {
-    correctAnswer
+export function broadcastQuestionEnd(io, sessionPin, data) {
+  io.to(sessionPin).emit(GAME_EVENTS.QUESTION_END, {
+    correctAnswerIds: data?.correctAnswerIds || []
   });
 }
 
@@ -74,7 +77,7 @@ export function broadcastQuestionEnd(io, sessionPin, correctAnswer) {
  * @param {Array} leaderboard - Array of player scores [{ nickname, score, position }]
  */
 export function broadcastLeaderboard(io, sessionPin, leaderboard) {
-  io.to(sessionPin).emit('game:leaderboard', {
+  io.to(sessionPin).emit(GAME_EVENTS.LEADERBOARD, {
     leaderboard
   });
 }
@@ -86,7 +89,7 @@ export function broadcastLeaderboard(io, sessionPin, leaderboard) {
  * @param {Object} finalResults - Final game results { leaderboard, stats }
  */
 export function broadcastGameEnd(io, sessionPin, finalResults) {
-  io.to(sessionPin).emit('game:end', {
+  io.to(sessionPin).emit(GAME_EVENTS.END, {
     leaderboard: finalResults.leaderboard,
     stats: finalResults.stats
   });

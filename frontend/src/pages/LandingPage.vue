@@ -27,6 +27,8 @@ function cleanupSocket() {
   if (socket) {
     socket.off('player:joined');
     socket.off('player:error');
+    socket.off('player:pin-valid');
+    socket.off('player:pin-invalid');
   }
 }
 
@@ -35,10 +37,8 @@ onUnmounted(() => {
 });
 
 /**
- * Step 1: Validate PIN format, then check with the backend
- * by emitting a temporary player:join with a placeholder name.
- * If the PIN is invalid the server responds with player:error immediately.
- * If valid, we disconnect, move to step 2 and do the real join with the name.
+ * Step 1: Validate PIN format, then check with the backend using the
+ * lightweight player:check-pin event (no player entry is created).
  */
 function handlePinSubmit() {
   error.value = '';
@@ -70,7 +70,7 @@ function handlePinSubmit() {
   }, 5000);
 
   // PIN is valid — session exists. Disconnect and ask for name.
-  socket.on('player:joined', () => {
+  socket.on('player:pin-valid', () => {
     clearTimeout(timeout);
     loading.value = false;
     cleanupSocket();
@@ -79,25 +79,23 @@ function handlePinSubmit() {
   });
 
   // PIN is invalid — session does not exist.
-  socket.on('player:error', () => {
+  socket.on('player:pin-invalid', (data) => {
     clearTimeout(timeout);
     loading.value = false;
-    error.value = 'This PIN does not exist. Did you make it up?';
+    error.value = data?.message || 'This PIN does not exist. Did you make it up?';
     triggerShake();
     cleanupSocket();
     disconnectSocket();
   });
 
-  // We send a temporary name for the check. The connection is thrown away
-  // after this — the real join happens in step 2 with the actual name.
-  const emitJoin = () => {
-    socket.emit('player:join', { pin: trimmed, name: '__pin_check__' });
+  const emitCheck = () => {
+    socket.emit('player:check-pin', { pin: trimmed });
   };
 
   if (socket.connected) {
-    emitJoin();
+    emitCheck();
   } else {
-    socket.once('connect', emitJoin);
+    socket.once('connect', emitCheck);
   }
 }
 
@@ -222,13 +220,20 @@ function goBackToPin() {
         </button>
       </div>
 
-      <!-- Divider + Host button (only on PIN step) -->
+      <!-- Divider + Host / Library buttons (only on PIN step) -->
       <template v-if="step === 'pin'">
         <div class="flex items-center gap-4">
           <hr class="flex-1 border-gray-300" />
           <span class="text-gray-400 text-sm">or</span>
           <hr class="flex-1 border-gray-300" />
         </div>
+
+        <router-link
+          to="/library"
+          class="block w-full text-center bg-indigo-600 text-white text-lg font-semibold py-3 rounded-lg hover:bg-indigo-700 transition"
+        >
+          Browse Library
+        </router-link>
 
         <router-link
           to="/login"

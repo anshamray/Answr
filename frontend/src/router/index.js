@@ -6,6 +6,8 @@ import LoginPage from '../pages/LoginPage.vue';
 import RegisterPage from '../pages/RegisterPage.vue';
 import DashboardPage from '../pages/DashboardPage.vue';
 import QuizEditPage from '../pages/QuizEditPage.vue';
+import LibraryPage from '../pages/LibraryPage.vue';
+import LibraryDetailPage from '../pages/LibraryDetailPage.vue';
 import SessionLobbyPage from '../pages/SessionLobbyPage.vue';
 import GameControlPage from '../pages/GameControlPage.vue';
 import SessionResultsPage from '../pages/SessionResultsPage.vue';
@@ -20,12 +22,16 @@ const routes = [
   { path: '/login', component: LoginPage },
   { path: '/register', component: RegisterPage },
 
-  // Moderator (auth required)
+  // Library (public, no auth required)
+  { path: '/library', component: LibraryPage },
+  { path: '/library/:id', component: LibraryDetailPage },
+
+  // Moderator (auth required — or guest token for sessions started from library)
   { path: '/dashboard', component: DashboardPage, meta: { requiresAuth: true } },
   { path: '/quiz/:id/edit', component: QuizEditPage, meta: { requiresAuth: true } },
-  { path: '/session/:id/lobby', component: SessionLobbyPage, meta: { requiresAuth: true } },
-  { path: '/session/:id/control', component: GameControlPage, meta: { requiresAuth: true } },
-  { path: '/session/:id/results', component: SessionResultsPage, meta: { requiresAuth: true } },
+  { path: '/session/:id/lobby', component: SessionLobbyPage, meta: { requiresGuestOrAuth: true } },
+  { path: '/session/:id/control', component: GameControlPage, meta: { requiresGuestOrAuth: true } },
+  { path: '/session/:id/results', component: SessionResultsPage, meta: { requiresGuestOrAuth: true } },
 
   // Player (no auth)
   { path: '/play', component: PlayerJoinPage },
@@ -39,11 +45,21 @@ const router = createRouter({
   routes
 });
 
-// Navigation guard: redirect to /login if auth is required but missing
+// Navigation guard: redirect to /login if auth is required but missing.
+// Routes with `requiresGuestOrAuth` also accept a guest session token
+// (stored in sessionStorage by LibraryDetailPage when starting as guest).
 router.beforeEach((to) => {
   if (to.meta.requiresAuth) {
     const auth = useAuthStore();
     if (!auth.isAuthenticated) {
+      return { path: '/login', query: { redirect: to.fullPath } };
+    }
+  }
+
+  if (to.meta.requiresGuestOrAuth) {
+    const auth = useAuthStore();
+    const hasGuestToken = !!sessionStorage.getItem('guestToken');
+    if (!auth.isAuthenticated && !hasGuestToken) {
       return { path: '/login', query: { redirect: to.fullPath } };
     }
   }

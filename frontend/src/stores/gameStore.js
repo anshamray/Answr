@@ -13,9 +13,9 @@ export const useGameStore = defineStore('game', () => {
   const answerResult = ref(null);
 
   function setSession(data) {
-    pin.value = data.pin || null;
-    playerId.value = data.playerId || null;
-    sessionId.value = data.sessionId || null;
+    if (data.pin !== undefined) pin.value = data.pin;
+    if (data.playerId !== undefined) playerId.value = data.playerId;
+    if (data.sessionId !== undefined) sessionId.value = data.sessionId;
   }
 
   function reset() {

@@ -152,49 +152,62 @@ const QUESTION_TYPES = [
 
 ---
 
-## Gap Summary
+## Implementation Status
 
-| Area | Status | Action |
-|------|--------|--------|
-| Quiz model | ⚠️ Missing `questions` array | Add `questions: [ObjectId]` ref |
-| Question model | ❌ Not implemented | Create extensible schema |
-| Architektur.md | ⚠️ Only 2 types | Update with full type list |
-| API.md | ✓ Has 5 types | Extend with full enum + configs |
-| Submission/Answer handling | ⚠️ answerId only | Support free text, coordinates, etc. |
+| Area | Status | Details |
+|------|--------|---------|
+| Quiz model | ✅ Implemented | `questions: [ObjectId]` ref to Question |
+| Question model | ✅ Implemented | Extensible schema with all 14 types, per-type validation |
+| Question validation | ✅ Implemented | Pre-validate hook enforces per-type rules (text, timeLimit, points, answers, configs) |
+| Architektur.md | ✅ Updated | Full type list, all collections documented |
+| API.md | ✅ Updated | Full enum, type-specific configs, validation table, request examples |
+| Submission model | ✅ Implemented | Polymorphic payload: answerId, answerIds, textAnswer, numericAnswer, pinAnswer, orderedAnswerIds |
 
 ---
 
-## Submission Schema (Future)
+## Submission Schema
 
-For non–multiple-choice types, `Submission` must support varied answer formats:
+The Submission model supports all answer formats via polymorphic fields.
+Which field is populated depends on `questionType`:
+
+| questionType | Answer field(s) |
+|-------------|----------------|
+| multiple-choice, true-false, quiz-audio | `answerId` (+ `answerIds` for multi-select) |
+| poll | `answerId` or `answerIds` (multi-select) |
+| type-answer, word-cloud, open-ended, brainstorm | `textAnswer` |
+| slider, scale, nps-scale | `numericAnswer` |
+| pin-answer, drop-pin | `pinAnswer { x, y }` |
+| puzzle | `orderedAnswerIds` |
 
 ```javascript
 {
   participantId: ObjectId,
   questionId: ObjectId,
-  questionType: String,  // to interpret payload
-  // For MC/TrueFalse: answerId
-  answerId: ObjectId,
-  // For Type Answer, Word Cloud, Open-ended: free text
-  textAnswer: String,
-  // For Slider: numeric value
-  numericAnswer: Number,
-  // For Pin/Drop Pin: coordinates
-  pinAnswer: { x: Number, y: Number },
-  // For Puzzle: ordered array
-  orderedAnswerIds: [ObjectId],
-  // Common
+  questionType: String,              // copied from Question.type
+  answerId: ObjectId,                // single-select MC / true-false / poll / quiz-audio
+  answerIds: [ObjectId],             // multi-select MC / poll
+  textAnswer: String,                // type-answer, word-cloud, open-ended, brainstorm
+  numericAnswer: Number,             // slider, scale, nps-scale
+  pinAnswer: { x: Number, y: Number }, // pin-answer, drop-pin (0–100 %)
+  orderedAnswerIds: [ObjectId],      // puzzle
   timeTaken: Number,
   pointsAwarded: Number,
-  submittedAt: Date
+  createdAt: Date
 }
 ```
 
+Unique constraint: one submission per participant per question.
+
 ---
 
-## Recommendation
+## Question Validation Summary
 
-1. **Quiz**: Add `questions: [{ type: ObjectId, ref: 'Question' }]`.
-2. **Question**: Implement schema with `type`, `text`, `timeLimit`, `points`, `order`, `mediaUrl`, `answers`, plus optional `sliderConfig`, `pinConfig`, `scaleConfig`, `brainstormConfig`, `textToReadAloud`, `audioLanguage`, `allowMultipleAnswers`.
-3. **Docs**: Update Architektur.md and API.md with the extended Question schema and type list.
-4. **Submission**: Keep current `answerId` for MVP; plan polymorphic payload for future types.
+All 14 question types are validated in `Question.pre('validate')`:
+
+- **text**: Required for all types except brainstorm, scale, nps-scale
+- **points**: Must be 0 for opinion types (poll, word-cloud, brainstorm, drop-pin, open-ended, scale, nps-scale)
+- **timeLimit**: Per-type minimum enforced (5s for MC/TF, 10s for slider, 20s for type-answer/puzzle/pin-answer/word-cloud/drop-pin/open-ended, 30s for brainstorm)
+- **answers**: Count validated per type (MC: 2–6 with 1+ correct; TF: exactly 2; type-answer: 1–4; puzzle: 3–4; poll: 2–6)
+- **configs**: Required where applicable (sliderConfig for slider, pinConfig for pin-answer, scaleConfig for scale/nps-scale, brainstormConfig for brainstorm)
+- **media**: `mediaUrl` required for pin-answer and drop-pin
+- **audio**: `audioLanguage` required for quiz-audio

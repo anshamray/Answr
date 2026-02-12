@@ -3,7 +3,7 @@
  * Manages WebSocket connections and routes events to appropriate handlers
  */
 
-// Event handler registrations
+import { PLAYER_EVENTS, SESSION_EVENTS } from './events.js';
 import { registerModeratorEvents } from './moderatorEvents.js';
 import { registerPlayerEvents } from './playerEvents.js';
 
@@ -47,7 +47,7 @@ export function initializeSocket(io) {
             ).length;
 
             // Notify remaining players in the session
-            io.to(sessionPin).emit('player:left', {
+            io.to(sessionPin).emit(PLAYER_EVENTS.LEFT, {
               playerId,
               playerCount: connectedCount
             });
@@ -59,7 +59,7 @@ export function initializeSocket(io) {
       for (const [pin, session] of activeSessions) {
         if (session.hostSocketId === socket.id) {
           console.log(`Host disconnected from session ${pin}`);
-          io.to(pin).emit('session:hostDisconnected');
+          io.to(pin).emit(SESSION_EVENTS.HOST_DISCONNECTED);
         }
       }
     });
