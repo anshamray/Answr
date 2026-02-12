@@ -55,19 +55,40 @@ answr/
 │       ├── quiz.test.js
 │       └── session.test.js
 │
-├── frontend/                     # Vue 3 Frontend (Vite)
+├── frontend/                     # Vue 3 Frontend (Vite + Tailwind CSS v4)
 │   ├── package.json             # NPM Dependencies
-│   ├── vite.config.js           # Vite Konfiguration
+│   ├── vite.config.js           # Vite + Tailwind Plugin
 │   ├── index.html               # HTML Entry Point
 │   ├── README.md                # Frontend-Dokumentation
 │   │
 │   └── src/
-│       ├── main.js              # Vue App Entry Point
-│       ├── App.vue              # Haupt-Komponente (Test-Interface)
-│       ├── styles.css           # Globale Styles
+│       ├── main.js              # Vue Entry Point (Pinia + Router)
+│       ├── App.vue              # Shell mit <router-view />
+│       ├── styles.css           # Tailwind CSS Import
+│       │
+│       ├── router/
+│       │   └── index.js         # Vue Router (Routen + Auth-Guard)
+│       │
+│       ├── stores/              # Pinia State Management
+│       │   ├── authStore.js     # Auth: token, user, login/register/logout
+│       │   └── gameStore.js     # Spieler: pin, question, leaderboard
+│       │
+│       ├── pages/               # Seiten-Komponenten
+│       │   ├── LandingPage.vue  # PIN-Eingabe oder Login
+│       │   ├── LoginPage.vue    # Moderator Login
+│       │   ├── RegisterPage.vue # Moderator Registrierung
+│       │   ├── DashboardPage.vue      # Quiz-Übersicht
+│       │   ├── QuizEditPage.vue       # Quiz-Editor
+│       │   ├── SessionLobbyPage.vue   # Moderator-Lobby (PIN anzeigen)
+│       │   ├── GameControlPage.vue    # Spielsteuerung
+│       │   ├── SessionResultsPage.vue # Ergebnisse
+│       │   ├── PlayerJoinPage.vue     # Spieler: PIN + Name
+│       │   ├── PlayerLobbyPage.vue    # Spieler: Warteraum
+│       │   ├── PlayerGamePage.vue     # Spieler: Fragen beantworten
+│       │   └── PlayerResultsPage.vue  # Spieler: Endergebnis
 │       │
 │       └── lib/                 # Services & Utils
-│           └── socket.js       # WebSocket Service (Socket.io Client)
+│           └── socket.js       # Socket.io Client (connect/disconnect/getSocket)
 │
 ├── docs/                         # Dokumentation
 │   ├── Answr_Lastenheft.docx   # Original Lastenheft
@@ -89,7 +110,7 @@ answr/
 Node.js Backend mit Express und Socket.io. Enthält REST API und WebSocket-Logik.
 
 ### `/frontend`
-Vue 3 Frontend mit Vite als Build-Tool. Aktuell ein Test-Interface für WebSocket-Events; die vollständige Svelte-App ist geplant.
+Vue 3 Frontend mit Vite, Tailwind CSS, Vue Router und Pinia. Zwei getrennte Flows: Moderator (Auth-geschützt) und Spieler (PIN-basiert).
 
 ### `/docs`
 Projektdokumentation, Lastenheft und Architektur-Diagramme.

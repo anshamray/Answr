@@ -104,7 +104,7 @@ graph LR
   QUESTIONS --> QN_DELETE["DELETE /questions/:id<br/>🔒 Auth"]
   QUESTIONS --> QN_REORDER["PUT /quizzes/:quizId/questions/reorder<br/>🔒 Auth"]
 
-  API --> SESSIONS["/sessions<br/><i>(planned)</i>"]
+  API --> SESSIONS["/sessions"]
   SESSIONS --> S_CREATE["POST /<br/>🔒 Auth<br/><i>Create session</i>"]
   SESSIONS --> S_GET["GET /:id<br/>🔒 Auth<br/><i>Session details</i>"]
   SESSIONS --> S_DELETE["DELETE /:id<br/>🔒 Auth<br/><i>End session</i>"]
@@ -117,8 +117,8 @@ graph LR
 
   class AUTH_REG,AUTH_LOG,AUTH_ME implemented
   class Q_LIST,Q_GET,Q_CREATE,Q_UPDATE,Q_DELETE implemented
+  class S_CREATE,S_GET,S_DELETE,S_RESULTS implemented
   class QN_ADD,QN_UPDATE,QN_DELETE,QN_REORDER planned
-  class S_CREATE,S_GET,S_DELETE,S_RESULTS planned
   class HEALTH planned
 ```
 
@@ -222,7 +222,7 @@ sequenceDiagram
 
 ## 4. Screen Flow
 
-Frontend screens and navigation paths (planned Svelte application).
+Frontend screens and navigation paths (Vue 3 application).
 
 ```mermaid
 flowchart TD
@@ -265,6 +265,79 @@ flowchart TD
 ```
 
 **Legend:** 🟦 Player screens &nbsp; 🟧 Moderator screens &nbsp; 🟪 Shared
+
+---
+
+## 5. Frontend Routing
+
+Two separate flows sharing the same Vue app: Moderator (auth-gated via JWT) and Player (PIN-based, no auth).
+
+```mermaid
+flowchart TD
+  Root["/"] --> Landing["LandingPage"]
+  Landing -->|"Enter PIN"| PlayerJoin["/play"]
+  Landing -->|"Login"| Login["/login"]
+  Login --> Register["/register"]
+
+  subgraph mod [Moderator Flow - Auth Required]
+    Dashboard["/dashboard"]
+    QuizEdit["/quiz/:id/edit"]
+    Lobby["/session/:id/lobby"]
+    GameControl["/session/:id/control"]
+    Results["/session/:id/results"]
+  end
+
+  Login --> Dashboard
+  Dashboard --> QuizEdit
+  Dashboard --> Lobby
+  Lobby --> GameControl
+  GameControl --> Results
+  Results --> Dashboard
+
+  subgraph player [Player Flow - No Auth]
+    PlayerJoin
+    PlayerLobby["/play/lobby"]
+    PlayerGame["/play/game"]
+    PlayerResults["/play/results"]
+  end
+
+  PlayerJoin --> PlayerLobby
+  PlayerLobby --> PlayerGame
+  PlayerGame --> PlayerResults
+```
+
+### Route Table
+
+| Path | Component | Auth? | Description |
+|------|-----------|-------|-------------|
+| `/` | LandingPage | No | Enter PIN or navigate to login |
+| `/login` | LoginPage | No | Moderator login |
+| `/register` | RegisterPage | No | Moderator registration |
+| `/dashboard` | DashboardPage | Yes | Quiz list, create/edit/delete |
+| `/quiz/:id/edit` | QuizEditPage | Yes | Quiz editor |
+| `/session/:id/lobby` | SessionLobbyPage | Yes | Show PIN, wait for players |
+| `/session/:id/control` | GameControlPage | Yes | Live game control |
+| `/session/:id/results` | SessionResultsPage | Yes | Final leaderboard + stats |
+| `/play` | PlayerJoinPage | No | Enter PIN + name |
+| `/play/lobby` | PlayerLobbyPage | No | Waiting for host to start |
+| `/play/game` | PlayerGamePage | No | Answer questions |
+| `/play/results` | PlayerResultsPage | No | Final rank + score |
+
+### Frontend Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Vue 3 (Composition API) |
+| Routing | Vue Router 5 |
+| State Management | Pinia |
+| Styling | Tailwind CSS v4 |
+| WebSocket | Socket.io Client |
+| Build Tool | Vite |
+
+### State Management (Pinia Stores)
+
+- **authStore** -- `token`, `user`, `isAuthenticated`, `login()`, `register()`, `logout()`, `fetchMe()`. Token persisted in `localStorage`.
+- **gameStore** -- Player-side state: `pin`, `playerId`, `sessionId`, `playerName`, `status`, `players`, `currentQuestion`, `leaderboard`, `answerResult`.
 
 ---
 
