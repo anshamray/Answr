@@ -105,7 +105,7 @@ npm run format:fix  # Prettier Auto-Fix
 
 # Frontend
 cd frontend
-npm run lint        # ESLint Check (inkl. Svelte)
+npm run lint        # ESLint Check
 npm run lint:fix
 npm run format
 npm run format:fix
@@ -124,7 +124,7 @@ npm run format:fix
 
 ### MVP – Noch offen
 - ⏳ Question CRUD API Endpoints
-- ⏳ Frontend-Oberfläche (Svelte/Vue)
+- ⏳ Frontend-Oberfläche (Vue)
 - ⏳ Punktesystem mit Zeitbonus (Score-Calculator)
 - ⏳ Live-Rangliste im Frontend
 
