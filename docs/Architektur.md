@@ -115,18 +115,28 @@ Client ─┬→ emit('submit-answer') → Server
 {
   _id: ObjectId,
   quizId: ObjectId,
-  type: 'multiple-choice' | 'true-false',
-  text: String,
-  imageUrl: String,
-  options: [{
-    id: String,
+  type: String,  // multiple-choice | true-false | slider | puzzle | type-answer | poll | ...
+  text: String,  // max 120 chars
+  mediaUrl: String,
+  mediaType: String,  // 'image' | 'video' | 'audio'
+  timeLimit: Number,  // 5–240 seconds
+  points: Number,  // 0 | 1000 | 2000
+  order: Number,
+  answers: [{
+    _id: ObjectId,
     text: String,
-    isCorrect: Boolean
+    imageUrl: String,
+    isCorrect: Boolean,
+    order: Number
   }],
-  timeLimit: Number,
-  order: Number
+  // Type-specific configs (slider, pin, scale, brainstorm) – siehe docs/QuestionTypes.md
+  sliderConfig: { min, max, unit, correctValue, margin },
+  pinConfig: { x, y, radius },
+  scaleConfig: { scaleType, min, max, startLabel, endLabel },
+  brainstormConfig: { maxIdeas, votingTime }
 }
 ```
+*Vollständige Typen: docs/QuestionTypes.md*
 
 ### Session
 ```javascript
