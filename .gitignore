@@ -35,3 +35,7 @@ temp/
 
 # Claude Code
 .claude/
+CLAUDE.md
+
+# Cursor Code
+.cursor/

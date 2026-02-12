@@ -111,25 +111,31 @@ npm run format
 npm run format:fix
 ```
 
-## 📋 Features (geplant)
+## 📋 Features
 
-### MVP (Must-Have)
-- ✅ Moderator-Authentifizierung
-- ✅ Quiz erstellen/bearbeiten/löschen
-- ✅ Multiple-Choice Fragen
-- ✅ Spiel-Sessions mit PIN-Code
-- ✅ Echtzeit-Spielablauf (WebSocket)
-- ✅ Punktesystem mit Zeitbonus
-- ✅ Live-Rangliste
+### MVP – Backend (Stand: implementiert)
+- ✅ Moderator-Authentifizierung (JWT)
+- ✅ Quiz CRUD API (`/api/quizzes`)
+- ✅ Datenmodelle: Quiz, Question, Session, Participant, Submission
+- ✅ Multiple-Choice + True/False Fragen (mit Validierung)
+- ✅ Session-Management API mit 6-stelliger PIN (`/api/sessions`)
+- ✅ Echtzeit-Spielablauf (Socket.io WebSocket-Events)
+- ✅ Session TTL (automatischer Ablauf nach 2 Stunden)
+
+### MVP – Noch offen
+- ⏳ Question CRUD API Endpoints
+- ⏳ Frontend-Oberfläche (Svelte/Vue)
+- ⏳ Punktesystem mit Zeitbonus (Score-Calculator)
+- ⏳ Live-Rangliste im Frontend
 
 ### Version 1.1 (Should-Have)
 - ⏳ Bilder in Fragen
 - ⏳ Variable Zeitlimits
 - ⏳ Erweiterte Statistiken
-- ⏳ Session-Management
+- ⏳ Session Pause/Resume im Frontend
 
 ### Future (Could-Have)
-- 💡 Weitere Fragetypen (Wahr/Falsch, Schieberegler)
+- 💡 Weitere Fragetypen (Slider, Puzzle, Word Cloud, etc.)
 - 💡 Hintergrundmusik & Soundeffekte
 - 💡 Export/Import von Quizzen
 
@@ -145,8 +151,9 @@ npm run format:fix
 
 Siehe [docs/](./docs/) für:
 - [API-Dokumentation](./docs/API.md) - REST & WebSocket Spezifikation
-- [Architektur](./docs/Architektur.md) - Systemarchitektur
-- [Projektstruktur](./docs/Projektstruktur.md) - Ordnerstruktur
+- [Architektur](./docs/Architektur.md) - Systemarchitektur (Mermaid-Diagramme)
+- [Projektstruktur](./docs/Projektstruktur.md) - Ordnerstruktur & Fortschritt
+- [Fragetypen](./docs/QuestionTypes.md) - Unterstützte Fragetypen
 - [Quickstart](./docs/QUICKSTART.md) - Schnelleinstieg
 
 ## 📝 Lizenz

@@ -130,4 +130,32 @@ const questionSchema = new mongoose.Schema({
   timestamps: true
 });
 
+/**
+ * Validate answer count based on question type.
+ * - multiple-choice: 2–6 answers required
+ * - true-false: exactly 2 answers required
+ *
+ * pre('validate') is a Mongoose middleware hook that runs BEFORE the
+ * built-in schema validation (required, enum, min/max, etc.).
+ * It has access to `this` (the full document), so we can apply
+ * different rules depending on the question type.
+ */
+questionSchema.pre('validate', function (next) {
+  const answerCount = this.answers ? this.answers.length : 0;
+
+  if (this.type === 'multiple-choice') {
+    if (answerCount < 2 || answerCount > 6) {
+      return next(new Error('Multiple-choice questions require between 2 and 6 answers'));
+    }
+  }
+
+  if (this.type === 'true-false') {
+    if (answerCount !== 2) {
+      return next(new Error('True/false questions require exactly 2 answers'));
+    }
+  }
+
+  next();
+});
+
 export default mongoose.model('Question', questionSchema);
