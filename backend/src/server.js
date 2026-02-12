@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { connectDatabase } from './config/database.js';
 import { initializeSocket } from './socket/index.js';
 import authRoutes from './routes/auth.js';
+import quizRoutes from './routes/quizzes.js';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +38,7 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/quizzes', quizRoutes);
 
 // Initialize WebSocket handler
 const { activeSessions } = initializeSocket(io);
