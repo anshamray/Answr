@@ -49,6 +49,21 @@ export function optionalAuth(req, res, next) {
 }
 
 /**
+ * Admin-only middleware - requires authenticated user with admin role
+ */
+export function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  next();
+}
+
+/**
  * Generate JWT token for a user
  * @param {Object} payload - User data to encode
  * @param {string} expiresIn - Token expiration (default: '7d')

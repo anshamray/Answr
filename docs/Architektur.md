@@ -17,14 +17,16 @@ graph TB
     subgraph REST ["REST API"]
       AUTH_R["/api/auth"]
       QUIZ_R["/api/quizzes"]
+      LIBRARY_R["/api/library<br/><i>Public quiz library</i>"]
       QUESTION_R["/api/questions<br/><i>(planned)</i>"]
       SESSION_R["/api/sessions<br/><i>(planned)</i>"]
     end
 
     subgraph WS ["Socket.io WebSocket"]
-      PLAYER_EVT["Player Events<br/><i>join, answer, reconnect</i>"]
-      MOD_EVT["Moderator Events<br/><i>join, start, next, pause,<br/>resume, kick, end</i>"]
+      PLAYER_EVT["Player Events<br/><i>check-pin, join, answer,<br/>reconnect</i>"]
+      MOD_EVT["Moderator Events<br/><i>join, start, next, end-question,<br/>pause, resume, kick, end</i>"]
       GAME_EVT["Game Broadcast<br/><i>question, timer, leaderboard,<br/>questionEnd, end</i>"]
+      BROADCAST_EVT["Broadcast Logic (WS-4)<br/><i>Server timer, scoring,<br/>leaderboard computation</i>"]
     end
 
     subgraph MW ["Middleware"]
@@ -40,7 +42,10 @@ graph TB
     MONGO[("MongoDB 7<br/>(Port 27017)")]
     USERS_COL["users"]
     QUIZZES_COL["quizzes"]
-    QUESTIONS_COL["questions"]
+    QUESTIONS_COL["questions<br/><i>14 question types</i>"]
+    SESSIONS_COL["sessions"]
+    PARTICIPANTS_COL["participants"]
+    SUBMISSIONS_COL["submissions<br/><i>polymorphic answers</i>"]
   end
 
   MOD_UI -- "HTTP/REST + JWT" --> EXPRESS
@@ -55,6 +60,9 @@ graph TB
   MONGO --- USERS_COL
   MONGO --- QUIZZES_COL
   MONGO --- QUESTIONS_COL
+  MONGO --- SESSIONS_COL
+  MONGO --- PARTICIPANTS_COL
+  MONGO --- SUBMISSIONS_COL
 
   classDef clientStyle fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
   classDef serverStyle fill:#fff3e0,stroke:#e65100,color:#bf360c
@@ -63,9 +71,9 @@ graph TB
 
   class MOD_UI,PLAYER_UI clientStyle
   class EXPRESS,JWT_AUTH,SANITIZE,VALIDATE,SESSION_MEM serverStyle
-  class AUTH_R,QUIZ_R,QUESTION_R,SESSION_R serverStyle
-  class PLAYER_EVT,MOD_EVT,GAME_EVT wsStyle
-  class MONGO,USERS_COL,QUIZZES_COL,QUESTIONS_COL dbStyle
+  class AUTH_R,QUIZ_R,LIBRARY_R,QUESTION_R,SESSION_R serverStyle
+  class PLAYER_EVT,MOD_EVT,GAME_EVT,BROADCAST_EVT wsStyle
+  class MONGO,USERS_COL,QUIZZES_COL,QUESTIONS_COL,SESSIONS_COL,PARTICIPANTS_COL,SUBMISSIONS_COL dbStyle
 ```
 
 ### Infrastructure (Docker Compose)
@@ -110,6 +118,14 @@ graph LR
   SESSIONS --> S_DELETE["DELETE /:id<br/>🔒 Auth<br/><i>End session</i>"]
   SESSIONS --> S_RESULTS["GET /:id/results<br/>🔒 Auth<br/><i>Final stats</i>"]
 
+  API --> LIBRARY["/library"]
+  LIBRARY --> L_BROWSE["GET /<br/>🔓 Public<br/><i>Browse library</i>"]
+  LIBRARY --> L_GET["GET /:id<br/>🔓 Public<br/><i>Quiz detail</i>"]
+  LIBRARY --> L_CLONE["POST /:id/clone<br/>🔒 Auth<br/><i>Clone to collection</i>"]
+  LIBRARY --> L_PUBLISH["PUT /publish/:id<br/>🔒 Auth<br/><i>Publish quiz</i>"]
+  LIBRARY --> L_UNPUBLISH["PUT /unpublish/:id<br/>🔒 Auth<br/><i>Unpublish quiz</i>"]
+  LIBRARY --> L_OFFICIAL["POST /official<br/>🔒 Admin<br/><i>Create official quiz</i>"]
+
   API --> HEALTH["GET /health<br/>🔓 Public<br/><i>(planned)</i>"]
 
   classDef implemented fill:#c8e6c9,stroke:#2e7d32,color:#1b5e20
@@ -118,6 +134,7 @@ graph LR
   class AUTH_REG,AUTH_LOG,AUTH_ME implemented
   class Q_LIST,Q_GET,Q_CREATE,Q_UPDATE,Q_DELETE implemented
   class S_CREATE,S_GET,S_DELETE,S_RESULTS implemented
+  class L_BROWSE,L_GET,L_CLONE,L_PUBLISH,L_UNPUBLISH,L_OFFICIAL implemented
   class QN_ADD,QN_UPDATE,QN_DELETE,QN_REORDER planned
   class HEALTH planned
 ```
@@ -144,6 +161,10 @@ sequenceDiagram
 
   Note over M,P: ── Phase 2: Lobby ──
 
+  P->>S: player:check-pin { pin }
+  S-->>P: player:pin-valid { pin }
+  Note right of S: Lightweight PIN check<br/>No player created
+
   P->>S: player:join { pin, name, avatar? }
   S-->>P: player:joined { playerId, sessionId }
   S-->>M: lobby:update { players[], playerCount }
@@ -159,30 +180,38 @@ sequenceDiagram
 
   Note over M,P: ── Phase 3: Game Start ──
 
-  M->>S: moderator:start { firstQuestion? }
+  M->>S: moderator:start { firstQuestion + correctAnswerIds }
   S-->>M: game:started { status: 'playing' }
   S-->>P: game:started { status: 'playing' }
+  S-->>M: game:question { questionId, text, options, timeLimit }
+  S-->>P: game:question { questionId, text, options, timeLimit }
+  Note right of S: Server stores correctAnswerIds<br/>Server starts countdown timer
 
   Note over M,P: ── Phase 4: Question Loop ──
 
   rect rgb(240, 248, 255)
-    M->>S: moderator:next { question }
-    S-->>M: game:question { questionNumber, text, options, timeLimit }
-    S-->>P: game:question { questionNumber, text, options, timeLimit }
-
-    loop Timer ticks
+    loop Server timer ticks (every 1s)
       S-->>M: game:timer { remaining }
       S-->>P: game:timer { remaining }
     end
 
-    P->>S: player:answer { questionId, answerId, timeTaken }
+    P->>S: player:answer { questionId?, answerId, timeTaken }
     S-->>P: player:answer:ack { questionId, answerId, receivedAt }
+    S-->>M: player:answer:detail { questionId, answerId, answerCount }
+    S->>S: All answered? → auto-end
 
-    S-->>M: game:questionEnd { correctAnswer }
-    S-->>P: game:questionEnd { correctAnswer }
+    alt Timer expires OR all answered OR moderator reveals
+      Note right of S: Server scores answers<br/>(1000 × timeBonus, min 100)
+      S-->>M: game:questionEnd { correctAnswerIds }
+      S-->>P: game:questionEnd { correctAnswerIds }
+      S-->>M: game:leaderboard { leaderboard[] }
+      S-->>P: game:leaderboard { leaderboard[] }
+    end
 
-    S-->>M: game:leaderboard { leaderboard[] }
-    S-->>P: game:leaderboard { leaderboard[] }
+    M->>S: moderator:next { question + correctAnswerIds }
+    S-->>M: game:question { questionId, text, options, timeLimit }
+    S-->>P: game:question { questionId, text, options, timeLimit }
+    Note right of S: New timer starts
   end
 
   Note over M,P: Repeat for each question
@@ -192,7 +221,7 @@ sequenceDiagram
   M->>S: moderator:end
   S-->>M: game:end { leaderboard[], stats }
   S-->>P: game:end { leaderboard[], stats }
-  Note right of S: Session cleaned up
+  Note right of S: Final leaderboard computed<br/>Session cleaned up
 
   Note over M,P: ── Optional: Pause / Resume ──
 
@@ -252,16 +281,25 @@ flowchart TD
   GAME_CTRL -- "End game" --> RESULTS_M["Session Results<br/><i>Final leaderboard<br/>Per-question stats<br/>Export data</i>"]
   RESULTS_M --> DASHBOARD
 
+  %% Library flow (accessible from Landing or Dashboard)
+  LANDING -- "Browse Library" --> LIBRARY["Library<br/><i>Browse public quizzes<br/>Search, filter, sort</i>"]
+  DASHBOARD -- "Library" --> LIBRARY
+  LIBRARY -- "Clone quiz" --> DASHBOARD
+  LIBRARY -- "View detail" --> LIBRARY_DETAIL["Library Quiz Detail<br/><i>Preview questions<br/>Clone to collection</i>"]
+  LIBRARY_DETAIL -- "Clone" --> DASHBOARD
+
   %% Styling
   classDef playerScreen fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
   classDef modScreen fill:#fff3e0,stroke:#e65100,color:#bf360c
   classDef sharedScreen fill:#f3e5f5,stroke:#6a1b9a,color:#4a148c
   classDef entryPoint fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
+  classDef libraryScreen fill:#e8eaf6,stroke:#283593,color:#1a237e
 
   class JOIN,LOBBY_P,QUESTION,WAITING,RESULT,LEADERBOARD_P,FINAL_P playerScreen
   class LOGIN,DASHBOARD,QUIZ_EDIT,LOBBY_M,GAME_CTRL,RESULTS_M modScreen
   class LANDING sharedScreen
   class START entryPoint
+  class LIBRARY,LIBRARY_DETAIL libraryScreen
 ```
 
 **Legend:** 🟦 Player screens &nbsp; 🟧 Moderator screens &nbsp; 🟪 Shared
@@ -287,7 +325,16 @@ flowchart TD
     Results["/session/:id/results"]
   end
 
+  subgraph lib [Library - Public / Auth for Clone]
+    Library["/library"]
+    LibraryDetail["/library/:id"]
+  end
+
   Login --> Dashboard
+  Landing --> Library
+  Dashboard --> Library
+  Library --> LibraryDetail
+  LibraryDetail -->|"Clone (auth)"| Dashboard
   Dashboard --> QuizEdit
   Dashboard --> Lobby
   Lobby --> GameControl
@@ -315,6 +362,8 @@ flowchart TD
 | `/register` | RegisterPage | No | Moderator registration |
 | `/dashboard` | DashboardPage | Yes | Quiz list, create/edit/delete |
 | `/quiz/:id/edit` | QuizEditPage | Yes | Quiz editor |
+| `/library` | LibraryPage | No | Browse public quiz library |
+| `/library/:id` | LibraryDetailPage | No | Library quiz preview + clone |
 | `/session/:id/lobby` | SessionLobbyPage | Yes | Show PIN, wait for players |
 | `/session/:id/control` | GameControlPage | Yes | Live game control |
 | `/session/:id/results` | SessionResultsPage | Yes | Final leaderboard + stats |
@@ -337,7 +386,7 @@ flowchart TD
 ### State Management (Pinia Stores)
 
 - **authStore** -- `token`, `user`, `isAuthenticated`, `login()`, `register()`, `logout()`, `fetchMe()`. Token persisted in `localStorage`.
-- **gameStore** -- Player-side state: `pin`, `playerId`, `sessionId`, `playerName`, `status`, `players`, `currentQuestion`, `leaderboard`, `answerResult`.
+- **gameStore** -- Player-side state: `pin`, `playerId`, `sessionId`, `playerName`, `status`, `players`, `currentQuestion`, `leaderboard`, `answerResult`. Also stores final `leaderboard` from `game:end` for the results screen.
 
 ---
 

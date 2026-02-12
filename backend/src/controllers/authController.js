@@ -1,5 +1,14 @@
 import User from '../models/User.js';
 import { generateToken } from '../middleware/auth.js';
+import {
+  sendSuccess,
+  sendCreated,
+  sendBadRequest,
+  sendUnauthorized,
+  sendNotFound,
+  sendConflict,
+  sendServerError
+} from '../utils/responseHelper.js';
 
 /**
  * Register a new moderator account
@@ -11,13 +20,13 @@ export async function register(req, res) {
 
     // Validate required fields
     if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+      return sendBadRequest(res, 'Email, password, and name are required');
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ error: 'Email already registered' });
+      return sendConflict(res, 'Email already registered');
     }
 
     // Create user
@@ -27,14 +36,10 @@ export async function register(req, res) {
     // Generate token
     const token = generateToken({ userId: user._id, email: user.email, role: user.role });
 
-    res.status(201).json({
-      message: 'Registration successful',
-      token,
-      user
-    });
+    sendCreated(res, 'Registration successful', { token, user });
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed' });
+    sendServerError(res, 'Registration failed');
   }
 }
 
@@ -48,32 +53,28 @@ export async function login(req, res) {
 
     // Validate required fields
     if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+      return sendBadRequest(res, 'Email and password are required');
     }
 
     // Find user
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return sendUnauthorized(res, 'Invalid credentials');
     }
 
     // Check password
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return sendUnauthorized(res, 'Invalid credentials');
     }
 
     // Generate token
     const token = generateToken({ userId: user._id, email: user.email, role: user.role });
 
-    res.json({
-      message: 'Login successful',
-      token,
-      user
-    });
+    sendSuccess(res, { message: 'Login successful', data: { token, user } });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed' });
+    sendServerError(res, 'Login failed');
   }
 }
 
@@ -85,12 +86,12 @@ export async function getMe(req, res) {
   try {
     const user = await User.findById(req.user.userId);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return sendNotFound(res, 'User not found');
     }
 
-    res.json({ user });
+    sendSuccess(res, { message: 'User retrieved', data: { user } });
   } catch (error) {
     console.error('Get me error:', error);
-    res.status(500).json({ error: 'Failed to get user' });
+    sendServerError(res, 'Failed to get user');
   }
 }

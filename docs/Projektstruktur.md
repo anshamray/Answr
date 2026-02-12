@@ -28,21 +28,24 @@ answr/
 │   │   ├── routes/              # REST API Routes
 │   │   │   ├── auth.js         # Authentifizierung
 │   │   │   ├── quizzes.js      # Quiz-CRUD
-│   │   │   └── sessions.js     # Session-Management
+│   │   │   ├── sessions.js     # Session-Management
+│   │   │   └── library.js      # Quiz-Bibliothek (Browse, Clone, Publish)
 │   │   │
 │   │   ├── controllers/         # Business Logic
 │   │   │   ├── authController.js
 │   │   │   ├── quizController.js
-│   │   │   └── sessionController.js
+│   │   │   ├── sessionController.js
+│   │   │   └── libraryController.js  # Library: Browse, Clone, Publish/Unpublish
 │   │   │
 │   │   ├── socket/              # WebSocket Event-Handler
 │   │   │   ├── index.js        # Socket-Initialisierung & Connection-Handling
-│   │   │   ├── moderatorEvents.js # Moderator-Events (join, start, next, etc.)
-│   │   │   ├── playerEvents.js    # Spieler-Events (join, answer, reconnect)
-│   │   │   └── gameEvents.js      # Broadcast-Helpers (lobby, question, etc.)
+│   │   │   ├── moderatorEvents.js # Moderator-Events (join, start, next, end-question, end)
+│   │   │   ├── playerEvents.js    # Spieler-Events (check-pin, join, answer, reconnect)
+│   │   │   ├── gameEvents.js      # Broadcast-Helpers (lobby, question, timer, leaderboard)
+│   │   │   └── broadcastEvents.js # WS-4: Server-Timer, Scoring, Leaderboard-Berechnung
 │   │   │
 │   │   ├── middleware/          # Custom Middleware
-│   │   │   ├── auth.js         # JWT Verification (authenticate, optionalAuth)
+│   │   │   ├── auth.js         # JWT Verification (authenticate, optionalAuth, requireAdmin)
 │   │   │   └── validate.js     # Request Body Validation
 │   │   │
 │   │   ├── config/              # Konfiguration
@@ -79,6 +82,8 @@ answr/
 │       │   ├── RegisterPage.vue # Moderator Registrierung
 │       │   ├── DashboardPage.vue      # Quiz-Übersicht
 │       │   ├── QuizEditPage.vue       # Quiz-Editor
+│       │   ├── LibraryPage.vue        # Quiz-Bibliothek (Browse, Search, Filter)
+│       │   ├── LibraryDetailPage.vue  # Quiz-Detail + Clone
 │       │   ├── SessionLobbyPage.vue   # Moderator-Lobby (PIN anzeigen)
 │       │   ├── GameControlPage.vue    # Spielsteuerung
 │       │   ├── SessionResultsPage.vue # Ergebnisse
@@ -133,10 +138,18 @@ GitHub-spezifische Dateien wie Issue-Templates.
 11. ✅ Session API Endpoints (`/api/sessions/*`)
 12. ✅ PIN-Generator Utility (6-stellig numerisch)
 13. ✅ WebSocket Events (Moderator, Player, Game)
-14. [ ] Question CRUD API Endpoints
-15. [ ] Frontend Komponenten (Svelte)
-16. [ ] Testing
-17. [ ] Deployment
+14. ✅ Quiz Library Backend (Browse, Clone, Publish/Unpublish, Official)
+15. ✅ Library API Routes (`/api/library/*`)
+16. ✅ Admin-Middleware (`requireAdmin`)
+17. ✅ Frontend Seiten (Vue 3 + Tailwind CSS v4)
+18. ✅ WS-4: Game Broadcast Events (Server-Timer, Scoring, Leaderboard)
+19. ✅ Player-Check-PIN Event (leichtgewichtige PIN-Validierung)
+20. ✅ Auto-End bei Timer-Ablauf oder alle Antworten eingegangen
+21. ✅ Kahoot-style Antwortverteilung & Leaderboard auf Moderator-Seite
+22. [ ] Question CRUD API Endpoints
+23. [ ] PlayerResultsPage (Endergebnis-Seite)
+24. [ ] Testing
+25. [ ] Deployment
 
 ## Entwicklung starten
 

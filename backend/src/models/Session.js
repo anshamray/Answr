@@ -9,7 +9,13 @@ const sessionSchema = new mongoose.Schema({
   moderatorId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    default: null   // null for guest-hosted sessions
+  },
+  // Opaque token that allows a guest (unauthenticated user) to control the
+  // session they started.  Null when the host is a logged-in moderator.
+  guestToken: {
+    type: String,
+    default: null
   },
   pin: {
     type: String,
@@ -49,5 +55,11 @@ const sessionSchema = new mongoose.Schema({
  * stored in the field" (no additional delay).
  */
 sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+/**
+ * Compound index for efficient queries by moderator and status.
+ * Used when fetching a moderator's active sessions.
+ */
+sessionSchema.index({ moderatorId: 1, status: 1 });
 
 export default mongoose.model('Session', sessionSchema);

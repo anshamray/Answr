@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
 import {
   createSession,
   getSession,
@@ -10,19 +10,12 @@ import {
 
 const router = Router();
 
-// All session routes require authentication
-router.use(authenticate);
+// GET /api/sessions/:id - supports both JWT auth and ?guestToken= access
+router.get('/:id', optionalAuth, getSession);
 
-// POST /api/sessions - Create session with 6-digit PIN
-router.post('/', createSession);
-
-// GET /api/sessions/:id - Get session details
-router.get('/:id', getSession);
-
-// DELETE /api/sessions/:id - End session
-router.delete('/:id', endSession);
-
-// GET /api/sessions/:id/results - Get final statistics
-router.get('/:id/results', getSessionResults);
+// All other session routes require full authentication
+router.post('/', authenticate, createSession);
+router.delete('/:id', authenticate, endSession);
+router.get('/:id/results', authenticate, getSessionResults);
 
 export default router;

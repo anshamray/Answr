@@ -139,15 +139,45 @@ Authorization: Bearer <token>
 | DELETE | `/api/questions/:id` | Delete question | Yes |
 | PUT | `/api/quizzes/:quizId/questions/reorder` | Reorder questions | Yes |
 
+#### Supported Question Types
+
+```
+multiple-choice | true-false | type-answer | puzzle | quiz-audio | slider | pin-answer
+poll | word-cloud | brainstorm | drop-pin | open-ended | scale | nps-scale
+```
+
+#### Validation Rules by Type
+
+| Type | text | timeLimit | points | answers | Other |
+|------|------|-----------|--------|---------|-------|
+| multiple-choice | required, 120 | 5–240 | 0/1000/2000 | 2–6, 1+ correct | allowMultipleAnswers |
+| true-false | required, 120 | 5–240 | 0/1000/2000 | 2 (fixed) | — |
+| type-answer | required, 120 | 20–240 | 0/1000/2000 | 1–4 (max 20 chars) | case-insensitive |
+| puzzle | required, 120 | 20–240 | 0/1000/2000 | 3–4 (ordered) | textToReadAloud |
+| quiz-audio | required, 120 | 5–240 | 0/1000/2000 | varies | audioLanguage required |
+| slider | required, 120 | 10–240 | 0/1000/2000 | — | sliderConfig required |
+| pin-answer | required, 120 | 20–240 | 0/1000/2000 | — | pinConfig + mediaUrl required |
+| poll | required, 120 | 5–240 | 0 (no points) | 2–6 | allowMultipleAnswers |
+| word-cloud | required, 120 | 20–240 | 0 | — | — |
+| brainstorm | optional | 30–240 | 0 | — | brainstormConfig required |
+| drop-pin | required, 120 | 20–240 | 0 | — | mediaUrl required |
+| open-ended | required, 120 | 20–240 | 0 | — | — |
+| scale | optional | — | 0 | — | scaleConfig required |
+| nps-scale | optional | — | 0 | — | scaleConfig required |
+
 #### POST `/api/quizzes/:quizId/questions`
+
+**Multiple-choice example:**
 ```json
 // Request
 {
-  "type": "multiple-choice | true-false | slider | puzzle | type-answer | poll | ...",
+  "type": "multiple-choice",
   "text": "What is 2 + 2?",
-  "mediaUrl": "string (optional)",
+  "mediaUrl": null,
   "timeLimit": 30,
+  "points": 1000,
   "order": 1,
+  "allowMultipleAnswers": false,
   "answers": [
     { "text": "3", "isCorrect": false },
     { "text": "4", "isCorrect": true },
@@ -155,7 +185,78 @@ Authorization: Bearer <token>
     { "text": "6", "isCorrect": false }
   ]
 }
+```
 
+**Slider example:**
+```json
+{
+  "type": "slider",
+  "text": "What year was the Eiffel Tower built?",
+  "timeLimit": 30,
+  "points": 1000,
+  "order": 2,
+  "sliderConfig": {
+    "min": 1800,
+    "max": 1950,
+    "unit": "year",
+    "correctValue": 1889,
+    "margin": "medium"
+  }
+}
+```
+
+**Pin-answer example:**
+```json
+{
+  "type": "pin-answer",
+  "text": "Where is Paris on this map?",
+  "mediaUrl": "/media/europe-map.png",
+  "mediaType": "image",
+  "timeLimit": 30,
+  "points": 1000,
+  "order": 3,
+  "pinConfig": {
+    "x": 48,
+    "y": 32,
+    "radius": 5
+  }
+}
+```
+
+**Scale example (opinion, no points):**
+```json
+{
+  "type": "scale",
+  "text": "How satisfied are you?",
+  "points": 0,
+  "order": 4,
+  "scaleConfig": {
+    "scaleType": "likert",
+    "min": 1,
+    "max": 5,
+    "startLabel": "Very unsatisfied",
+    "endLabel": "Very satisfied"
+  }
+}
+```
+
+**Brainstorm example (opinion, text optional):**
+```json
+{
+  "type": "brainstorm",
+  "text": "",
+  "timeLimit": 60,
+  "points": 0,
+  "order": 5,
+  "brainstormConfig": {
+    "maxIdeas": 3,
+    "votingTime": 30
+  }
+}
+```
+
+**Response (all types):**
+```json
 // Response 201
 {
   "id": "string",
@@ -164,8 +265,14 @@ Authorization: Bearer <token>
   "text": "What is 2 + 2?",
   "mediaUrl": null,
   "timeLimit": 30,
+  "points": 1000,
   "order": 1,
-  "answers": [...]
+  "answers": [...],
+  "allowMultipleAnswers": false,
+  "sliderConfig": null,
+  "pinConfig": null,
+  "scaleConfig": null,
+  "brainstormConfig": null
 }
 ```
 
@@ -258,7 +365,210 @@ file: <binary>
 
 ---
 
-### 6. Health & Monitoring
+### 6. Quiz Library
+
+The Library allows users to browse, clone, and run public quizzes. Quizzes can be published by users or created as "official" quizzes by admins.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/api/library` | Browse published quizzes | No (optional) |
+| GET | `/api/library/:id` | Get library quiz detail | No (optional) |
+| POST | `/api/library/:id/start` | Start a library quiz (guest or auth) | No (optional) |
+| POST | `/api/library/:id/clone` | Clone quiz to own collection | Yes |
+| PUT | `/api/library/publish/:id` | Publish own quiz to library | Yes |
+| PUT | `/api/library/unpublish/:id` | Remove own quiz from library | Yes |
+| POST | `/api/library/official` | Create official quiz | Yes (Admin) |
+
+#### GET `/api/library`
+
+Browse published quizzes with search, filtering, and sorting.
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `search` | string | — | Text search in title/description |
+| `category` | string | — | Filter by category |
+| `tag` | string | — | Filter by tag (can repeat for multiple) |
+| `sort` | string | `newest` | `newest`, `popular`, or `title` |
+| `official` | string | — | `true` to show only official quizzes |
+| `page` | number | `1` | Page number |
+| `limit` | number | `20` | Items per page (max 50) |
+
+```json
+// Response 200
+{
+  "quizzes": [
+    {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "category": "string",
+      "tags": ["math", "algebra"],
+      "isOfficial": false,
+      "playCount": 42,
+      "publishedAt": "ISO8601",
+      "author": "Author Name"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 85,
+    "totalPages": 5
+  }
+}
+```
+
+#### GET `/api/library/:id`
+
+Get full details of a published quiz (questions are summarized, answers not exposed).
+
+```json
+// Response 200
+{
+  "quiz": {
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "category": "string",
+    "tags": ["math"],
+    "isOfficial": true,
+    "playCount": 100,
+    "publishedAt": "ISO8601",
+    "author": "Admin",
+    "questionCount": 10,
+    "questions": [
+      {
+        "id": "string",
+        "type": "multiple-choice",
+        "text": "What is 2+2?",
+        "mediaUrl": null,
+        "mediaType": null,
+        "timeLimit": 30,
+        "points": 1000,
+        "order": 1,
+        "answerCount": 4
+      }
+    ]
+  }
+}
+```
+
+#### POST `/api/library/:id/start`
+
+Start a library quiz directly — works as guest (no login) or as an authenticated user.
+Creates a new session with a 6-digit PIN. When called without auth a `guestToken` is returned
+that acts as the session-specific moderator credential.
+
+```json
+// Response 201
+{
+  "message": "Session created",
+  "session": {
+    "id": "string",
+    "quizId": "string",
+    "pin": "483912",
+    "status": "lobby",
+    "guestToken": "string (null when authenticated)",
+    "createdAt": "ISO8601",
+    "expiresAt": "ISO8601"
+  }
+}
+```
+
+#### POST `/api/library/:id/clone`
+
+Clone a library quiz into the authenticated user's own quiz collection. Creates copies of the quiz and all its questions.
+
+```json
+// Response 201
+{
+  "message": "Quiz cloned to your collection",
+  "quiz": {
+    "id": "string",
+    "title": "string",
+    "description": "string",
+    "category": "string",
+    "questionCount": 10,
+    "clonedFrom": "string (original quiz ID)"
+  }
+}
+```
+
+#### PUT `/api/library/publish/:id`
+
+Publish one of your own quizzes to the public library. The quiz must have at least 1 question.
+
+```json
+// Request
+{
+  "tags": ["math", "algebra", "grade-10"]
+}
+
+// Response 200
+{
+  "message": "Quiz published to library",
+  "quiz": {
+    "id": "string",
+    "title": "string",
+    "isPublished": true,
+    "publishedAt": "ISO8601",
+    "tags": ["math", "algebra", "grade-10"]
+  }
+}
+```
+
+#### PUT `/api/library/unpublish/:id`
+
+Remove your quiz from the public library.
+
+```json
+// Response 200
+{
+  "message": "Quiz removed from library",
+  "quiz": {
+    "id": "string",
+    "title": "string",
+    "isPublished": false
+  }
+}
+```
+
+#### POST `/api/library/official` *(Admin only)*
+
+Create a quiz that is immediately published and marked as official.
+
+```json
+// Request
+{
+  "title": "Official Math Quiz",
+  "description": "Basic algebra questions",
+  "category": "Mathematics",
+  "tags": ["math", "official"]
+}
+
+// Response 201
+{
+  "message": "Official quiz created",
+  "quiz": {
+    "id": "string",
+    "moderatorId": "string",
+    "title": "Official Math Quiz",
+    "description": "Basic algebra questions",
+    "category": "Mathematics",
+    "tags": ["math", "official"],
+    "isPublished": true,
+    "isOfficial": true,
+    "publishedAt": "ISO8601",
+    "playCount": 0
+  }
+}
+```
+
+---
+
+### 7. Health & Monitoring
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -286,51 +596,122 @@ Connection: `io.connect('http://localhost:3000')`
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `player:join` | `{ pin, name, avatar }` | Join session with PIN (fSZ3, fBV2) |
-| `player:answer` | `{ questionId, answerId, timeTaken }` | Submit answer (fSA4) |
-| `player:reconnect` | `{ sessionId, odlfPlayerId }` | Reconnect after disconnect (fSA7) |
+| `player:check-pin` | `{ pin }` | Lightweight PIN validation (no player created) |
+| `player:join` | `{ pin, name, avatar? }` | Join session with PIN (fSZ3, fBV2) |
+| `player:answer` | `{ questionId?, answerId, timeTaken }` | Submit answer (fSA4). `questionId` falls back to server's current question if omitted. |
+| `player:reconnect` | `{ sessionId, oldPlayerId }` | Reconnect after disconnect (fSA7, 30s window) |
 
 ### Player Events (Server → Client)
 
 | Event | Payload | Description |
 |-------|---------|-------------|
+| `player:pin-valid` | `{ pin }` | PIN check succeeded — session exists and is in lobby |
+| `player:pin-invalid` | `{ code, message }` | PIN check failed — invalid PIN or game in progress |
 | `player:joined` | `{ playerId, sessionId }` | Confirm join success |
+| `player:answer:ack` | `{ questionId, answerId, receivedAt }` | Server acknowledged the answer |
 | `player:kicked` | `{ reason }` | Player was removed (fSZ5) |
 | `player:error` | `{ code, message }` | Error occurred |
+
+### Room-wide Events (Server → All Clients in Session)
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `player:answer:received` | `{ questionId, answerCount }` | New answer count (no answer details, safe for all clients) |
+
+### Host-only Events (Server → Moderator Socket)
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `player:answer:detail` | `{ questionId, answerId, answerCount }` | Per-answer detail for distribution tracking (sent only to host) |
 
 ### Moderator Events (Client → Server)
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `moderator:join` | `{ sessionId, token }` | Join as moderator |
-| `moderator:start` | `{ sessionId }` | Start the quiz (fSA1) |
-| `moderator:next` | `{ sessionId }` | Show next question (fSA1) |
-| `moderator:pause` | `{ sessionId }` | Pause game (fSA5) |
-| `moderator:resume` | `{ sessionId }` | Resume game (fSA5) |
-| `moderator:kick` | `{ sessionId, playerId }` | Remove player (fSZ5) |
-| `moderator:end` | `{ sessionId }` | End session early |
+| `moderator:join` | `{ pin?, quizId? }` | Join/create session as moderator. If no `pin`, server generates one. |
+| `moderator:start` | `{ firstQuestion }` | Start the quiz (fSA1). Broadcasts `game:started` + `game:question`. Starts server timer. |
+| `moderator:next` | `{ question }` | Advance to next question (fSA1). Broadcasts `game:question`. Starts server timer. |
+| `moderator:end-question` | `{ correctAnswerIds? }` | End current question early (Reveal). Stops timer, triggers scoring + leaderboard. |
+| `moderator:pause` | — | Pause game (fSA5) |
+| `moderator:resume` | — | Resume game (fSA5) |
+| `moderator:kick` | `{ playerId }` | Remove player (fSZ5) |
+| `moderator:end` | — | End session. Broadcasts final leaderboard, cleans up session. |
 
-### Game Events (Server → All Clients)
+#### Question payload shape (used in `moderator:start` and `moderator:next`)
+
+```json
+{
+  "questionId": "string (MongoDB _id)",
+  "questionNumber": 1,
+  "totalQuestions": 10,
+  "text": "What is the capital of France?",
+  "options": [
+    { "id": "answerId1", "text": "Paris" },
+    { "id": "answerId2", "text": "London" }
+  ],
+  "timeLimit": 30,
+  "correctAnswerIds": ["answerId1"]
+}
+```
+
+> **Note:** `correctAnswerIds` are stored server-side for scoring but **never** broadcast to players. The `options` array deliberately omits `isCorrect`.
+
+### Moderator Events (Server → Client)
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `lobby:update` | `{ players: [...] }` | Lobby player list updated (fSZ4) |
-| `game:starting` | `{ countdown: 5 }` | Game starting countdown |
-| `game:question` | `{ question, timeLimit, questionNumber, totalQuestions }` | New question (fSA2) |
-| `game:timer` | `{ remaining }` | Timer tick (fSA3) |
-| `game:questionEnd` | `{ correctAnswer, explanation }` | Question ended (fSA6) |
-| `game:leaderboard` | `{ top5: [...], yourRank, yourScore }` | After-question leaderboard (fPA3) |
-| `game:paused` | `{}` | Game paused |
-| `game:resumed` | `{}` | Game resumed |
-| `game:ended` | `{ finalLeaderboard: [...] }` | Quiz finished (fPA4) |
+| `moderator:joined` | `{ sessionId, quizId, status }` | Confirm moderator joined |
+| `moderator:error` | `{ code, message }` | Moderator action failed |
+
+### Game Broadcast Events (Server → All Clients) — WS-4
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `lobby:update` | `{ players: [...], playerCount }` | Lobby player list updated (fSZ4) |
+| `game:started` | `{ status: 'playing' }` | Game has started |
+| `game:question` | `{ questionId, questionNumber, totalQuestions, text, options, timeLimit }` | New question broadcast (fSA2). `questionId` is the MongoDB `_id`. |
+| `game:timer` | `{ remaining }` | Server-authoritative timer tick, every second (fSA3) |
+| `game:questionEnd` | `{ correctAnswerIds }` | Question ended — correct answers revealed (fSA6). Fired when: timer expires, moderator reveals, or all players answered. |
+| `game:leaderboard` | `{ leaderboard }` | Leaderboard after each question (fPA3). Full ranked list of all players. |
+| `game:paused` | `{ status: 'paused' }` | Game paused |
+| `game:resumed` | `{ status: 'playing' }` | Game resumed |
+| `game:end` | `{ leaderboard, stats }` | Quiz finished with final results (fPA4) |
+
+#### `game:leaderboard` / `game:end` leaderboard entry shape
+
+```json
+[
+  { "position": 1, "playerId": "p_xxx", "nickname": "Alice", "score": 2000 },
+  { "position": 2, "playerId": "p_yyy", "nickname": "Bob",   "score": 1500 }
+]
+```
+
+#### `game:end` stats shape
+
+```json
+{
+  "totalPlayers": 5,
+  "totalQuestions": 10,
+  "reason": "game_complete"
+}
+```
+
+### Question Auto-End Triggers
+
+The server automatically ends the current question (scores answers, broadcasts `game:questionEnd` + `game:leaderboard`) when any of these conditions is met:
+
+1. **Server timer expires** — countdown reaches 0
+2. **Moderator clicks Reveal** — `moderator:end-question` event
+3. **All connected players answered** — checked after each `player:answer`
+
+All three paths are idempotent (a `questionEnded` flag prevents double-scoring).
 
 ### Connection Events
 
 | Event | Description |
 |-------|-------------|
 | `connect` | Socket connected |
-| `disconnect` | Socket disconnected |
-| `reconnect` | Socket reconnected (30s window - fSA7) |
+| `disconnect` | Socket disconnected (30s reconnect window starts) |
 
 ---
 
@@ -355,6 +736,13 @@ Connection: `io.connect('http://localhost:3000')`
   title: String,
   description: String,
   category: String,
+  // Library fields
+  isPublished: Boolean (default: false),
+  isOfficial: Boolean (default: false),
+  publishedAt: Date,
+  playCount: Number (default: 0),
+  tags: [String],
+  clonedFrom: ObjectId (ref: Quiz, nullable),
   createdAt: Date,
   updatedAt: Date
 }
@@ -365,36 +753,60 @@ Connection: `io.connect('http://localhost:3000')`
 {
   _id: ObjectId,
   quizId: ObjectId (ref: Quiz),
-  type: Enum ['multiple-choice', 'true-false', 'slider', 'puzzle', 'type-answer', 'poll', ...],
-  text: String,  // max 120 chars
-  textToReadAloud: String,  // for Puzzle, Quiz+Audio
+  type: Enum [
+    'multiple-choice', 'true-false', 'type-answer', 'puzzle',
+    'quiz-audio', 'slider', 'pin-answer',
+    'poll', 'word-cloud', 'brainstorm', 'drop-pin',
+    'open-ended', 'scale', 'nps-scale'
+  ],
+  text: String,           // max 120 chars; required for most types, optional for brainstorm/scale/nps-scale
+  textToReadAloud: String, // for Puzzle, Quiz+Audio; max 120 chars
   mediaUrl: String,
-  mediaType: String,  // 'image' | 'video' | 'audio'
-  timeLimit: Number,  // 5–240 seconds
-  points: Number,  // 0 | 1000 | 2000
+  mediaType: String,       // 'image' | 'video' | 'audio'
+  audioLanguage: String,   // for quiz-audio; e.g. 'en', 'de'
+  timeLimit: Number,       // 5–240 seconds; minimum varies by type
+  points: Number,          // 0 | 1000 | 2000; opinion types must be 0
   order: Number,
-  answers: [{
+  answers: [{              // used by MC, true-false, type-answer, puzzle, poll
     _id: ObjectId,
-    text: String,
+    text: String,          // max 75 chars (20 for type-answer)
     imageUrl: String,
-    isCorrect: Boolean,
-    order: Number
+    isCorrect: Boolean,    // null for opinion types
+    order: Number          // for Puzzle (correct order)
   }],
-  allowMultipleAnswers: Boolean,
-  sliderConfig: { min, max, unit, correctValue, margin },
-  pinConfig: { x, y, radius },
-  scaleConfig: { scaleType, min, max, startLabel, endLabel },
-  brainstormConfig: { maxIdeas, votingTime }
+  allowMultipleAnswers: Boolean,   // for multiple-choice, poll
+  sliderConfig: {                  // for slider
+    min: Number, max: Number,
+    unit: String,                  // max 20 chars
+    correctValue: Number,
+    margin: Enum ['none','low','medium','high','max']
+  },
+  pinConfig: {                     // for pin-answer
+    x: Number, y: Number,         // 0–100 percentage
+    radius: Number                 // tolerance in %
+  },
+  scaleConfig: {                   // for scale, nps-scale
+    scaleType: Enum ['likert','custom','nps'],
+    min: Number, max: Number,
+    startLabel: String, endLabel: String
+  },
+  brainstormConfig: {              // for brainstorm
+    maxIdeas: Number,              // 1–5
+    votingTime: Number             // seconds
+  },
+  createdAt: Date,
+  updatedAt: Date
 }
 ```
-*Full question type list and validation: docs/QuestionTypes.md*
+*Full question type list, validation rules, and per-type constraints: docs/QuestionTypes.md*
 
 ### Session
 ```javascript
 {
   _id: ObjectId,
   quizId: ObjectId (ref: Quiz),
-  moderatorId: ObjectId (ref: User),
+  moderatorId: ObjectId (ref: User, nullable),  // null for guest-hosted sessions
+  guestToken: String (nullable),                 // opaque token for guest moderator control
   pin: String (unique, 6-digit numeric),
   status: Enum ['lobby', 'playing', 'paused', 'finished'],
   currentQuestionIndex: Number,
@@ -420,36 +832,59 @@ Connection: `io.connect('http://localhost:3000')`
 ```
 
 ### Submission
+
+Polymorphic answer payload — which fields are populated depends on `questionType`.
+
 ```javascript
 {
   _id: ObjectId,
   participantId: ObjectId (ref: Participant),
   questionId: ObjectId (ref: Question),
-  answerId: ObjectId,
+  questionType: String,              // copied from Question.type for easy interpretation
+
+  // Answer payloads (use the one matching questionType)
+  answerId: ObjectId,                // MC, true-false, poll, quiz-audio (single select)
+  answerIds: [ObjectId],             // MC, poll (multi-select via allowMultipleAnswers)
+  textAnswer: String,                // type-answer, word-cloud, open-ended, brainstorm
+  numericAnswer: Number,             // slider, scale, nps-scale
+  pinAnswer: { x: Number, y: Number }, // pin-answer, drop-pin (0–100 %)
+  orderedAnswerIds: [ObjectId],      // puzzle (player's ordering)
+
+  // Common
   timeTaken: Number (ms),
   pointsAwarded: Number,
-  submittedAt: Date
+  createdAt: Date
 }
 ```
+
+**Unique constraint:** one submission per participant per question.
 
 ---
 
 ## Scoring Algorithm (fPA1, fPA2)
 
-```javascript
-// Base points for correct answer
-const BASE_POINTS = 1000;
+Scoring is handled **server-side** in `broadcastEvents.js` when a question ends.
 
-// Calculate points based on time
-function calculatePoints(isCorrect, timeTaken, timeLimit) {
+```javascript
+const BASE_POINTS = 1000;
+const MIN_CORRECT_POINTS = 100;
+
+function calculatePoints(isCorrect, timeTakenMs, timeLimitSec) {
   if (!isCorrect) return 0;
 
-  const timeBonus = Math.max(0, 1 - (timeTaken / timeLimit));
-  const points = Math.round(BASE_POINTS * (0.5 + 0.5 * timeBonus));
+  const timeTakenSec = Math.max(0, timeTakenMs / 1000);
+  const timeBonus = Math.max(0, (timeLimitSec - timeTakenSec) / timeLimitSec);
+  const points = Math.round(BASE_POINTS * timeBonus);
 
-  return points; // Range: 500-1000 for correct answers
+  // Guarantee a minimum reward for every correct answer
+  return Math.max(points, MIN_CORRECT_POINTS);
 }
+
+// Range: 100–1000 for correct answers, 0 for wrong answers
+// Fastest correct answer = 1000 pts, slowest = 100 pts
 ```
+
+Player scores accumulate across questions. The leaderboard is recomputed and broadcast after every question.
 
 ---
 

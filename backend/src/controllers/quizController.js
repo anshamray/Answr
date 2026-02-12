@@ -1,5 +1,12 @@
 import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
+import {
+  sendSuccess,
+  sendCreated,
+  sendBadRequest,
+  sendNotFound,
+  sendServerError
+} from '../utils/responseHelper.js';
 
 /**
  * List all quizzes belonging to the authenticated user
@@ -11,10 +18,10 @@ export async function listQuizzes(req, res) {
       .sort({ updatedAt: -1 })
       .select('-questions');
 
-    res.json({ quizzes });
+    sendSuccess(res, { message: 'Quizzes retrieved', data: { quizzes } });
   } catch (error) {
     console.error('List quizzes error:', error);
-    res.status(500).json({ error: 'Failed to fetch quizzes' });
+    sendServerError(res, 'Failed to fetch quizzes');
   }
 }
 
@@ -33,13 +40,13 @@ export async function getQuiz(req, res) {
     });
 
     if (!quiz) {
-      return res.status(404).json({ error: 'Quiz not found' });
+      return sendNotFound(res, 'Quiz not found');
     }
 
-    res.json({ quiz });
+    sendSuccess(res, { message: 'Quiz retrieved', data: { quiz } });
   } catch (error) {
     console.error('Get quiz error:', error);
-    res.status(500).json({ error: 'Failed to fetch quiz' });
+    sendServerError(res, 'Failed to fetch quiz');
   }
 }
 
@@ -52,7 +59,7 @@ export async function createQuiz(req, res) {
     const { title, description, category } = req.body;
 
     if (!title) {
-      return res.status(400).json({ error: 'Title is required' });
+      return sendBadRequest(res, 'Title is required');
     }
 
     const quiz = new Quiz({
@@ -64,13 +71,10 @@ export async function createQuiz(req, res) {
 
     await quiz.save();
 
-    res.status(201).json({
-      message: 'Quiz created',
-      quiz
-    });
+    sendCreated(res, 'Quiz created', { quiz });
   } catch (error) {
     console.error('Create quiz error:', error);
-    res.status(500).json({ error: 'Failed to create quiz' });
+    sendServerError(res, 'Failed to create quiz');
   }
 }
 
@@ -88,7 +92,7 @@ export async function updateQuiz(req, res) {
     });
 
     if (!quiz) {
-      return res.status(404).json({ error: 'Quiz not found' });
+      return sendNotFound(res, 'Quiz not found');
     }
 
     // Only update fields that are provided
@@ -98,13 +102,10 @@ export async function updateQuiz(req, res) {
 
     await quiz.save();
 
-    res.json({
-      message: 'Quiz updated',
-      quiz
-    });
+    sendSuccess(res, { message: 'Quiz updated', data: { quiz } });
   } catch (error) {
     console.error('Update quiz error:', error);
-    res.status(500).json({ error: 'Failed to update quiz' });
+    sendServerError(res, 'Failed to update quiz');
   }
 }
 
@@ -120,7 +121,7 @@ export async function deleteQuiz(req, res) {
     });
 
     if (!quiz) {
-      return res.status(404).json({ error: 'Quiz not found' });
+      return sendNotFound(res, 'Quiz not found');
     }
 
     // Delete all questions belonging to this quiz
@@ -129,9 +130,9 @@ export async function deleteQuiz(req, res) {
     // Delete the quiz itself
     await quiz.deleteOne();
 
-    res.json({ message: 'Quiz deleted' });
+    sendSuccess(res, { message: 'Quiz deleted' });
   } catch (error) {
     console.error('Delete quiz error:', error);
-    res.status(500).json({ error: 'Failed to delete quiz' });
+    sendServerError(res, 'Failed to delete quiz');
   }
 }

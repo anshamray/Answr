@@ -13,6 +13,14 @@
  * `socket/index.js` and also used by `playerEvents.js`.
  */
 
+import { MODERATOR_EVENTS, GAME_EVENTS, PLAYER_EVENTS, ERROR_CODES } from './events.js';
+import {
+  emitModeratorError,
+  getConnectedPlayers,
+  assertIsHost
+} from './sessionUtils.js';
+import { generateUniquePin } from '../utils/pinGenerator.js';
+
 import {
   broadcastToSession,
   broadcastLobbyUpdate,
@@ -20,57 +28,12 @@ import {
   broadcastGameEnd
 } from './gameEvents.js';
 
-/**
- * Emit a structured moderator error
- * @param {import('socket.io').Socket} socket
- * @param {string} code
- * @param {string} message
- */
-function emitModeratorError(socket, code, message) {
-  socket.emit('moderator:error', { code, message });
-}
-
-/**
- * Ensure only the current host socket can control the session
- * @param {import('socket.io').Socket} socket
- * @param {any} session
- * @returns {boolean}
- */
-function assertIsHost(socket, session) {
-  if (!session || !session.hostSocketId) {
-    emitModeratorError(socket, 'SESSION_NOT_HOSTED', 'No active host for this session.');
-    return false;
-  }
-
-  if (session.hostSocketId !== socket.id) {
-    emitModeratorError(socket, 'NOT_AUTHORIZED', 'Only the session host can perform this action.');
-    return false;
-  }
-
-  return true;
-}
-
-/**
- * Get connected players for lobby updates
- */
-function getConnectedPlayers(session) {
-  const players = session.players ? Array.from(session.players.values()) : [];
-  return players.filter((p) => p.isConnected);
-}
-
-/**
- * Generate a unique 6-digit numeric PIN for a session.
- * Ensures no collision with current in-memory sessions.
- * @param {Map<string, any>} activeSessions
- * @returns {string}
- */
-function generateNumericPin(activeSessions) {
-  let pin;
-  do {
-    pin = String(Math.floor(100000 + Math.random() * 900000)); // 100000–999999
-  } while (activeSessions.has(pin));
-  return pin;
-}
+import {
+  startQuestionTimer,
+  clearQuestionTimer,
+  endCurrentQuestion,
+  computeFinalResults
+} from './broadcastEvents.js';
 
 /**
  * Register all moderator-related Socket.io event handlers (WS-3)
@@ -88,7 +51,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    * - Marks this socket as the host for the session
    * - Joins the underlying Socket.io room identified by the PIN
    */
-  socket.on('moderator:join', (payload) => {
+  socket.on(MODERATOR_EVENTS.JOIN, async (payload) => {
     try {
       const { pin, quizId } = payload || {};
 
@@ -97,9 +60,10 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           ? pin.trim()
           : '';
 
-      // If no PIN was provided by the client, generate a 6-digit numeric PIN on the server
+      // If no PIN was provided by the client, generate a unique PIN
+      // that checks both in-memory sessions AND the database
       if (!sessionPin) {
-        sessionPin = generateNumericPin(activeSessions);
+        sessionPin = await generateUniquePin(activeSessions);
       }
 
       let session = activeSessions.get(sessionPin);
@@ -121,7 +85,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         if (session.hostSocketId && session.hostSocketId !== socket.id) {
           emitModeratorError(
             socket,
-            'SESSION_ALREADY_HOSTED',
+            ERROR_CODES.SESSION_ALREADY_HOSTED,
             'This session already has an active host.'
           );
           return;
@@ -143,7 +107,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       socket.join(sessionPin);
 
       // Acknowledge to the moderator
-      socket.emit('moderator:joined', {
+      socket.emit(MODERATOR_EVENTS.JOINED, {
         sessionId: sessionPin,
         quizId: session.quizId ?? null,
         status: session.status
@@ -159,7 +123,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
     } catch (error) {
       console.error('Error in moderator:join handler:', error);
-      emitModeratorError(socket, 'INTERNAL_ERROR', 'An unexpected error occurred while joining.');
+      emitModeratorError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while joining.');
     }
   });
 
@@ -170,12 +134,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    * - Transitions session status to "playing"
    * - Optionally broadcasts the first question if provided
    */
-  socket.on('moderator:start', (payload) => {
+  socket.on(MODERATOR_EVENTS.START, (payload) => {
     try {
       const sessionPin = socket.data.sessionPin;
 
       if (!sessionPin) {
-        emitModeratorError(socket, 'SESSION_NOT_FOUND', 'No active session associated with socket.');
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
         return;
       }
 
@@ -188,7 +152,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       if (session.status && session.status !== 'lobby') {
         emitModeratorError(
           socket,
-          'INVALID_STATE',
+          ERROR_CODES.INVALID_STATE,
           'Quiz can only be started from the lobby state.'
         );
         return;
@@ -198,26 +162,36 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       session.currentQuestionIndex = 0;
 
       // Inform all clients that the game has started
-      broadcastToSession(io, sessionPin, 'game:started', {
+      broadcastToSession(io, sessionPin, GAME_EVENTS.STARTED, {
         status: 'playing'
       });
 
       const { firstQuestion } = payload || {};
 
       if (firstQuestion && typeof firstQuestion === 'object') {
+        // Store question metadata for scoring & timer
+        session.currentQuestionId = firstQuestion.questionId || `q_${session.currentQuestionIndex}`;
+        session.currentTimeLimit = firstQuestion.timeLimit || 30;
+        session.currentCorrectAnswerIds = Array.isArray(firstQuestion.correctAnswerIds)
+          ? firstQuestion.correctAnswerIds
+          : [];
+        session.questionEnded = false;
+
         const questionPayload = {
+          questionId: session.currentQuestionId,
           questionNumber: 1,
-          totalQuestions: firstQuestion.totalQuestions ?? firstQuestion.totalQuestions ?? 1,
+          totalQuestions: firstQuestion.totalQuestions ?? 1,
           text: firstQuestion.text,
           options: firstQuestion.options,
           timeLimit: firstQuestion.timeLimit
         };
 
         broadcastQuestion(io, sessionPin, questionPayload);
+        startQuestionTimer(io, sessionPin, session);
       }
     } catch (error) {
       console.error('Error in moderator:start handler:', error);
-      emitModeratorError(socket, 'INTERNAL_ERROR', 'An unexpected error occurred while starting.');
+      emitModeratorError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while starting.');
     }
   });
 
@@ -227,12 +201,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    *
    * The `question` object is forwarded to clients via `game:question`.
    */
-  socket.on('moderator:next', (payload) => {
+  socket.on(MODERATOR_EVENTS.NEXT, (payload) => {
     try {
       const sessionPin = socket.data.sessionPin;
 
       if (!sessionPin) {
-        emitModeratorError(socket, 'SESSION_NOT_FOUND', 'No active session associated with socket.');
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
         return;
       }
 
@@ -245,7 +219,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       if (!session.status || session.status === 'finished') {
         emitModeratorError(
           socket,
-          'INVALID_STATE',
+          ERROR_CODES.INVALID_STATE,
           'Cannot advance question for a non-active session.'
         );
         return;
@@ -256,7 +230,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       if (!question || typeof question !== 'object') {
         emitModeratorError(
           socket,
-          'VALIDATION_ERROR',
+          ERROR_CODES.VALIDATION_ERROR,
           'Question payload is required to advance to the next question.'
         );
         return;
@@ -265,7 +239,16 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       session.status = 'playing';
       session.currentQuestionIndex = (session.currentQuestionIndex ?? 0) + 1;
 
+      // Store question metadata for scoring & timer
+      session.currentQuestionId = question.questionId || `q_${session.currentQuestionIndex}`;
+      session.currentTimeLimit = question.timeLimit || 30;
+      session.currentCorrectAnswerIds = Array.isArray(question.correctAnswerIds)
+        ? question.correctAnswerIds
+        : [];
+      session.questionEnded = false;
+
       const questionPayload = {
+        questionId: session.currentQuestionId,
         questionNumber: question.questionNumber ?? session.currentQuestionIndex,
         totalQuestions: question.totalQuestions,
         text: question.text,
@@ -274,13 +257,53 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       };
 
       broadcastQuestion(io, sessionPin, questionPayload);
+      startQuestionTimer(io, sessionPin, session);
     } catch (error) {
       console.error('Error in moderator:next handler:', error);
       emitModeratorError(
         socket,
-        'INTERNAL_ERROR',
+        ERROR_CODES.INTERNAL_ERROR,
         'An unexpected error occurred while advancing to the next question.'
       );
+    }
+  });
+
+  /**
+   * moderator:end-question
+   * Payload: { correctAnswerIds }
+   *
+   * Signals that the current question is over (timer expired or moderator
+   * chose to reveal). Broadcasts `game:questionEnd` with the correct answer
+   * IDs so players can see their result.
+   */
+  socket.on(MODERATOR_EVENTS.END_QUESTION, (payload) => {
+    try {
+      const sessionPin = socket.data.sessionPin;
+
+      if (!sessionPin) {
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
+        return;
+      }
+
+      const session = activeSessions.get(sessionPin);
+
+      if (!assertIsHost(socket, session)) {
+        return;
+      }
+
+      // Stop the server-side timer (moderator ended early)
+      clearQuestionTimer(session);
+
+      // Allow override of correct answer IDs if provided
+      if (Array.isArray(payload?.correctAnswerIds) && payload.correctAnswerIds.length > 0) {
+        session.currentCorrectAnswerIds = payload.correctAnswerIds;
+      }
+
+      // Score answers + broadcast questionEnd + leaderboard
+      endCurrentQuestion(io, sessionPin, session);
+    } catch (error) {
+      console.error('Error in moderator:end-question handler:', error);
+      emitModeratorError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred.');
     }
   });
 
@@ -290,12 +313,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    * - Transitions session status to "paused"
    * - Notifies all clients via `game:paused`
    */
-  socket.on('moderator:pause', () => {
+  socket.on(MODERATOR_EVENTS.PAUSE, () => {
     try {
       const sessionPin = socket.data.sessionPin;
 
       if (!sessionPin) {
-        emitModeratorError(socket, 'SESSION_NOT_FOUND', 'No active session associated with socket.');
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
         return;
       }
 
@@ -308,7 +331,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       if (session.status !== 'playing') {
         emitModeratorError(
           socket,
-          'INVALID_STATE',
+          ERROR_CODES.INVALID_STATE,
           'Game can only be paused while playing.'
         );
         return;
@@ -316,14 +339,14 @@ export function registerModeratorEvents(io, socket, activeSessions) {
 
       session.status = 'paused';
 
-      broadcastToSession(io, sessionPin, 'game:paused', {
+      broadcastToSession(io, sessionPin, GAME_EVENTS.PAUSED, {
         status: 'paused'
       });
     } catch (error) {
       console.error('Error in moderator:pause handler:', error);
       emitModeratorError(
         socket,
-        'INTERNAL_ERROR',
+        ERROR_CODES.INTERNAL_ERROR,
         'An unexpected error occurred while pausing the game.'
       );
     }
@@ -335,12 +358,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    * - Transitions session status back to "playing"
    * - Notifies all clients via `game:resumed`
    */
-  socket.on('moderator:resume', () => {
+  socket.on(MODERATOR_EVENTS.RESUME, () => {
     try {
       const sessionPin = socket.data.sessionPin;
 
       if (!sessionPin) {
-        emitModeratorError(socket, 'SESSION_NOT_FOUND', 'No active session associated with socket.');
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
         return;
       }
 
@@ -353,7 +376,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       if (session.status !== 'paused') {
         emitModeratorError(
           socket,
-          'INVALID_STATE',
+          ERROR_CODES.INVALID_STATE,
           'Game can only be resumed from the paused state.'
         );
         return;
@@ -361,14 +384,14 @@ export function registerModeratorEvents(io, socket, activeSessions) {
 
       session.status = 'playing';
 
-      broadcastToSession(io, sessionPin, 'game:resumed', {
+      broadcastToSession(io, sessionPin, GAME_EVENTS.RESUMED, {
         status: 'playing'
       });
     } catch (error) {
       console.error('Error in moderator:resume handler:', error);
       emitModeratorError(
         socket,
-        'INTERNAL_ERROR',
+        ERROR_CODES.INTERNAL_ERROR,
         'An unexpected error occurred while resuming the game.'
       );
     }
@@ -381,19 +404,19 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    * - Marks the player as disconnected
    * - Removes them from the lobby and emits updated lobby state
    */
-  socket.on('moderator:kick', (payload) => {
+  socket.on(MODERATOR_EVENTS.KICK, (payload) => {
     try {
       const { playerId } = payload || {};
 
       if (!playerId || typeof playerId !== 'string') {
-        emitModeratorError(socket, 'VALIDATION_ERROR', 'playerId is required to kick a player.');
+        emitModeratorError(socket, ERROR_CODES.VALIDATION_ERROR, 'playerId is required to kick a player.');
         return;
       }
 
       const sessionPin = socket.data.sessionPin;
 
       if (!sessionPin) {
-        emitModeratorError(socket, 'SESSION_NOT_FOUND', 'No active session associated with socket.');
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
         return;
       }
 
@@ -404,7 +427,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       }
 
       if (!session.players || !session.players.has(playerId)) {
-        emitModeratorError(socket, 'NOT_FOUND', 'Player not found in this session.');
+        emitModeratorError(socket, ERROR_CODES.NOT_FOUND, 'Player not found in this session.');
         return;
       }
 
@@ -417,7 +440,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           playerSocket.leave(sessionPin);
           playerSocket.data.sessionPin = null;
           playerSocket.data.playerId = null;
-          playerSocket.emit('player:kicked', { reason: 'kicked_by_moderator' });
+          playerSocket.emit(PLAYER_EVENTS.KICKED, { reason: 'kicked_by_moderator' });
         }
       }
 
@@ -432,7 +455,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
 
       // Inform remaining clients that a player was removed
-      broadcastToSession(io, sessionPin, 'player:removed', {
+      broadcastToSession(io, sessionPin, PLAYER_EVENTS.REMOVED, {
         playerId,
         playerCount: connectedPlayers.length
       });
@@ -440,7 +463,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       console.error('Error in moderator:kick handler:', error);
       emitModeratorError(
         socket,
-        'INTERNAL_ERROR',
+        ERROR_CODES.INTERNAL_ERROR,
         'An unexpected error occurred while kicking the player.'
       );
     }
@@ -452,12 +475,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
    * - Broadcasts game end to all clients
    * - Cleans up the in-memory session entry
    */
-  socket.on('moderator:end', () => {
+  socket.on(MODERATOR_EVENTS.END, () => {
     try {
       const sessionPin = socket.data.sessionPin;
 
       if (!sessionPin) {
-        emitModeratorError(socket, 'SESSION_NOT_FOUND', 'No active session associated with socket.');
+        emitModeratorError(socket, ERROR_CODES.SESSION_NOT_FOUND, 'No active session associated with socket.');
         return;
       }
 
@@ -467,28 +490,25 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         return;
       }
 
+      // Stop any running question timer
+      clearQuestionTimer(session);
+
       session.status = 'finished';
 
-      // For WS-3 we do not yet calculate a real leaderboard; send minimal shape
-      const finalResults = {
-        leaderboard: [],
-        stats: {
-          reason: 'ended_by_moderator'
-        }
-      };
+      // Compute real final leaderboard with all player scores
+      const finalResults = computeFinalResults(session);
 
       broadcastGameEnd(io, sessionPin, finalResults);
 
-      // Finally remove the session from memory
+      // Clean up the session from memory
       activeSessions.delete(sessionPin);
     } catch (error) {
       console.error('Error in moderator:end handler:', error);
       emitModeratorError(
         socket,
-        'INTERNAL_ERROR',
+        ERROR_CODES.INTERNAL_ERROR,
         'An unexpected error occurred while ending the session.'
       );
     }
   });
 }
-
