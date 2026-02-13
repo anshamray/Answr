@@ -27,6 +27,7 @@ answr/
 │   │   │   └── Media.js        # Medien-Schema (Upload-Tracking)
 │   │   │
 │   │   ├── routes/              # REST API Routes
+│   │   │   ├── index.js        # Route Index (zentraler API-Router)
 │   │   │   ├── auth.js         # Authentifizierung
 │   │   │   ├── quizzes.js      # Quiz-CRUD
 │   │   │   ├── questions.js    # Question-CRUD & Reorder
@@ -164,9 +165,10 @@ GitHub-spezifische Dateien wie Issue-Templates.
 23. ✅ API-5: Question CRUD API Endpoints (Add, Update, Delete, Reorder)
 24. ✅ API-7: Media Upload (Upload, Delete, Access-Controlled Serving)
 25. ✅ API-8: Health Check Endpoint
-26. [ ] PlayerResultsPage (Endergebnis-Seite)
-27. [ ] Testing
-28. [ ] Deployment
+26. ✅ API-9: Route Index (zentraler API-Router in server.js)
+27. [ ] PlayerResultsPage (Endergebnis-Seite)
+28. [ ] Testing
+29. [ ] Deployment
 
 ## Entwicklung starten
 
