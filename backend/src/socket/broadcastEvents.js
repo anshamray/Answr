@@ -4,11 +4,7 @@
  * Server-side question timer, answer scoring, and leaderboard computation.
  * These run on the server to ensure authoritative timing and fair scoring.
  *
- * Scoring formula (from project spec):
- *   basePoints = 1000
- *   timeBonus  = (timeLimit − timeTaken) / timeLimit
- *   points     = isCorrect ? round(basePoints × timeBonus) : 0
- *   minimum    = 100 points for any correct answer
+ * Scoring is delegated to utils/scoring.js (WS-5).
  */
 
 import {
@@ -16,9 +12,7 @@ import {
   broadcastQuestionEnd,
   broadcastLeaderboard
 } from './gameEvents.js';
-
-const BASE_POINTS = 1000;
-const MIN_CORRECT_POINTS = 100;
+import { calculateScore, DEFAULT_SCORING_CONFIG } from '../utils/scoring.js';
 
 // ─── Timer ──────────────────────────────────────────────────────────────
 
@@ -89,13 +83,14 @@ export function endCurrentQuestion(io, sessionPin, session) {
 
 /**
  * Score all submitted answers for the current question.
+ * Uses the scoring utility (WS-5) for point calculation.
  * Updates each player's cumulative score in place.
  *
  * @param {object} session
  */
 function scoreCurrentQuestion(session) {
   const correctIds = new Set(session.currentCorrectAnswerIds || []);
-  const timeLimit = session.currentTimeLimit || 30;
+  const timeLimitSec = session.currentTimeLimit || 30;
   const questionId = session.currentQuestionId;
 
   if (!questionId || !session.answers) return;
@@ -103,26 +98,28 @@ function scoreCurrentQuestion(session) {
   const questionAnswers = session.answers.get(questionId);
   if (!questionAnswers) return;
 
+  // Use session-level scoring config if available, otherwise defaults
+  const scoringConfig = session.scoringConfig || DEFAULT_SCORING_CONFIG;
+
   for (const [playerId, answer] of questionAnswers) {
     const isCorrect = correctIds.has(answer.answerId);
-    let points = 0;
 
-    if (isCorrect) {
-      // timeTaken is in milliseconds from the client
-      const timeTakenSec = Math.max(0, (answer.timeTaken || 0) / 1000);
-      const timeBonus = Math.max(0, (timeLimit - timeTakenSec) / timeLimit);
-      points = Math.round(BASE_POINTS * timeBonus);
-      // Guarantee a minimum for every correct answer
-      if (points < MIN_CORRECT_POINTS) points = MIN_CORRECT_POINTS;
-    }
+    // Delegate scoring calculation to the utility
+    const result = calculateScore({
+      isCorrect,
+      timeTakenMs: answer.timeTaken || 0,
+      timeLimitSec,
+      config: scoringConfig
+    });
 
-    answer.pointsAwarded = points;
-    answer.isCorrect = isCorrect;
+    answer.pointsAwarded = result.points;
+    answer.isCorrect = result.isCorrect;
+    answer.timeBonus = result.timeBonus;
 
     // Accumulate into the player's running total
     const player = session.players?.get(playerId);
     if (player) {
-      player.score = (player.score || 0) + points;
+      player.score = (player.score || 0) + result.points;
     }
   }
 }
