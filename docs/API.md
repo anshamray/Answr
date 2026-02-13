@@ -18,6 +18,29 @@ Authorization: Bearer <token>
 
 ---
 
+## Response Format
+
+All API responses follow a consistent format:
+
+**Success responses:**
+```json
+{
+  "success": true,
+  "message": "Description of what happened",
+  "data": { ... }
+}
+```
+
+**Error responses:**
+```json
+{
+  "success": false,
+  "error": "Error description"
+}
+```
+
+---
+
 ## REST API Endpoints
 
 ### 1. Authentication (fBV1, fBV3)
@@ -40,10 +63,16 @@ Authorization: Bearer <token>
 
 // Response 201
 {
-  "id": "string",
-  "name": "string",
-  "email": "string",
-  "token": "string"
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "token": "string",
+    "user": {
+      "id": "string",
+      "name": "string",
+      "email": "string"
+    }
+  }
 }
 ```
 
@@ -57,10 +86,32 @@ Authorization: Bearer <token>
 
 // Response 200
 {
-  "id": "string",
-  "name": "string",
-  "email": "string",
-  "token": "string"
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "string",
+    "user": {
+      "id": "string",
+      "name": "string",
+      "email": "string"
+    }
+  }
+}
+```
+
+#### GET `/api/auth/me`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "User retrieved",
+  "data": {
+    "user": {
+      "id": "string",
+      "name": "string",
+      "email": "string"
+    }
+  }
 }
 ```
 
@@ -76,6 +127,18 @@ Authorization: Bearer <token>
 | PUT | `/api/quizzes/:id` | Update quiz | Yes |
 | DELETE | `/api/quizzes/:id` | Delete quiz | Yes |
 
+#### GET `/api/quizzes`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Quizzes retrieved",
+  "data": {
+    "quizzes": [...]
+  }
+}
+```
+
 #### POST `/api/quizzes`
 ```json
 // Request
@@ -87,13 +150,19 @@ Authorization: Bearer <token>
 
 // Response 201
 {
-  "id": "string",
-  "moderatorId": "string",
-  "title": "string",
-  "description": "string",
-  "category": "string",
-  "createdAt": "ISO8601",
-  "questions": []
+  "success": true,
+  "message": "Quiz created",
+  "data": {
+    "quiz": {
+      "id": "string",
+      "moderatorId": "string",
+      "title": "string",
+      "description": "string",
+      "category": "string",
+      "createdAt": "ISO8601",
+      "questions": []
+    }
+  }
 }
 ```
 
@@ -101,29 +170,56 @@ Authorization: Bearer <token>
 ```json
 // Response 200
 {
-  "id": "string",
-  "moderatorId": "string",
-  "title": "string",
-  "description": "string",
-  "category": "string",
-  "createdAt": "ISO8601",
-  "questions": [
-    {
+  "success": true,
+  "message": "Quiz retrieved",
+  "data": {
+    "quiz": {
       "id": "string",
-      "type": "multiple-choice | true-false | slider | puzzle | type-answer | poll | ...",
-      "text": "string",
-      "mediaUrl": "string (optional)",
-      "timeLimit": 30,
-      "order": 1,
-      "answers": [
+      "moderatorId": "string",
+      "title": "string",
+      "description": "string",
+      "category": "string",
+      "createdAt": "ISO8601",
+      "questions": [
         {
           "id": "string",
+          "type": "multiple-choice | true-false | slider | puzzle | type-answer | poll | ...",
           "text": "string",
-          "isCorrect": true
+          "mediaUrl": "string (optional)",
+          "timeLimit": 30,
+          "order": 1,
+          "answers": [
+            {
+              "id": "string",
+              "text": "string",
+              "isCorrect": true
+            }
+          ]
         }
       ]
     }
-  ]
+  }
+}
+```
+
+#### PUT `/api/quizzes/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Quiz updated",
+  "data": {
+    "quiz": { ... }
+  }
+}
+```
+
+#### DELETE `/api/quizzes/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Quiz deleted"
 }
 ```
 
@@ -320,12 +416,50 @@ file: <binary>
 
 // Response 201
 {
-  "id": "string",
-  "quizId": "string",
-  "pin": "483912",  // 6-digit numeric PIN (fSZ2)
-  "status": "lobby",
-  "createdAt": "ISO8601",
-  "expiresAt": "ISO8601"  // +2 hours (fSZ6)
+  "success": true,
+  "message": "Session created",
+  "data": {
+    "session": {
+      "id": "string",
+      "quizId": "string",
+      "pin": "483912",
+      "status": "lobby",
+      "createdAt": "ISO8601",
+      "expiresAt": "ISO8601"
+    }
+  }
+}
+```
+
+#### GET `/api/sessions/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Session retrieved",
+  "data": {
+    "session": {
+      "id": "string",
+      "quizId": { ... },
+      "pin": "483912",
+      "status": "lobby",
+      "participants": [...],
+      "createdAt": "ISO8601",
+      "expiresAt": "ISO8601"
+    }
+  }
+}
+```
+
+#### DELETE `/api/sessions/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Session ended",
+  "data": {
+    "session": { ... }
+  }
 }
 ```
 
@@ -333,33 +467,24 @@ file: <binary>
 ```json
 // Response 200
 {
-  "sessionId": "string",
-  "quizTitle": "string",
-  "totalQuestions": 10,
-  "participants": [
-    {
-      "rank": 1,
-      "name": "Player1",
-      "avatar": "🦊",
-      "score": 9500,
-      "correctAnswers": 9,
-      "avgResponseTime": 4.2
-    }
-  ],
-  "questionStats": [
-    {
-      "questionId": "string",
-      "questionText": "What is 2+2?",
-      "correctPercentage": 85,
-      "avgResponseTime": 3.8,
-      "answerDistribution": {
-        "answer1Id": 2,
-        "answer2Id": 17,
-        "answer3Id": 1,
-        "answer4Id": 0
+  "success": true,
+  "message": "Session results retrieved",
+  "data": {
+    "sessionId": "string",
+    "quizTitle": "string",
+    "pin": "483912",
+    "status": "finished",
+    "totalParticipants": 10,
+    "finishedAt": "ISO8601",
+    "rankings": [
+      {
+        "rank": 1,
+        "name": "Player1",
+        "avatar": "🦊",
+        "score": 9500
       }
-    }
-  ]
+    ]
+  }
 }
 ```
 
@@ -375,8 +500,8 @@ The Library allows users to browse, clone, and run public quizzes. Quizzes can b
 | GET | `/api/library/:id` | Get library quiz detail | No (optional) |
 | POST | `/api/library/:id/start` | Start a library quiz (guest or auth) | No (optional) |
 | POST | `/api/library/:id/clone` | Clone quiz to own collection | Yes |
-| PUT | `/api/library/publish/:id` | Publish own quiz to library | Yes |
-| PUT | `/api/library/unpublish/:id` | Remove own quiz from library | Yes |
+| PUT | `/api/quizzes/:id/publish` | Publish own quiz to library | Yes |
+| PUT | `/api/quizzes/:id/unpublish` | Remove own quiz from library | Yes |
 | POST | `/api/library/official` | Create official quiz | Yes (Admin) |
 
 #### GET `/api/library`
@@ -398,24 +523,28 @@ Browse published quizzes with search, filtering, and sorting.
 ```json
 // Response 200
 {
-  "quizzes": [
-    {
-      "id": "string",
-      "title": "string",
-      "description": "string",
-      "category": "string",
-      "tags": ["math", "algebra"],
-      "isOfficial": false,
-      "playCount": 42,
-      "publishedAt": "ISO8601",
-      "author": "Author Name"
+  "success": true,
+  "message": "Library retrieved",
+  "data": {
+    "quizzes": [
+      {
+        "id": "string",
+        "title": "string",
+        "description": "string",
+        "category": "string",
+        "tags": ["math", "algebra"],
+        "isOfficial": false,
+        "playCount": 42,
+        "publishedAt": "ISO8601",
+        "author": "Author Name"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 85,
+      "totalPages": 5
     }
-  ],
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "total": 85,
-    "totalPages": 5
   }
 }
 ```
@@ -427,30 +556,34 @@ Get full details of a published quiz (questions are summarized, answers not expo
 ```json
 // Response 200
 {
-  "quiz": {
-    "id": "string",
-    "title": "string",
-    "description": "string",
-    "category": "string",
-    "tags": ["math"],
-    "isOfficial": true,
-    "playCount": 100,
-    "publishedAt": "ISO8601",
-    "author": "Admin",
-    "questionCount": 10,
-    "questions": [
-      {
-        "id": "string",
-        "type": "multiple-choice",
-        "text": "What is 2+2?",
-        "mediaUrl": null,
-        "mediaType": null,
-        "timeLimit": 30,
-        "points": 1000,
-        "order": 1,
-        "answerCount": 4
-      }
-    ]
+  "success": true,
+  "message": "Library quiz retrieved",
+  "data": {
+    "quiz": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "category": "string",
+      "tags": ["math"],
+      "isOfficial": true,
+      "playCount": 100,
+      "publishedAt": "ISO8601",
+      "author": "Admin",
+      "questionCount": 10,
+      "questions": [
+        {
+          "id": "string",
+          "type": "multiple-choice",
+          "text": "What is 2+2?",
+          "mediaUrl": null,
+          "mediaType": null,
+          "timeLimit": 30,
+          "points": 1000,
+          "order": 1,
+          "answerCount": 4
+        }
+      ]
+    }
   }
 }
 ```
@@ -464,15 +597,18 @@ that acts as the session-specific moderator credential.
 ```json
 // Response 201
 {
+  "success": true,
   "message": "Session created",
-  "session": {
-    "id": "string",
-    "quizId": "string",
-    "pin": "483912",
-    "status": "lobby",
-    "guestToken": "string (null when authenticated)",
-    "createdAt": "ISO8601",
-    "expiresAt": "ISO8601"
+  "data": {
+    "session": {
+      "id": "string",
+      "quizId": "string",
+      "pin": "483912",
+      "status": "lobby",
+      "guestToken": "string (null when authenticated)",
+      "createdAt": "ISO8601",
+      "expiresAt": "ISO8601"
+    }
   }
 }
 ```
@@ -484,19 +620,22 @@ Clone a library quiz into the authenticated user's own quiz collection. Creates 
 ```json
 // Response 201
 {
+  "success": true,
   "message": "Quiz cloned to your collection",
-  "quiz": {
-    "id": "string",
-    "title": "string",
-    "description": "string",
-    "category": "string",
-    "questionCount": 10,
-    "clonedFrom": "string (original quiz ID)"
+  "data": {
+    "quiz": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "category": "string",
+      "questionCount": 10,
+      "clonedFrom": "string (original quiz ID)"
+    }
   }
 }
 ```
 
-#### PUT `/api/library/publish/:id`
+#### PUT `/api/quizzes/:id/publish`
 
 Publish one of your own quizzes to the public library. The quiz must have at least 1 question.
 
@@ -508,29 +647,35 @@ Publish one of your own quizzes to the public library. The quiz must have at lea
 
 // Response 200
 {
+  "success": true,
   "message": "Quiz published to library",
-  "quiz": {
-    "id": "string",
-    "title": "string",
-    "isPublished": true,
-    "publishedAt": "ISO8601",
-    "tags": ["math", "algebra", "grade-10"]
+  "data": {
+    "quiz": {
+      "id": "string",
+      "title": "string",
+      "isPublished": true,
+      "publishedAt": "ISO8601",
+      "tags": ["math", "algebra", "grade-10"]
+    }
   }
 }
 ```
 
-#### PUT `/api/library/unpublish/:id`
+#### PUT `/api/quizzes/:id/unpublish`
 
 Remove your quiz from the public library.
 
 ```json
 // Response 200
 {
+  "success": true,
   "message": "Quiz removed from library",
-  "quiz": {
-    "id": "string",
-    "title": "string",
-    "isPublished": false
+  "data": {
+    "quiz": {
+      "id": "string",
+      "title": "string",
+      "isPublished": false
+    }
   }
 }
 ```
@@ -550,18 +695,21 @@ Create a quiz that is immediately published and marked as official.
 
 // Response 201
 {
+  "success": true,
   "message": "Official quiz created",
-  "quiz": {
-    "id": "string",
-    "moderatorId": "string",
-    "title": "Official Math Quiz",
-    "description": "Basic algebra questions",
-    "category": "Mathematics",
-    "tags": ["math", "official"],
-    "isPublished": true,
-    "isOfficial": true,
-    "publishedAt": "ISO8601",
-    "playCount": 0
+  "data": {
+    "quiz": {
+      "id": "string",
+      "moderatorId": "string",
+      "title": "Official Math Quiz",
+      "description": "Basic algebra questions",
+      "category": "Mathematics",
+      "tags": ["math", "official"],
+      "isPublished": true,
+      "isOfficial": true,
+      "publishedAt": "ISO8601",
+      "playCount": 0
+    }
   }
 }
 ```
@@ -591,6 +739,70 @@ Create a quiz that is immediately published and marked as official.
 ## WebSocket Events
 
 Connection: `io.connect('http://localhost:3000')`
+
+### Event Constants
+
+All WebSocket events are defined as constants in `backend/src/socket/events.js`:
+
+```javascript
+// Player Events
+PLAYER_EVENTS.CHECK_PIN      // 'player:check-pin'
+PLAYER_EVENTS.JOIN           // 'player:join'
+PLAYER_EVENTS.ANSWER         // 'player:answer'
+PLAYER_EVENTS.RECONNECT      // 'player:reconnect'
+PLAYER_EVENTS.PIN_VALID      // 'player:pin-valid'
+PLAYER_EVENTS.PIN_INVALID    // 'player:pin-invalid'
+PLAYER_EVENTS.JOINED         // 'player:joined'
+PLAYER_EVENTS.ANSWER_ACK     // 'player:answer:ack'
+PLAYER_EVENTS.ANSWER_RECEIVED // 'player:answer:received'
+PLAYER_EVENTS.ANSWER_DETAIL  // 'player:answer:detail'
+PLAYER_EVENTS.KICKED         // 'player:kicked'
+PLAYER_EVENTS.LEFT           // 'player:left'
+PLAYER_EVENTS.REMOVED        // 'player:removed'
+PLAYER_EVENTS.ERROR          // 'player:error'
+
+// Moderator Events
+MODERATOR_EVENTS.JOIN        // 'moderator:join'
+MODERATOR_EVENTS.START       // 'moderator:start'
+MODERATOR_EVENTS.NEXT        // 'moderator:next'
+MODERATOR_EVENTS.END_QUESTION // 'moderator:end-question'
+MODERATOR_EVENTS.PAUSE       // 'moderator:pause'
+MODERATOR_EVENTS.RESUME      // 'moderator:resume'
+MODERATOR_EVENTS.KICK        // 'moderator:kick'
+MODERATOR_EVENTS.END         // 'moderator:end'
+MODERATOR_EVENTS.JOINED      // 'moderator:joined'
+MODERATOR_EVENTS.ERROR       // 'moderator:error'
+
+// Game Events
+GAME_EVENTS.STARTED          // 'game:started'
+GAME_EVENTS.QUESTION         // 'game:question'
+GAME_EVENTS.TIMER            // 'game:timer'
+GAME_EVENTS.QUESTION_END     // 'game:questionEnd'
+GAME_EVENTS.LEADERBOARD      // 'game:leaderboard'
+GAME_EVENTS.PAUSED           // 'game:paused'
+GAME_EVENTS.RESUMED          // 'game:resumed'
+GAME_EVENTS.END              // 'game:end'
+
+// Lobby Events
+LOBBY_EVENTS.UPDATE          // 'lobby:update'
+
+// Session Events
+SESSION_EVENTS.HOST_DISCONNECTED // 'session:hostDisconnected'
+
+// Error Codes
+ERROR_CODES.VALIDATION_ERROR
+ERROR_CODES.PIN_INVALID
+ERROR_CODES.SESSION_NOT_FOUND
+ERROR_CODES.SESSION_EXPIRED
+ERROR_CODES.SESSION_FULL
+ERROR_CODES.SESSION_NOT_HOSTED
+ERROR_CODES.SESSION_ALREADY_HOSTED
+ERROR_CODES.QUIZ_IN_PROGRESS
+ERROR_CODES.INVALID_STATE
+ERROR_CODES.NOT_AUTHORIZED
+ERROR_CODES.NOT_FOUND
+ERROR_CODES.INTERNAL_ERROR
+```
 
 ### Player Events (Client → Server)
 
@@ -797,6 +1009,9 @@ All three paths are idempotent (a `questionEnded` flag prevents double-scoring).
   createdAt: Date,
   updatedAt: Date
 }
+
+// Indexes
+questionSchema.index({ quizId: 1, order: 1 });
 ```
 *Full question type list, validation rules, and per-type constraints: docs/QuestionTypes.md*
 
@@ -814,6 +1029,10 @@ All three paths are idempotent (a `questionEnded` flag prevents double-scoring).
   expiresAt: Date,
   finishedAt: Date
 }
+
+// Indexes
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });  // TTL index
+sessionSchema.index({ moderatorId: 1, status: 1 });                // Query optimization
 ```
 
 ### Participant

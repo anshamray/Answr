@@ -32,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const data = await res.json();
-    setAuth(data.token, data.user);
+    setAuth(data.data.token, data.data.user);
     return data;
   }
 
@@ -49,7 +49,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const data = await res.json();
-    setAuth(data.token, data.user);
+    setAuth(data.data.token, data.data.user);
     return data;
   }
 
@@ -66,8 +66,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const data = await res.json();
-    user.value = data.user;
-    return data.user;
+    user.value = data.data.user;
+    return data.data.user;
   }
 
   function logout() {

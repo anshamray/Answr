@@ -4,6 +4,9 @@ import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
 
+import PixelLogo from '../components/icons/PixelLogo.vue';
+import PixelBadge from '../components/PixelBadge.vue';
+
 const router = useRouter();
 const game = useGameStore();
 
@@ -48,12 +51,19 @@ onUnmounted(cleanup);
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center bg-white px-4">
-    <h1 class="text-4xl font-bold mb-2">{{ game.playerName || 'Player' }}</h1>
-    <p class="text-gray-500 mb-8">You're in! Waiting for the host to start...</p>
+  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/5 to-background px-4">
+    <PixelLogo class="text-primary mb-6" :size="48" />
+    <h1 class="text-4xl font-bold mb-2 text-foreground">{{ game.playerName || 'Player' }}</h1>
+    <p class="text-muted-foreground mb-8">You're in! Waiting for the host to start...</p>
 
-    <div class="animate-pulse text-6xl mb-8">...</div>
+    <div class="flex gap-2 mb-8">
+      <div class="w-3 h-3 bg-primary animate-bounce" style="animation-delay: 0s;"></div>
+      <div class="w-3 h-3 bg-secondary animate-bounce" style="animation-delay: 0.1s;"></div>
+      <div class="w-3 h-3 bg-accent animate-bounce" style="animation-delay: 0.2s;"></div>
+    </div>
 
-    <p class="text-gray-300 text-sm">PIN: <span class="font-mono font-bold">{{ game.pin }}</span></p>
+    <PixelBadge variant="secondary">
+      PIN: {{ game.pin }}
+    </PixelBadge>
   </div>
 </template>

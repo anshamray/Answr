@@ -4,6 +4,13 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 
+import PixelButton from '../components/PixelButton.vue';
+import PixelCard from '../components/PixelCard.vue';
+import PixelBadge from '../components/PixelBadge.vue';
+import PixelLogo from '../components/icons/PixelLogo.vue';
+import PixelClock from '../components/icons/PixelClock.vue';
+import PixelUsers from '../components/icons/PixelUsers.vue';
+
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
@@ -15,13 +22,13 @@ const pin = ref('');
 const quizTitle = ref('');
 const questions = ref([]);
 const currentIndex = ref(-1);
-const status = ref('loading');       // 'loading' | 'question' | 'reveal' | 'ended' | 'error'
+const status = ref('loading');
 const error = ref('');
 const answersReceived = ref(0);
 const playerCount = ref(0);
 const timeRemaining = ref(0);
-const answerDistribution = ref({});  // { answerId: count }
-const leaderboard = ref([]);         // [{ position, playerId, nickname, score }]
+const answerDistribution = ref({});
+const leaderboard = ref([]);
 
 const currentQuestion = computed(() => {
   if (currentIndex.value < 0 || currentIndex.value >= questions.value.length) return null;
@@ -45,10 +52,10 @@ const totalDistributionAnswers = computed(() =>
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 
-// Kahoot-style colors
-const barBg = ['bg-red-500', 'bg-blue-500', 'bg-amber-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'];
+// Branded answer colors
+const barBg = ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-success', 'bg-warning', 'bg-primary-light'];
 const barLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
-const podiumColors = ['text-yellow-500', 'text-gray-400', 'text-amber-700'];
+const podiumColors = ['text-warning', 'text-muted-foreground', 'text-accent'];
 
 function getCount(answerId) {
   return answerDistribution.value[answerId] || 0;
@@ -84,7 +91,7 @@ async function fetchSession() {
     if (!res.ok) throw new Error('Failed to load session');
 
     const data = await res.json();
-    const session = data.session;
+    const session = data.data.session;
 
     pin.value = session.pin;
     quizTitle.value = session.quizId?.title || 'Quiz';
@@ -120,7 +127,6 @@ function ensureSocket(sessionPin) {
 }
 
 function attachListeners(socket) {
-  // Host-only: includes answerId for distribution tracking
   socket.on('player:answer:detail', (data) => {
     if (data?.answerId) {
       answerDistribution.value = {
@@ -133,28 +139,24 @@ function attachListeners(socket) {
     }
   });
 
-  // Room-wide answer count (fallback)
   socket.on('player:answer:received', (data) => {
     if (data?.answerCount != null) {
       answersReceived.value = data.answerCount;
     }
   });
 
-  // Server-side timer ticks — authoritative countdown
   socket.on('game:timer', (data) => {
     if (data?.remaining != null) {
       timeRemaining.value = data.remaining;
     }
   });
 
-  // Server ended the question (timer expired or scoring complete)
   socket.on('game:questionEnd', () => {
     if (status.value === 'question') {
       status.value = 'reveal';
     }
   });
 
-  // Leaderboard after each question
   socket.on('game:leaderboard', (data) => {
     leaderboard.value = data?.leaderboard || [];
   });
@@ -179,14 +181,12 @@ function cleanup() {
 // ─── Game flow ──────────────────────────────────────────────────────────
 
 function buildQuestionPayload(q) {
-  // Strip isCorrect from options (players must not see it)
   const options = (q.answers || []).map((a) => ({
     id: a._id,
     text: a.text,
     imageUrl: a.imageUrl || null
   }));
 
-  // Collect correct answer IDs for server-side scoring
   const correctAnswerIds = (q.answers || [])
     .filter((a) => a.isCorrect)
     .map((a) => a._id);
@@ -212,7 +212,6 @@ function sendFirstQuestion() {
   const q = currentQuestion.value;
   if (!q) return;
 
-  // Initialize timer display before first server tick arrives
   timeRemaining.value = q.timeLimit || 30;
 
   const socket = getSocket();
@@ -224,10 +223,8 @@ function sendFirstQuestion() {
 }
 
 function revealAnswer() {
-  // Optimistic UI — switch to reveal immediately
   status.value = 'reveal';
 
-  // Tell the server to stop timer, score, and broadcast
   const socket = getSocket();
   if (socket) {
     socket.emit('moderator:end-question', {});
@@ -244,7 +241,6 @@ function sendNextQuestion() {
   const q = currentQuestion.value;
   if (!q) return;
 
-  // Initialize timer display before first server tick
   timeRemaining.value = q.timeLimit || 30;
 
   const socket = getSocket();
@@ -277,144 +273,134 @@ onUnmounted(cleanup);
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col">
+  <div class="min-h-screen bg-background flex flex-col">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
-      <div>
-        <h1 class="text-lg font-bold text-gray-900">{{ quizTitle }}</h1>
-        <p class="text-xs text-gray-400 font-mono">PIN: {{ pin }}</p>
+    <header class="border-b-[3px] border-black bg-white px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+      <div class="flex items-center gap-3">
+        <PixelLogo class="text-primary" :size="24" />
+        <div>
+          <h1 class="text-lg font-bold text-foreground">{{ quizTitle }}</h1>
+          <p class="text-xs text-muted-foreground font-mono">PIN: {{ pin }}</p>
+        </div>
       </div>
-      <div class="text-right">
-        <span class="text-sm font-semibold text-gray-600">
-          Q {{ questionNumber }} / {{ totalQuestions }}
-        </span>
-        <p class="text-xs text-gray-400">{{ playerCount }} player{{ playerCount !== 1 ? 's' : '' }}</p>
+      <div class="flex items-center gap-3">
+        <PixelBadge variant="primary">Q {{ questionNumber }} / {{ totalQuestions }}</PixelBadge>
+        <PixelBadge variant="secondary">
+          <PixelUsers :size="12" class="inline mr-1" />
+          {{ playerCount }}
+        </PixelBadge>
       </div>
     </header>
 
     <!-- Loading -->
     <div v-if="status === 'loading'" class="flex-1 flex items-center justify-center">
-      <p class="text-gray-400 text-lg">Loading questions...</p>
+      <p class="text-muted-foreground text-lg">Loading questions...</p>
     </div>
 
     <!-- Error -->
     <div v-else-if="status === 'error'" class="flex-1 flex flex-col items-center justify-center">
-      <p class="text-red-500 text-lg mb-4">{{ error }}</p>
-      <router-link to="/" class="text-indigo-600 hover:underline">Back to Home</router-link>
+      <p class="text-destructive text-lg mb-4">{{ error }}</p>
+      <router-link to="/" class="text-primary hover:underline">Back to Home</router-link>
     </div>
 
     <!-- Game ended -->
     <div v-else-if="status === 'ended'" class="flex-1 flex flex-col items-center justify-center">
-      <h2 class="text-4xl font-bold mb-3">Game Over!</h2>
-      <p class="text-gray-400">Redirecting...</p>
+      <h2 class="text-4xl font-bold mb-3 text-primary">Game Over!</h2>
+      <p class="text-muted-foreground">Redirecting...</p>
     </div>
 
     <!-- ── Question phase ─────────────────────────────────────────── -->
     <template v-else-if="currentQuestion && !showCorrect">
-      <main class="flex-1 flex flex-col items-center justify-center px-6 py-8">
-
+      <main class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8">
         <!-- Timer -->
         <div class="w-full max-w-md mb-8">
           <div class="flex items-center justify-between mb-2">
-            <span class="text-sm text-gray-500">Time remaining</span>
-            <span
-              class="text-3xl font-bold font-mono tabular-nums"
-              :class="timeRemaining <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-800'"
-            >
-              {{ timeRemaining }}s
-            </span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+            <span class="text-sm text-muted-foreground">Time remaining</span>
             <div
-              class="h-3 rounded-full transition-all duration-1000 ease-linear"
-              :class="timeRemaining <= 5 ? 'bg-red-500' : 'bg-indigo-500'"
+              class="flex items-center gap-2 px-3 py-1 border-2 border-black font-bold"
+              :class="timeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-primary text-primary-foreground'"
+            >
+              <PixelClock :size="16" />
+              {{ timeRemaining }}s
+            </div>
+          </div>
+          <div class="w-full bg-muted h-3 overflow-hidden border-2 border-black">
+            <div
+              class="h-full transition-all duration-1000 ease-linear"
+              :class="timeRemaining <= 5 ? 'bg-destructive' : 'bg-primary'"
               :style="{ width: timerProgress + '%' }"
             />
           </div>
         </div>
 
         <!-- Question text -->
-        <p class="text-sm text-gray-400 mb-2">Question {{ questionNumber }}</p>
-        <h2 class="text-2xl font-bold text-center mb-8 max-w-xl text-gray-900">
+        <PixelBadge variant="primary" class="mb-3">Question {{ questionNumber }}</PixelBadge>
+        <h2 class="text-2xl font-bold text-center mb-8 max-w-xl text-foreground">
           {{ currentQuestion.text }}
         </h2>
 
-        <!-- Answer preview (neutral, no correct marking) -->
+        <!-- Answer preview -->
         <div class="w-full max-w-lg space-y-2 mb-8">
           <div
             v-for="(answer, i) in currentQuestion.answers"
             :key="answer._id"
-            class="flex items-center gap-3 border-2 border-gray-200 rounded-lg px-4 py-3 bg-white"
+            class="flex items-center gap-3 border-[3px] border-black px-4 py-3 bg-card"
           >
             <span
-              class="w-7 h-7 rounded flex items-center justify-center text-white text-xs font-bold shrink-0"
+              class="w-7 h-7 flex items-center justify-center text-white text-xs font-bold shrink-0"
               :class="barBg[i % barBg.length]"
             >
               {{ barLabels[i] }}
             </span>
-            <span class="flex-1 text-gray-800">{{ answer.text }}</span>
+            <span class="flex-1 text-foreground font-medium">{{ answer.text }}</span>
           </div>
         </div>
 
         <!-- Stats -->
-        <p class="text-sm text-gray-400 mb-6">
+        <p class="text-sm text-muted-foreground mb-6">
           {{ answersReceived }} / {{ playerCount }} answer{{ answersReceived !== 1 ? 's' : '' }} received
         </p>
       </main>
 
       <!-- Controls -->
-      <footer class="bg-white border-t border-gray-200 px-6 py-4 flex justify-center gap-3 shadow-inner">
-        <button
-          class="bg-indigo-600 text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-indigo-700 transition"
-          @click="revealAnswer"
-        >
-          Reveal Answer
-        </button>
-        <button
-          class="border-2 border-gray-300 text-gray-500 px-6 py-3 rounded-lg text-lg hover:border-red-400 hover:text-red-500 transition"
-          @click="endGame"
-        >
-          End Game
-        </button>
+      <footer class="border-t-[3px] border-black bg-white px-6 py-4 flex justify-center gap-3">
+        <PixelButton variant="primary" @click="revealAnswer">Reveal Answer</PixelButton>
+        <PixelButton variant="outline" @click="endGame">End Game</PixelButton>
       </footer>
     </template>
 
-    <!-- ── Reveal phase (distribution + leaderboard) ─────────────── -->
+    <!-- ── Reveal phase ─────────────────────────────────────────── -->
     <template v-else-if="currentQuestion && showCorrect">
-      <main class="flex-1 flex flex-col items-center px-6 py-8 overflow-auto">
-
-        <p class="text-sm text-gray-400 mb-2">Question {{ questionNumber }}</p>
-        <h2 class="text-2xl font-bold text-center mb-8 max-w-xl text-gray-900">
+      <main class="flex-1 flex flex-col items-center px-4 sm:px-6 py-8 overflow-auto">
+        <PixelBadge variant="primary" class="mb-3">Question {{ questionNumber }}</PixelBadge>
+        <h2 class="text-2xl font-bold text-center mb-8 max-w-xl text-foreground">
           {{ currentQuestion.text }}
         </h2>
 
-        <!-- ── Distribution + Leaderboard side-by-side on wide screens ── -->
+        <!-- Distribution + Leaderboard -->
         <div class="w-full max-w-5xl flex flex-col lg:flex-row gap-8 mb-8">
-
           <!-- Distribution chart -->
-          <div class="flex-1">
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 text-center">Answer Distribution</h3>
+          <PixelCard class="flex-1 space-y-4">
+            <h3 class="text-sm font-bold text-muted-foreground uppercase tracking-wide text-center">Answer Distribution</h3>
 
-            <!-- Bar chart -->
             <div class="flex items-end gap-4 px-4" style="height: 160px;">
               <div
                 v-for="(answer, i) in currentQuestion.answers"
                 :key="answer._id"
                 class="flex-1 flex flex-col items-center justify-end h-full"
               >
-                <span class="text-sm font-bold text-gray-700 mb-1">{{ getCount(answer._id) }}</span>
+                <span class="text-sm font-bold text-foreground mb-1">{{ getCount(answer._id) }}</span>
                 <div
-                  class="w-full rounded-t-lg transition-all duration-700"
+                  class="w-full transition-all duration-700"
                   :class="barBg[i % barBg.length]"
                   :style="{
                     height: getBarHeight(answer._id),
-                    opacity: answer.isCorrect ? 1 : 0.45
+                    opacity: answer.isCorrect ? 1 : 0.4
                   }"
                 />
               </div>
             </div>
 
-            <!-- Answer labels -->
             <div class="grid gap-3 mt-3"
                  :style="{ gridTemplateColumns: `repeat(${currentQuestion.answers.length}, 1fr)` }">
               <div
@@ -424,66 +410,67 @@ onUnmounted(cleanup);
               >
                 <div class="flex items-center gap-1 mb-1">
                   <span
-                    class="inline-flex items-center justify-center w-6 h-6 rounded text-white text-xs font-bold"
+                    class="inline-flex items-center justify-center w-6 h-6 text-white text-xs font-bold"
                     :class="barBg[i % barBg.length]"
                   >
                     {{ barLabels[i] }}
                   </span>
-                  <span v-if="answer.isCorrect" class="text-green-500 text-lg leading-none">&#10003;</span>
+                  <span v-if="answer.isCorrect" class="text-success text-lg leading-none">&#10003;</span>
                 </div>
                 <p class="text-xs font-medium truncate max-w-full"
-                   :class="answer.isCorrect ? 'text-green-700' : 'text-gray-600'">
+                   :class="answer.isCorrect ? 'text-success' : 'text-muted-foreground'">
                   {{ answer.text }}
                 </p>
-                <p class="text-xs text-gray-400">{{ getPercentage(answer._id) }}%</p>
+                <p class="text-xs text-muted-foreground">{{ getPercentage(answer._id) }}%</p>
               </div>
             </div>
 
-            <p class="text-sm text-gray-400 mt-4 text-center">
+            <p class="text-sm text-muted-foreground text-center">
               {{ answersReceived }} answer{{ answersReceived !== 1 ? 's' : '' }} received
             </p>
-          </div>
+          </PixelCard>
 
           <!-- Leaderboard -->
-          <div v-if="top5.length > 0" class="w-full lg:w-72 shrink-0">
-            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 text-center">Leaderboard</h3>
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <PixelCard v-if="top5.length > 0" class="w-full lg:w-72 shrink-0 space-y-4">
+            <h3 class="text-sm font-bold text-muted-foreground uppercase tracking-wide text-center">Leaderboard</h3>
+            <div class="space-y-2">
               <div
                 v-for="entry in top5"
                 :key="entry.playerId"
-                class="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-b-0"
+                class="flex items-center gap-3 px-3 py-2 border-2 border-border"
+                :class="entry.position <= 3 ? 'bg-warning/10 border-warning/30' : ''"
               >
                 <span
-                  class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold"
+                  class="w-7 h-7 flex items-center justify-center text-sm font-bold"
                   :class="entry.position <= 3
-                    ? 'bg-gray-100 ' + podiumColors[entry.position - 1]
-                    : 'text-gray-400'"
+                    ? 'bg-muted ' + podiumColors[entry.position - 1]
+                    : 'text-muted-foreground'"
                 >
                   {{ entry.position <= 3 ? ['🥇','🥈','🥉'][entry.position - 1] : entry.position }}
                 </span>
-                <span class="flex-1 font-medium text-gray-800 truncate">{{ entry.nickname }}</span>
-                <span class="text-sm font-mono font-semibold text-gray-500">{{ entry.score }}</span>
+                <span class="flex-1 font-medium text-foreground truncate">{{ entry.nickname }}</span>
+                <span class="text-sm font-mono font-semibold text-muted-foreground">{{ entry.score }}</span>
               </div>
             </div>
-          </div>
+          </PixelCard>
         </div>
       </main>
 
       <!-- Controls -->
-      <footer class="bg-white border-t border-gray-200 px-6 py-4 flex justify-center gap-3 shadow-inner">
-        <button
+      <footer class="border-t-[3px] border-black bg-white px-6 py-4 flex justify-center gap-3">
+        <PixelButton
           v-if="!isLastQuestion"
-          class="bg-black text-white px-8 py-3 rounded-lg text-lg font-semibold hover:bg-gray-800 transition"
+          variant="primary"
           @click="sendNextQuestion"
         >
           Next Question
-        </button>
-        <button
-          class="border-2 border-gray-300 text-gray-500 px-6 py-3 rounded-lg text-lg hover:border-red-400 hover:text-red-500 transition"
+        </PixelButton>
+        <PixelButton
+          variant="outline"
           @click="endGame"
         >
           {{ isLastQuestion ? 'Finish Game' : 'End Game' }}
-        </button>
+        </PixelButton>
       </footer>
     </template>
   </div>

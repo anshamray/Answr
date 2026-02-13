@@ -39,6 +39,8 @@ answr/
 │   │   │
 │   │   ├── socket/              # WebSocket Event-Handler
 │   │   │   ├── index.js        # Socket-Initialisierung & Connection-Handling
+│   │   │   ├── events.js       # Event-Konstanten (PLAYER_EVENTS, MODERATOR_EVENTS, etc.)
+│   │   │   ├── sessionUtils.js # Shared Utilities (getConnectedPlayers, emitError, etc.)
 │   │   │   ├── moderatorEvents.js # Moderator-Events (join, start, next, end-question, end)
 │   │   │   ├── playerEvents.js    # Spieler-Events (check-pin, join, answer, reconnect)
 │   │   │   ├── gameEvents.js      # Broadcast-Helpers (lobby, question, timer, leaderboard)
