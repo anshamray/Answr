@@ -5,13 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database.js';
 import { initializeSocket } from './socket/index.js';
-import authRoutes from './routes/auth.js';
-import quizRoutes from './routes/quizzes.js';
-import sessionRoutes from './routes/sessions.js';
-import libraryRoutes from './routes/library.js';
-import { standaloneRouter as questionRoutes } from './routes/questions.js';
-import { apiRouter as mediaApiRoutes, serveRouter as mediaServeRoutes, handleUploadError } from './routes/media.js';
-import healthRoutes, { setActiveSessionsGetter } from './routes/health.js';
+import { apiRouter, mediaServeRoutes, handleUploadError, setActiveSessionsGetter } from './routes/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -42,13 +36,7 @@ app.get('/', (req, res) => {
 });
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/quizzes', quizRoutes);
-app.use('/api/questions', questionRoutes);
-app.use('/api/sessions', sessionRoutes);
-app.use('/api/library', libraryRoutes);
-app.use('/api/media', mediaApiRoutes);
-app.use('/api/health', healthRoutes);
+app.use('/api', apiRouter);
 
 // Media file serving (access-controlled, not static)
 app.use('/media', mediaServeRoutes);
