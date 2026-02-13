@@ -4,6 +4,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import LandingPage from '../pages/LandingPage.vue';
 import LoginPage from '../pages/LoginPage.vue';
 import RegisterPage from '../pages/RegisterPage.vue';
+import OAuthCallbackPage from '../pages/OAuthCallbackPage.vue';
 import DashboardPage from '../pages/DashboardPage.vue';
 import QuizEditPage from '../pages/QuizEditPage.vue';
 import LibraryPage from '../pages/LibraryPage.vue';
@@ -12,6 +13,7 @@ import SessionLobbyPage from '../pages/SessionLobbyPage.vue';
 import GameControlPage from '../pages/GameControlPage.vue';
 import SessionResultsPage from '../pages/SessionResultsPage.vue';
 import PlayerJoinPage from '../pages/PlayerJoinPage.vue';
+import PlayerProfilePage from '../pages/PlayerProfilePage.vue';
 import PlayerLobbyPage from '../pages/PlayerLobbyPage.vue';
 import PlayerGamePage from '../pages/PlayerGamePage.vue';
 import PlayerResultsPage from '../pages/PlayerResultsPage.vue';
@@ -21,6 +23,7 @@ const routes = [
   { path: '/', component: LandingPage },
   { path: '/login', component: LoginPage },
   { path: '/register', component: RegisterPage },
+  { path: '/oauth/callback', component: OAuthCallbackPage },
 
   // Library (public, no auth required)
   { path: '/library', component: LibraryPage },
@@ -35,6 +38,7 @@ const routes = [
 
   // Player (no auth)
   { path: '/play', component: PlayerJoinPage },
+  { path: '/play/profile', component: PlayerProfilePage },
   { path: '/play/lobby', component: PlayerLobbyPage },
   { path: '/play/game', component: PlayerGamePage },
   { path: '/play/results', component: PlayerResultsPage }

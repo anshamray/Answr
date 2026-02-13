@@ -18,10 +18,8 @@ const router = useRouter();
 const game = useGameStore();
 
 const pin = ref('');
-const name = ref('');
 const error = ref('');
 const loading = ref(false);
-const step = ref('pin');
 const shake = ref(false);
 
 function triggerShake() {
@@ -32,8 +30,6 @@ function triggerShake() {
 function cleanupSocket() {
   const socket = getSocket();
   if (socket) {
-    socket.off('player:joined');
-    socket.off('player:error');
     socket.off('player:pin-valid');
     socket.off('player:pin-invalid');
   }
@@ -76,7 +72,9 @@ function handlePinSubmit() {
     loading.value = false;
     cleanupSocket();
     disconnectSocket();
-    step.value = 'name';
+    // Store PIN and redirect to profile page
+    game.pin = trimmed;
+    router.push('/play/profile');
   });
 
   socket.on('player:pin-invalid', (data) => {
@@ -97,61 +95,6 @@ function handlePinSubmit() {
   } else {
     socket.once('connect', emitCheck);
   }
-}
-
-function handleJoin() {
-  error.value = '';
-
-  if (!name.value.trim()) {
-    error.value = 'We need your name. Who are you?';
-    triggerShake();
-    return;
-  }
-
-  loading.value = true;
-  const socket = connectSocket();
-  const trimmedPin = pin.value.trim();
-  cleanupSocket();
-
-  const timeout = setTimeout(() => {
-    loading.value = false;
-    error.value = 'Could not reach the server. Try again.';
-    triggerShake();
-    cleanupSocket();
-  }, 5000);
-
-  socket.on('player:joined', (data) => {
-    clearTimeout(timeout);
-    loading.value = false;
-    game.pin = trimmedPin;
-    game.playerName = name.value.trim();
-    game.setSession(data);
-    router.push('/play/lobby');
-  });
-
-  socket.on('player:error', () => {
-    clearTimeout(timeout);
-    loading.value = false;
-    error.value = 'This PIN does not exist. Did you make it up?';
-    triggerShake();
-    step.value = 'pin';
-    cleanupSocket();
-  });
-
-  const emitJoin = () => {
-    socket.emit('player:join', { pin: trimmedPin, name: name.value.trim() });
-  };
-
-  if (socket.connected) {
-    emitJoin();
-  } else {
-    socket.once('connect', emitJoin);
-  }
-}
-
-function goBackToPin() {
-  step.value = 'pin';
-  error.value = '';
 }
 </script>
 
@@ -213,62 +156,31 @@ function goBackToPin() {
               class="w-full max-w-sm space-y-3"
               :class="{ 'animate-shake': shake }"
             >
-              <!-- Step 1: PIN -->
-              <div v-if="step === 'pin'" class="space-y-3">
-                <input
-                  v-model="pin"
-                  type="text"
-                  inputmode="numeric"
-                  maxlength="6"
-                  placeholder="Enter 6-digit PIN"
-                  class="w-full text-center text-2xl tracking-widest border-[3px] border-black px-4 py-3 focus:outline-none focus:ring-4 focus:ring-primary/30"
-                  :class="{ 'border-destructive': error }"
-                  @keyup.enter="handlePinSubmit"
-                />
-                <p v-if="error" class="text-sm text-center font-medium text-destructive">
-                  {{ error }}
-                </p>
-                <PixelButton
-                  variant="secondary"
-                  class="w-full"
-                  :disabled="loading"
-                  @click="handlePinSubmit"
-                >
-                  {{ loading ? 'Checking...' : 'Join Game' }}
-                </PixelButton>
-              </div>
-
-              <!-- Step 2: Name -->
-              <div v-else class="space-y-3">
-                <p class="text-center text-muted-foreground text-sm">
-                  PIN: <span class="font-mono font-bold text-foreground">{{ pin }}</span>
-                  <button class="ml-2 text-muted-foreground underline text-xs hover:text-primary" @click="goBackToPin">change</button>
-                </p>
-                <input
-                  v-model="name"
-                  type="text"
-                  maxlength="20"
-                  placeholder="Your name"
-                  autofocus
-                  class="w-full text-center text-xl border-[3px] border-black px-4 py-3 focus:outline-none focus:ring-4 focus:ring-primary/30"
-                  @keyup.enter="handleJoin"
-                />
-                <p v-if="error" class="text-sm text-center font-medium text-destructive">
-                  {{ error }}
-                </p>
-                <PixelButton
-                  variant="secondary"
-                  class="w-full"
-                  :disabled="loading"
-                  @click="handleJoin"
-                >
-                  {{ loading ? 'Joining...' : 'Join' }}
-                </PixelButton>
-              </div>
+              <input
+                v-model="pin"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="Enter 6-digit PIN"
+                class="w-full text-center text-2xl tracking-widest border-[3px] border-black px-4 py-3 focus:outline-none focus:ring-4 focus:ring-primary/30"
+                :class="{ 'border-destructive': error }"
+                @keyup.enter="handlePinSubmit"
+              />
+              <p v-if="error" class="text-sm text-center font-medium text-destructive">
+                {{ error }}
+              </p>
+              <PixelButton
+                variant="secondary"
+                class="w-full"
+                :disabled="loading"
+                @click="handlePinSubmit"
+              >
+                {{ loading ? 'Checking...' : 'Join Game' }}
+              </PixelButton>
             </div>
 
             <!-- Or actions -->
-            <template v-if="step === 'pin'">
+            <template>
               <div class="flex items-center gap-4 max-w-sm">
                 <hr class="flex-1 border-border" />
                 <span class="text-muted-foreground text-sm">or</span>

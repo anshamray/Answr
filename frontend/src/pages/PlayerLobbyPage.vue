@@ -1,14 +1,20 @@
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
 
-import PixelLogo from '../components/icons/PixelLogo.vue';
-import PixelBadge from '../components/PixelBadge.vue';
+import PixelCard from '../components/PixelCard.vue';
+import PixelCheck from '../components/icons/PixelCheck.vue';
+import PixelUsers from '../components/icons/PixelUsers.vue';
+import PixelStar from '../components/icons/PixelStar.vue';
 
 const router = useRouter();
 const game = useGameStore();
+
+const dots = ref('.');
+const playerCount = ref(0);
+let dotsInterval = null;
 
 function setup() {
   const socket = getSocket();
@@ -16,6 +22,10 @@ function setup() {
     router.push('/');
     return;
   }
+
+  dotsInterval = setInterval(() => {
+    dots.value = dots.value.length >= 3 ? '.' : dots.value + '.';
+  }, 500);
 
   socket.on('game:started', () => {
     game.status = 'playing';
@@ -34,16 +44,30 @@ function setup() {
   socket.on('player:kicked', () => {
     router.push('/');
   });
+
+  socket.on('lobby:update', (data) => {
+    playerCount.value = data.playerCount || data.players?.length || 0;
+  });
 }
 
 function cleanup() {
+  if (dotsInterval) {
+    clearInterval(dotsInterval);
+    dotsInterval = null;
+  }
   const socket = getSocket();
   if (socket) {
     socket.off('game:started');
     socket.off('game:question');
     socket.off('game:end');
     socket.off('player:kicked');
+    socket.off('lobby:update');
   }
+}
+
+function leaveGame() {
+  cleanup();
+  router.push('/');
 }
 
 onMounted(setup);
@@ -51,19 +75,69 @@ onUnmounted(cleanup);
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/5 to-background px-4">
-    <PixelLogo class="text-primary mb-6" :size="48" />
-    <h1 class="text-4xl font-bold mb-2 text-foreground">{{ game.playerName || 'Player' }}</h1>
-    <p class="text-muted-foreground mb-8">You're in! Waiting for the host to start...</p>
-
-    <div class="flex gap-2 mb-8">
-      <div class="w-3 h-3 bg-primary animate-bounce" style="animation-delay: 0s;"></div>
-      <div class="w-3 h-3 bg-secondary animate-bounce" style="animation-delay: 0.1s;"></div>
-      <div class="w-3 h-3 bg-accent animate-bounce" style="animation-delay: 0.2s;"></div>
+  <div class="min-h-screen flex items-center justify-center px-4 py-4 bg-gradient-to-br from-primary/20 via-accent/10 to-secondary/20 relative overflow-x-hidden">
+    <!-- Animated background elements -->
+    <div class="absolute top-0 left-0 w-full h-full pointer-events-none">
+      <div class="absolute top-1/4 left-1/4 animate-pulse">
+        <PixelStar class="text-primary/10" :size="48" />
+      </div>
+      <div class="absolute top-1/2 right-1/4 animate-bounce" style="animation-delay: 0.5s;">
+        <PixelStar class="text-secondary/10" :size="40" />
+      </div>
+      <div class="absolute bottom-1/4 left-1/3 animate-pulse" style="animation-delay: 1s;">
+        <PixelStar class="text-accent/10" :size="56" />
+      </div>
     </div>
 
-    <PixelBadge variant="secondary">
-      PIN: {{ game.pin }}
-    </PixelBadge>
+    <div class="w-full max-w-sm relative z-10">
+      <PixelCard class="space-y-8 text-center">
+        <div class="space-y-4">
+          <div class="inline-flex items-center justify-center w-20 h-20 bg-success border-[3px] border-black pixel-shadow animate-bounce">
+            <PixelCheck class="text-white" :size="40" />
+          </div>
+
+          <div>
+            <h1 class="text-4xl font-bold mb-2">You're In!</h1>
+            <p class="text-muted-foreground">Get ready to play</p>
+          </div>
+        </div>
+
+        <div class="py-6 px-8 bg-primary/10 border-2 border-primary">
+          <div class="text-sm text-muted-foreground mb-2">Playing as</div>
+          <div class="flex items-center justify-center gap-3">
+            <span v-if="game.playerEmoji" class="text-4xl">{{ game.playerEmoji }}</span>
+            <span class="text-3xl font-bold text-primary">{{ game.playerName || 'Player' }}</span>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex items-center justify-center gap-2 text-muted-foreground">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span class="font-medium">Waiting for host to start{{ dots }}</span>
+          </div>
+
+          <div v-if="playerCount > 0" class="flex items-center justify-center gap-4 py-4 border-t-2 border-b-2 border-dashed border-border">
+            <PixelUsers class="text-primary" :size="24" />
+            <span class="text-2xl font-bold">{{ playerCount }}</span>
+            <span class="text-muted-foreground">players joined</span>
+          </div>
+        </div>
+
+        <div class="text-xs text-muted-foreground pt-4 border-t-2 border-border">
+          Game PIN: <span class="font-bold text-foreground">{{ game.pin }}</span>
+        </div>
+      </PixelCard>
+
+      <div class="mt-6 text-center">
+        <button
+          class="text-sm text-muted-foreground hover:text-destructive transition-colors"
+          @click="leaveGame"
+        >
+          Leave Game
+        </button>
+      </div>
+    </div>
   </div>
 </template>

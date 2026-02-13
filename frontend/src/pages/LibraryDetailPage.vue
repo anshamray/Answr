@@ -5,7 +5,8 @@ import { useRoute, useRouter } from 'vue-router';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import PixelLogo from '../components/icons/PixelLogo.vue';
+import PixelUsers from '../components/icons/PixelUsers.vue';
+import PixelLightning from '../components/icons/PixelLightning.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -92,18 +93,17 @@ onMounted(fetchQuiz);
   <div class="min-h-screen bg-background">
     <!-- Header -->
     <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
         <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition flex items-center gap-1">
           <span>&larr;</span> Back to Library
         </router-link>
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-          <PixelLogo class="text-primary" :size="28" />
           <span class="text-xl font-bold text-primary pixel-font">Answr</span>
         </router-link>
       </div>
     </header>
 
-    <main class="max-w-3xl mx-auto px-4 py-8">
+    <main class="max-w-5xl mx-auto px-4 py-8">
       <!-- Loading -->
       <div v-if="loading" class="text-center py-20 text-muted-foreground text-lg">Loading...</div>
 
@@ -114,61 +114,145 @@ onMounted(fetchQuiz);
       </div>
 
       <!-- Quiz Detail -->
-      <div v-else-if="quiz">
-        <!-- Title & Meta -->
-        <PixelCard class="mb-6 space-y-4">
-          <div class="flex items-start justify-between">
-            <h1 class="text-2xl font-bold text-foreground">{{ quiz.title }}</h1>
-            <PixelBadge v-if="quiz.isOfficial" variant="primary" class="ml-3 shrink-0">Official</PixelBadge>
-          </div>
-          <p v-if="quiz.description" class="text-muted-foreground">{{ quiz.description }}</p>
+      <div v-else-if="quiz" class="bg-gradient-to-br from-primary/5 to-secondary/5 -mx-4 px-4 py-8 lg:px-8">
+        <div class="max-w-5xl mx-auto">
+          <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-6">
+              <PixelCard class="space-y-6">
+                <div>
+                  <div class="flex items-start justify-between mb-4">
+                    <h1 class="text-3xl lg:text-4xl font-bold">{{ quiz.title }}</h1>
+                    <button class="p-2 hover:text-accent transition-colors">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
+                    </button>
+                  </div>
 
-          <div class="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span>by <strong class="text-foreground">{{ quiz.author }}</strong></span>
-            <span v-if="quiz.category">{{ quiz.category }}</span>
-            <span>{{ quiz.questionCount }} question{{ quiz.questionCount !== 1 ? 's' : '' }}</span>
-            <span>{{ quiz.playCount }} plays</span>
-          </div>
+                  <p v-if="quiz.description" class="text-lg text-muted-foreground mb-4">{{ quiz.description }}</p>
 
-          <div v-if="quiz.tags?.length" class="flex flex-wrap gap-1.5">
-            <span
-              v-for="tag in quiz.tags"
-              :key="tag"
-              class="bg-muted text-muted-foreground text-xs px-2.5 py-1 border border-border"
-            >{{ tag }}</span>
-          </div>
+                  <div class="flex items-center gap-3 mb-4">
+                    <span class="text-3xl">👨‍🏫</span>
+                    <div>
+                      <div class="text-sm text-muted-foreground">Created by</div>
+                      <div class="font-bold">{{ quiz.author }}</div>
+                    </div>
+                  </div>
 
-          <!-- Start button -->
-          <PixelButton
-            variant="primary"
-            size="lg"
-            class="w-full sm:w-auto"
-            :disabled="starting || quiz.questionCount === 0"
-            @click="startQuiz"
-          >
-            {{ starting ? 'Starting...' : 'Start Quiz' }}
-          </PixelButton>
-          <p v-if="quiz.questionCount === 0" class="text-sm text-muted-foreground">This quiz has no questions yet.</p>
-          <p v-if="startError" class="text-sm text-destructive">{{ startError }}</p>
-        </PixelCard>
+                  <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                    <PixelBadge v-for="tag in quiz.tags" :key="tag" variant="primary">{{ tag }}</PixelBadge>
+                  </div>
+                </div>
 
-        <!-- Question preview list -->
-        <h2 class="text-lg font-bold text-foreground mb-3">Questions</h2>
-        <div class="space-y-2">
-          <div
-            v-for="(q, i) in quiz.questions"
-            :key="q.id"
-            class="bg-card border-[3px] border-border px-4 py-3 flex items-center gap-4 hover:border-primary/50 transition"
-          >
-            <span class="text-sm font-mono text-muted-foreground w-6 text-right shrink-0">{{ i + 1 }}</span>
-            <div class="flex-1 min-w-0">
-              <p class="text-foreground truncate">{{ q.text || '(no text)' }}</p>
-              <div class="flex gap-3 text-xs text-muted-foreground mt-0.5">
-                <span>{{ typeLabels[q.type] || q.type }}</span>
-                <span>{{ q.timeLimit }}s</span>
-                <span v-if="q.points">{{ q.points }} pts</span>
-                <span v-if="q.answerCount">{{ q.answerCount }} answers</span>
-              </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-y-2 border-border">
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-primary">{{ quiz.playCount?.toLocaleString() || 0 }}</div>
+                    <div class="text-xs text-muted-foreground">Times Played</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-secondary">{{ quiz.questionCount || 0 }}</div>
+                    <div class="text-xs text-muted-foreground">Questions</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-accent">{{ quiz.category || 'General' }}</div>
+                    <div class="text-xs text-muted-foreground">Category</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-warning">{{ quiz.isOfficial ? 'Official' : 'Community' }}</div>
+                    <div class="text-xs text-muted-foreground">Source</div>
+                  </div>
+                </div>
+              </PixelCard>
+
+              <!-- Question Preview -->
+              <PixelCard v-if="quiz.questions?.length" class="space-y-4">
+                <h2 class="text-2xl font-bold">Question Preview</h2>
+
+                <div class="space-y-3">
+                  <div
+                    v-for="(q, i) in quiz.questions.slice(0, 5)"
+                    :key="q.id"
+                    class="flex items-center justify-between p-4 bg-muted border-2 border-border"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 bg-primary text-white border-2 border-black flex items-center justify-center font-bold text-sm">
+                        {{ i + 1 }}
+                      </div>
+                      <div>
+                        <div class="font-medium">{{ q.text || '(no text)' }}</div>
+                        <div class="text-xs text-muted-foreground">{{ typeLabels[q.type] || q.type }} · {{ q.timeLimit }}s</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="quiz.questions.length > 5" class="text-center text-sm text-muted-foreground py-3">
+                    + {{ quiz.questions.length - 5 }} more questions
+                  </div>
+                </div>
+              </PixelCard>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="lg:col-span-1 space-y-4">
+              <PixelCard variant="primary" class="space-y-4 sticky top-24">
+                <PixelButton
+                  variant="primary"
+                  class="w-full text-xl py-6"
+                  :disabled="starting || quiz.questionCount === 0"
+                  @click="startQuiz"
+                >
+                  <svg class="inline mr-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  {{ starting ? 'Starting...' : 'Start Quiz' }}
+                </PixelButton>
+
+                <PixelButton variant="secondary" class="w-full">
+                  <PixelUsers class="inline mr-2" :size="20" />
+                  Host Live Session
+                </PixelButton>
+
+                <p v-if="quiz.questionCount === 0" class="text-sm text-muted-foreground">This quiz has no questions yet.</p>
+                <p v-if="startError" class="text-sm text-destructive">{{ startError }}</p>
+
+                <div class="pt-4 border-t-2 border-border space-y-3">
+                  <button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-primary hover:bg-primary/5 transition-colors font-medium">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    Save to Favorites
+                  </button>
+
+                  <button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-secondary hover:bg-secondary/5 transition-colors font-medium">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    Duplicate &amp; Edit
+                  </button>
+                </div>
+              </PixelCard>
+
+              <PixelCard class="space-y-3">
+                <h3 class="font-bold flex items-center gap-2">
+                  <PixelLightning class="text-accent" :size="20" />
+                  Quick Info
+                </h3>
+                <div class="space-y-2 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">Questions</span>
+                    <span class="font-medium">{{ quiz.questionCount || 0 }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">Category</span>
+                    <span class="font-medium">{{ quiz.category || 'General' }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-muted-foreground">Language</span>
+                    <span class="font-medium">English</span>
+                  </div>
+                </div>
+              </PixelCard>
             </div>
           </div>
         </div>
