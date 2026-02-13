@@ -161,6 +161,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       session.status = 'playing';
       session.currentQuestionIndex = 0;
 
+      // Store game settings
+      const { settings } = payload || {};
+      if (settings && typeof settings === 'object') {
+        session.allowLateJoins = !!settings.allowLateJoins;
+      }
+
       // Inform all clients that the game has started
       broadcastToSession(io, sessionPin, GAME_EVENTS.STARTED, {
         status: 'playing'

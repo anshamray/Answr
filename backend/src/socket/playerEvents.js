@@ -79,7 +79,11 @@ export function registerPlayerEvents(io, socket, activeSessions) {
         return;
       }
 
-      if (session.status && session.status !== 'lobby') {
+      // Allow PIN validation if in lobby OR if late joins are enabled during game
+      const isInLobby = !session.status || session.status === 'lobby';
+      const allowsLateJoin = (session.status === 'playing' || session.status === 'paused') && session.allowLateJoins;
+
+      if (!isInLobby && !allowsLateJoin) {
         socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.QUIZ_IN_PROGRESS, message: 'Game already started.' });
         return;
       }

@@ -39,6 +39,18 @@ export async function register(req, res) {
     sendCreated(res, 'Registration successful', { token, user });
   } catch (error) {
     console.error('Registration error:', error);
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(e => e.message);
+      return sendBadRequest(res, messages.join(', '));
+    }
+
+    // Handle duplicate key error (shouldn't happen due to earlier check, but just in case)
+    if (error.code === 11000) {
+      return sendConflict(res, 'Email already registered');
+    }
+
     sendServerError(res, 'Registration failed');
   }
 }

@@ -11,8 +11,8 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
-    minlength: 6
+    minlength: [6, 'Password must be at least 6 characters']
+    // Not required for OAuth users
   },
   name: {
     type: String,
@@ -23,6 +23,19 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['moderator', 'admin'],
     default: 'moderator'
+  },
+  // OAuth fields
+  provider: {
+    type: String,
+    enum: ['local', 'google', 'github'],
+    default: 'local'
+  },
+  providerId: {
+    type: String,
+    sparse: true
+  },
+  avatar: {
+    type: String
   }
 }, {
   timestamps: true

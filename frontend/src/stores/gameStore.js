@@ -6,6 +6,7 @@ export const useGameStore = defineStore('game', () => {
   const playerId = ref(null);
   const sessionId = ref(null);
   const playerName = ref('');
+  const playerEmoji = ref('');
   const status = ref(null); // 'lobby' | 'playing' | 'paused' | 'finished'
   const players = ref([]);
   const currentQuestion = ref(null);
@@ -23,6 +24,7 @@ export const useGameStore = defineStore('game', () => {
     playerId.value = null;
     sessionId.value = null;
     playerName.value = '';
+    playerEmoji.value = '';
     status.value = null;
     players.value = [];
     currentQuestion.value = null;
@@ -35,6 +37,7 @@ export const useGameStore = defineStore('game', () => {
     playerId,
     sessionId,
     playerName,
+    playerEmoji,
     status,
     players,
     currentQuestion,

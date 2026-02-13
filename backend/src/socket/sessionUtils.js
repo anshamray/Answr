@@ -126,7 +126,7 @@ export function validateJoinPayload(payload) {
  * Check if a session allows joining
  * @param {object|undefined} session
  * @param {number} maxPlayers
- * @returns {{ canJoin: boolean, error?: { code: string, message: string } }}
+ * @returns {{ canJoin: boolean, isLateJoin?: boolean, error?: { code: string, message: string } }}
  */
 export function checkSessionState(session, maxPlayers) {
   if (!session) {
@@ -144,14 +144,21 @@ export function checkSessionState(session, maxPlayers) {
     };
   }
 
-  if (session.status && session.status !== 'lobby') {
-    return {
-      canJoin: false,
-      error: { code: ERROR_CODES.QUIZ_IN_PROGRESS, message: 'Game already started. Joining is closed.' }
-    };
+  // Session is in lobby — normal join allowed
+  if (!session.status || session.status === 'lobby') {
+    return { canJoin: true, isLateJoin: false };
   }
 
-  return { canJoin: true };
+  // Game in progress — check if late joins are allowed
+  if ((session.status === 'playing' || session.status === 'paused') && session.allowLateJoins) {
+    return { canJoin: true, isLateJoin: true };
+  }
+
+  // Game finished or late joins disabled
+  return {
+    canJoin: false,
+    error: { code: ERROR_CODES.QUIZ_IN_PROGRESS, message: 'Game already started. Joining is closed.' }
+  };
 }
 
 /**

@@ -3,9 +3,10 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import PixelButton from '../components/PixelButton.vue';
+import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import PixelLogo from '../components/icons/PixelLogo.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
+import PixelStar from '../components/icons/PixelStar.vue';
 
 const router = useRouter();
 
@@ -75,33 +76,61 @@ onMounted(fetchLibrary);
   <div class="min-h-screen bg-background">
     <!-- Header -->
     <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-          <PixelLogo class="text-primary" :size="28" />
           <span class="text-xl font-bold text-primary pixel-font">Answr</span>
         </router-link>
-        <h1 class="text-lg font-bold text-foreground">Quiz Library</h1>
+        <div class="flex items-center gap-3">
+          <router-link to="/login">
+            <PixelButton variant="outline" size="sm">Sign In</PixelButton>
+          </router-link>
+        </div>
       </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Search & Sort -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-8">
-        <input
-          v-model="search"
-          type="text"
-          placeholder="Search quizzes..."
-          class="flex-1 border-[3px] border-black px-4 py-2.5 text-base focus:outline-none focus:ring-4 focus:ring-primary/30 transition bg-white"
-          @input="onSearchInput"
-        />
-        <select
-          v-model="sort"
-          class="border-[3px] border-black px-4 py-2.5 text-base bg-white focus:outline-none focus:ring-4 focus:ring-primary/30 transition"
-        >
-          <option value="newest">Newest</option>
-          <option value="popular">Most Played</option>
-          <option value="title">A – Z</option>
-        </select>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <!-- Header -->
+      <div class="space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 class="text-4xl font-bold mb-2">Quiz Library</h1>
+            <p class="text-muted-foreground">Discover thousands of community-created quizzes</p>
+          </div>
+
+          <router-link to="/login">
+            <PixelButton variant="primary">
+              <svg class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Create Quiz
+            </PixelButton>
+          </router-link>
+        </div>
+
+        <!-- Search and Filter -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex-1 relative">
+            <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              v-model="search"
+              type="text"
+              placeholder="Search quizzes..."
+              class="w-full pl-12 pr-4 py-3 border-[3px] border-black focus:outline-none focus:ring-4 focus:ring-primary/30 bg-white"
+              @input="onSearchInput"
+            />
+          </div>
+
+          <select
+            v-model="sort"
+            class="px-6 py-3 border-[3px] border-black bg-white focus:outline-none focus:ring-4 focus:ring-primary/30"
+          >
+            <option value="popular">Most Popular</option>
+            <option value="newest">Newest</option>
+            <option value="title">A – Z</option>
+          </select>
+        </div>
       </div>
 
       <!-- Loading -->
@@ -118,34 +147,94 @@ onMounted(fetchLibrary);
 
       <!-- Quiz Grid -->
       <div v-else>
-        <p class="text-sm text-muted-foreground mb-4">{{ total }} quiz{{ total !== 1 ? 'zes' : '' }} in library</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <button
-            v-for="quiz in quizzes"
-            :key="quiz.id"
-            class="text-left border-[3px] border-black bg-card p-5 pixel-shadow hover:border-primary hover:-translate-y-1 transition-all duration-200 group"
-            @click="viewQuiz(quiz.id)"
-          >
-            <div class="flex items-start justify-between mb-2">
-              <h3 class="font-bold text-lg text-foreground group-hover:text-primary transition line-clamp-1">{{ quiz.title }}</h3>
-              <PixelBadge v-if="quiz.isOfficial" variant="primary" class="ml-2 shrink-0">Official</PixelBadge>
-            </div>
-            <p class="text-muted-foreground text-sm mb-3 line-clamp-2">{{ quiz.description || 'No description' }}</p>
-            <div class="flex items-center justify-between text-xs text-muted-foreground">
-              <span>by {{ quiz.author }}</span>
-              <div class="flex items-center gap-1">
-                <PixelUsers :size="14" />
-                <span>{{ quiz.playCount }} plays</span>
-              </div>
-            </div>
-            <div v-if="quiz.tags?.length" class="flex flex-wrap gap-1 mt-2">
-              <span
-                v-for="tag in quiz.tags.slice(0, 3)"
-                :key="tag"
-                class="bg-muted text-muted-foreground text-xs px-2 py-0.5 border border-border"
-              >{{ tag }}</span>
-            </div>
-          </button>
+        <!-- Featured Section (if we have quizzes marked as official) -->
+        <div v-if="quizzes.some(q => q.isOfficial)" class="mb-8">
+          <div class="flex items-center gap-2 mb-4">
+            <PixelStar class="text-warning" :size="24" />
+            <h2 class="text-2xl font-bold">Featured Quizzes</h2>
+          </div>
+
+          <div class="grid md:grid-cols-2 gap-6">
+            <button
+              v-for="quiz in quizzes.filter(q => q.isOfficial)"
+              :key="'featured-' + quiz.id"
+              class="text-left"
+              @click="viewQuiz(quiz.id)"
+            >
+              <PixelCard variant="primary" class="space-y-4 hover:-translate-y-2 transition-all cursor-pointer h-full">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h3 class="text-2xl font-bold mb-2">{{ quiz.title }}</h3>
+                    <p class="text-muted-foreground mb-3">{{ quiz.description || 'No description' }}</p>
+                  </div>
+                  <PixelBadge variant="warning" class="ml-2 shrink-0">
+                    <PixelStar class="inline mr-1" :size="10" />
+                    Featured
+                  </PixelBadge>
+                </div>
+
+                <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                  <span
+                    v-for="tag in quiz.tags.slice(0, 3)"
+                    :key="tag"
+                    class="px-3 py-1 bg-primary/10 border border-primary text-primary text-xs font-medium"
+                  >{{ tag }}</span>
+                </div>
+
+                <div class="flex items-center justify-between pt-3 border-t-2 border-border">
+                  <div class="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span class="flex items-center gap-1">
+                      <PixelUsers :size="16" />
+                      {{ quiz.playCount?.toLocaleString() || 0 }}
+                    </span>
+                    <span>{{ quiz.questionCount || 0 }} questions</span>
+                  </div>
+                  <PixelButton variant="primary" size="sm">Play</PixelButton>
+                </div>
+              </PixelCard>
+            </button>
+          </div>
+        </div>
+
+        <!-- All Quizzes -->
+        <div>
+          <h2 class="text-2xl font-bold mb-4">All Quizzes</h2>
+          <p class="text-sm text-muted-foreground mb-4">{{ total }} quiz{{ total !== 1 ? 'zes' : '' }} in library</p>
+
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button
+              v-for="quiz in quizzes"
+              :key="quiz.id"
+              class="text-left"
+              @click="viewQuiz(quiz.id)"
+            >
+              <PixelCard class="space-y-3 hover:border-primary transition-all cursor-pointer h-full">
+                <div class="flex items-start justify-between">
+                  <h3 class="text-xl font-bold group-hover:text-primary transition">{{ quiz.title }}</h3>
+                  <PixelBadge v-if="quiz.isOfficial" variant="primary" class="ml-2 shrink-0">Official</PixelBadge>
+                </div>
+                <p class="text-sm text-muted-foreground line-clamp-2">{{ quiz.description || 'No description' }}</p>
+
+                <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                  <span
+                    v-for="tag in quiz.tags.slice(0, 3)"
+                    :key="tag"
+                    class="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium"
+                  >{{ tag }}</span>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t-2 border-border text-xs text-muted-foreground">
+                  <span>by {{ quiz.author }}</span>
+                  <span class="flex items-center gap-1">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    {{ quiz.playCount?.toLocaleString() || 0 }}
+                  </span>
+                </div>
+              </PixelCard>
+            </button>
+          </div>
         </div>
 
         <!-- Pagination -->

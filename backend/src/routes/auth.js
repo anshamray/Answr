@@ -2,6 +2,7 @@ import { Router } from 'express';
 
 import { register, login, getMe } from '../controllers/authController.js';
 import { authenticate } from '../middleware/auth.js';
+import oauthRoutes from './oauth.js';
 
 const router = Router();
 
@@ -13,5 +14,8 @@ router.post('/login', login);
 
 // GET /api/auth/me - Get current user (protected)
 router.get('/me', authenticate, getMe);
+
+// OAuth routes (Google, GitHub)
+router.use('/', oauthRoutes);
 
 export default router;

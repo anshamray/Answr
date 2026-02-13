@@ -7,6 +7,7 @@ import { getSocket } from '../lib/socket.js';
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
+import PixelCheck from '../components/icons/PixelCheck.vue';
 
 const router = useRouter();
 const game = useGameStore();
@@ -39,12 +40,12 @@ const top5 = computed(() => leaderboard.value.slice(0, 5));
 
 // Branded answer colors using the theme palette
 const answerBg = [
-  'bg-primary text-primary-foreground border-primary-dark',
-  'bg-secondary text-secondary-foreground border-secondary-dark',
-  'bg-accent text-accent-foreground border-accent-dark',
-  'bg-warning text-warning-foreground border-warning',
-  'bg-success text-success-foreground border-success',
-  'bg-primary-light text-primary-foreground border-primary'
+  'bg-gradient-to-br from-primary to-primary-dark text-white',
+  'bg-gradient-to-br from-secondary to-secondary-dark text-white',
+  'bg-gradient-to-br from-accent to-accent-dark text-white',
+  'bg-gradient-to-br from-warning to-warning/80 text-warning-foreground',
+  'bg-gradient-to-br from-success to-success text-white',
+  'bg-gradient-to-br from-primary-light to-primary text-white'
 ];
 
 const answerLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
@@ -170,10 +171,10 @@ onUnmounted(cleanup);
       </PixelBadge>
       <div
         v-if="timeRemaining != null && !questionEnded"
-        class="flex items-center gap-2 px-3 py-1 border-2 border-black font-bold text-sm"
-        :class="timeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : 'bg-primary text-primary-foreground'"
+        class="flex items-center gap-2 px-4 py-2 border-2 border-black font-bold"
+        :class="timeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : timeRemaining <= 10 ? 'bg-warning text-warning-foreground' : 'bg-success text-white'"
       >
-        <PixelClock :size="14" />
+        <PixelClock :size="16" />
         {{ timeRemaining }}s
       </div>
       <PixelBadge v-else-if="questionEnded" variant="accent">
@@ -183,10 +184,13 @@ onUnmounted(cleanup);
 
     <!-- ── Active question ────────────────────── -->
     <template v-if="!questionEnded">
-      <div class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 pb-4">
-        <h1 class="text-2xl font-bold text-center mb-6 max-w-lg text-foreground">
-          {{ question?.text || 'Waiting for question...' }}
-        </h1>
+      <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+        <!-- Question -->
+        <PixelCard class="mb-6">
+          <h2 class="text-2xl font-bold leading-tight">
+            {{ question?.text || 'Waiting for question...' }}
+          </h2>
+        </PixelCard>
 
         <div v-if="timedOut && !submitted" class="mb-6 text-center">
           <p class="text-xl font-bold text-destructive">Time's up!</p>
@@ -194,107 +198,142 @@ onUnmounted(cleanup);
         <div v-else-if="submitted" class="mb-6 text-center">
           <p class="text-success font-bold text-lg">Answer submitted!</p>
         </div>
-      </div>
 
-      <!-- Answer buttons -->
-      <div
-        class="grid grid-cols-2 gap-3 p-4"
-        :class="options.length <= 2 ? 'grid-cols-1 max-w-sm mx-auto w-full' : ''"
-      >
-        <button
-          v-for="(option, i) in options"
-          :key="option.id"
-          class="group relative p-5 border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
-          :class="[
-            answerBg[i % answerBg.length],
-            selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
-            submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
-            submitted || timedOut ? 'pointer-events-none' : 'hover:-translate-y-1 hover:pixel-shadow-lg active:translate-y-0 active:shadow-none'
-          ]"
-          :disabled="submitted || timedOut"
-          @click="selectAnswer(option.id, i)"
-        >
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 border-2 border-current/30 flex items-center justify-center text-sm font-bold shrink-0 bg-black/10">
-              {{ answerLabels[i] }}
-            </span>
-            <span class="flex-1">{{ option.text }}</span>
+        <!-- Answer buttons -->
+        <div class="flex-1 grid grid-cols-1 gap-4 content-start">
+          <button
+            v-for="(option, i) in options"
+            :key="option.id"
+            class="group relative p-6 border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
+            :class="[
+              answerBg[i % answerBg.length],
+              selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
+              submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
+              submitted || timedOut ? 'pointer-events-none' : 'active:translate-x-1 active:translate-y-1 active:shadow-none'
+            ]"
+            :disabled="submitted || timedOut"
+            @click="selectAnswer(option.id, i)"
+          >
+            <div class="flex items-center gap-3">
+              <span class="w-12 h-12 bg-white/20 border-2 border-white flex items-center justify-center text-xl font-bold pixel-font flex-shrink-0">
+                {{ answerLabels[i] }}
+              </span>
+              <span class="flex-1 text-2xl font-bold">{{ option.text }}</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-6 text-center">
+          <div class="text-sm text-muted-foreground">
+            Playing as <span class="font-bold text-primary">{{ game.playerName || 'Player' }}</span>
           </div>
-        </button>
+        </div>
       </div>
     </template>
 
     <!-- ── Question ended (results) ────────────────── -->
     <template v-else>
-      <div class="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-6">
-        <!-- Feedback -->
-        <div class="mb-6 text-center">
-          <div v-if="submitted && wasCorrect === true">
-            <p class="text-4xl font-bold text-success mb-1">Correct!</p>
-            <p v-if="pointsEarned != null" class="text-lg text-success font-semibold">+{{ pointsEarned }} pts</p>
-          </div>
-          <div v-else-if="submitted && wasCorrect === false">
-            <p class="text-4xl font-bold text-destructive mb-1">Wrong!</p>
-            <p class="text-lg text-muted-foreground">+0 pts</p>
-          </div>
-          <div v-else>
-            <p class="text-3xl font-bold text-muted-foreground mb-1">No answer</p>
-            <p class="text-lg text-muted-foreground/60">+0 pts</p>
-          </div>
-        </div>
-
-        <!-- Answer reveal -->
-        <div
-          class="grid grid-cols-2 gap-2 w-full max-w-md mb-8"
-          :class="options.length <= 2 ? 'grid-cols-1' : ''"
-        >
-          <div
-            v-for="(option, i) in options"
-            :key="option.id"
-            class="border-[3px] py-3 px-3 text-sm font-bold flex items-center gap-2"
-            :class="correctAnswerIds.includes(option.id)
-              ? 'border-success bg-success/10 text-success'
-              : 'border-border opacity-40'"
-          >
-            <span class="w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 border-2 border-current">
-              {{ answerLabels[i] }}
-            </span>
-            <span class="flex-1 text-left truncate">{{ option.text }}</span>
-            <span v-if="correctAnswerIds.includes(option.id)" class="text-success font-bold">&#10003;</span>
-          </div>
-        </div>
-
-        <!-- Your position -->
-        <div v-if="myEntry" class="text-center mb-6">
-          <p class="text-muted-foreground text-sm">Your position</p>
-          <p class="text-3xl font-bold text-primary">#{{ myEntry.position }}</p>
-          <p class="text-sm font-mono text-muted-foreground">{{ myEntry.score }} pts total</p>
-        </div>
-
-        <!-- Top 5 leaderboard -->
-        <PixelCard v-if="top5.length > 0" class="w-full max-w-xs">
-          <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3 text-center">Top Players</h3>
-          <div class="space-y-1">
-            <div
-              v-for="entry in top5"
-              :key="entry.playerId"
-              class="flex items-center gap-3 px-3 py-2 border-2"
-              :class="entry.playerId === game.playerId ? 'border-primary bg-primary/10' : 'border-border'"
-            >
-              <span class="text-sm font-bold w-5 text-center"
-                    :class="entry.position <= 3 ? 'text-warning' : 'text-muted-foreground'">
-                {{ entry.position <= 3 ? ['🥇','🥈','🥉'][entry.position - 1] : entry.position }}
-              </span>
-              <span class="flex-1 text-sm font-medium truncate"
-                    :class="entry.playerId === game.playerId ? 'text-primary' : 'text-foreground'">
-                {{ entry.playerId === game.playerId ? 'You' : entry.nickname }}
-              </span>
-              <span class="text-xs font-mono text-muted-foreground">{{ entry.score }}</span>
+      <div class="flex-1 flex flex-col items-center justify-center px-4 py-6 bg-gradient-to-br from-success/20 to-primary/20">
+        <div class="w-full max-w-sm space-y-6">
+          <!-- Feedback -->
+          <div class="text-center space-y-4">
+            <div v-if="submitted && wasCorrect === true">
+              <div class="inline-flex items-center justify-center w-24 h-24 bg-success border-[3px] border-black pixel-shadow-lg animate-bounce mb-4">
+                <PixelCheck class="text-white" :size="48" />
+              </div>
+              <h2 class="text-4xl font-bold text-success mb-2">Correct!</h2>
+              <p class="text-xl text-muted-foreground">Nice work!</p>
+            </div>
+            <div v-else-if="submitted && wasCorrect === false">
+              <div class="inline-flex items-center justify-center w-24 h-24 bg-destructive border-[3px] border-black pixel-shadow-lg mb-4">
+                <svg class="text-white" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </div>
+              <h2 class="text-4xl font-bold text-destructive mb-2">Wrong!</h2>
+              <p class="text-xl text-muted-foreground">Better luck next time</p>
+            </div>
+            <div v-else>
+              <div class="inline-flex items-center justify-center w-24 h-24 bg-muted border-[3px] border-black pixel-shadow-lg mb-4">
+                <svg class="text-muted-foreground" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <h2 class="text-3xl font-bold text-muted-foreground mb-2">No answer</h2>
+              <p class="text-lg text-muted-foreground/60">+0 pts</p>
             </div>
           </div>
-        </PixelCard>
 
-        <p class="text-muted-foreground text-sm animate-pulse mt-6">Waiting for next question...</p>
+          <!-- Score details -->
+          <PixelCard v-if="submitted" class="space-y-4">
+            <div class="flex items-center justify-between py-4 border-b-2 border-border">
+              <span class="text-muted-foreground">Points Earned</span>
+              <span class="text-3xl font-bold" :class="wasCorrect ? 'text-primary' : 'text-muted-foreground'">
+                +{{ pointsEarned ?? 0 }}
+              </span>
+            </div>
+
+            <div v-if="myEntry" class="flex items-center justify-between py-4">
+              <span class="text-muted-foreground">Your Rank</span>
+              <div class="flex items-center gap-2">
+                <span class="text-2xl font-bold text-warning">#{{ myEntry.position }}</span>
+              </div>
+            </div>
+          </PixelCard>
+
+          <!-- Total score -->
+          <PixelCard v-if="myEntry" variant="primary" class="text-center">
+            <div class="text-sm text-muted-foreground mb-1">Total Score</div>
+            <div class="text-5xl font-bold text-primary">{{ myEntry.score?.toLocaleString() }}</div>
+          </PixelCard>
+
+          <!-- Answer reveal -->
+          <div
+            class="grid gap-2 w-full"
+            :class="options.length <= 2 ? 'grid-cols-1' : 'grid-cols-2'"
+          >
+            <div
+              v-for="(option, i) in options"
+              :key="option.id"
+              class="border-[3px] py-3 px-3 text-sm font-bold flex items-center gap-2"
+              :class="correctAnswerIds.includes(option.id)
+                ? 'border-success bg-success/10 text-success'
+                : 'border-border opacity-40'"
+            >
+              <span class="w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 border-2 border-current">
+                {{ answerLabels[i] }}
+              </span>
+              <span class="flex-1 text-left truncate">{{ option.text }}</span>
+              <span v-if="correctAnswerIds.includes(option.id)" class="text-success font-bold">&#10003;</span>
+            </div>
+          </div>
+
+          <!-- Top 5 leaderboard -->
+          <PixelCard v-if="top5.length > 0" class="w-full">
+            <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3 text-center">Top Players</h3>
+            <div class="space-y-1">
+              <div
+                v-for="entry in top5"
+                :key="entry.playerId"
+                class="flex items-center gap-3 px-3 py-2 border-2"
+                :class="entry.playerId === game.playerId ? 'border-primary bg-primary/10' : 'border-border'"
+              >
+                <span class="text-sm font-bold w-5 text-center"
+                      :class="entry.position <= 3 ? 'text-warning' : 'text-muted-foreground'">
+                  {{ entry.position <= 3 ? ['🥇','🥈','🥉'][entry.position - 1] : entry.position }}
+                </span>
+                <span class="flex-1 text-sm font-medium truncate"
+                      :class="entry.playerId === game.playerId ? 'text-primary' : 'text-foreground'">
+                  {{ entry.playerId === game.playerId ? 'You' : entry.nickname }}
+                </span>
+                <span class="text-xs font-mono text-muted-foreground">{{ entry.score }}</span>
+              </div>
+            </div>
+          </PixelCard>
+
+          <p class="text-muted-foreground text-sm animate-pulse text-center">Waiting for next question...</p>
+        </div>
       </div>
     </template>
   </div>

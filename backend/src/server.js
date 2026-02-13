@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { connectDatabase } from './config/database.js';
 import { initializeSocket } from './socket/index.js';
 import { apiRouter, mediaServeRoutes, handleUploadError, setActiveSessionsGetter } from './routes/index.js';
+import { initializePassport } from './config/passport.js';
 
 // Load environment variables
 dotenv.config();
@@ -25,6 +26,11 @@ const io = new Server(server, {
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Initialize Passport for OAuth
+const { googleEnabled, githubEnabled } = initializePassport(app);
+if (googleEnabled) console.log('✅ Google OAuth enabled');
+if (githubEnabled) console.log('✅ GitHub OAuth enabled');
 
 // Basic route
 app.get('/', (req, res) => {

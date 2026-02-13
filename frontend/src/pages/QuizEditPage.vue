@@ -1,30 +1,655 @@
 <script setup>
-import { useRoute } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '../stores/authStore.js';
 
 import PixelButton from '../components/PixelButton.vue';
-import PixelLogo from '../components/icons/PixelLogo.vue';
+import PixelBadge from '../components/PixelBadge.vue';
+import QuestionTypeSelector from '../components/QuestionTypeSelector.vue';
+import QuestionEditor from '../components/QuestionEditor.vue';
 
 const route = useRoute();
+const router = useRouter();
+const auth = useAuthStore();
+
+// State
+const quiz = ref({
+  _id: null,
+  title: '',
+  description: '',
+  category: '',
+  isPublished: false
+});
+const questions = ref([]);
+const selectedQuestionId = ref(null);
+const showTypeSelector = ref(false);
+const loading = ref(true);
+const saving = ref(false);
+const error = ref('');
+const saveStatus = ref(''); // 'saved', 'saving', 'error'
+
+// Track changes for "unsaved" indicator
+const hasUnsavedChanges = ref(false);
+const deletedQuestionIds = ref([]); // Track questions to delete on save
+
+// Computed
+const isNewQuiz = computed(() => route.params.id === 'new');
+const questionCount = computed(() => questions.value.length);
+const selectedQuestion = computed(() =>
+  questions.value.find(q => q._id === selectedQuestionId.value)
+);
+
+// Question type icons and info
+const questionTypeInfo = {
+  'multiple-choice': { icon: 'grid', label: 'Multiple Choice', color: 'primary' },
+  'true-false': { icon: 'check', label: 'True/False', color: 'secondary' },
+  'type-answer': { icon: 'type', label: 'Type Answer', color: 'accent' },
+  'puzzle': { icon: 'puzzle', label: 'Puzzle', color: 'warning' },
+  'slider': { icon: 'sliders', label: 'Slider', color: 'success' },
+  'quiz-audio': { icon: 'volume', label: 'Quiz Audio', color: 'primary' },
+  'pin-answer': { icon: 'map-pin', label: 'Pin Answer', color: 'secondary' },
+  'poll': { icon: 'bar-chart', label: 'Poll', color: 'accent' },
+  'word-cloud': { icon: 'cloud', label: 'Word Cloud', color: 'primary' },
+  'brainstorm': { icon: 'lightbulb', label: 'Brainstorm', color: 'warning' },
+  'drop-pin': { icon: 'target', label: 'Drop Pin', color: 'secondary' },
+  'open-ended': { icon: 'message', label: 'Open Ended', color: 'accent' },
+  'scale': { icon: 'sliders', label: 'Scale', color: 'success' },
+  'nps-scale': { icon: 'trending-up', label: 'NPS Scale', color: 'primary' }
+};
+
+// Helper to check if ID is temporary (local-only)
+function isTemporaryId(id) {
+  return id && id.startsWith('temp_');
+}
+
+// Generate temporary ID for new questions
+function generateTempId() {
+  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// API helpers
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${auth.token}`,
+      ...options.headers
+    }
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// Fetch quiz data
+async function fetchQuiz() {
+  if (isNewQuiz.value) {
+    loading.value = false;
+    return;
+  }
+
+  loading.value = true;
+  error.value = '';
+
+  try {
+    const data = await apiFetch(`/api/quizzes/${route.params.id}`);
+    quiz.value = data.data.quiz;
+    questions.value = quiz.value.questions || [];
+
+    // Select first question if available
+    if (questions.value.length > 0) {
+      selectedQuestionId.value = questions.value[0]._id;
+    }
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// Add question locally (no API call)
+function addQuestion(type) {
+  const defaultData = getDefaultQuestionData(type);
+  const tempId = generateTempId();
+
+  const newQuestion = {
+    ...defaultData,
+    _id: tempId,
+    order: questions.value.length
+  };
+
+  questions.value.push(newQuestion);
+  selectedQuestionId.value = tempId;
+  showTypeSelector.value = false;
+  hasUnsavedChanges.value = true;
+}
+
+// Get default question data based on type
+function getDefaultQuestionData(type) {
+  const base = {
+    type,
+    text: '',
+    timeLimit: 30,
+    points: 1000
+  };
+
+  switch (type) {
+    case 'multiple-choice':
+      return {
+        ...base,
+        answers: [
+          { text: 'Answer 1', isCorrect: true },
+          { text: 'Answer 2', isCorrect: false }
+        ]
+      };
+    case 'true-false':
+      return {
+        ...base,
+        answers: [
+          { text: 'True', isCorrect: true },
+          { text: 'False', isCorrect: false }
+        ]
+      };
+    case 'type-answer':
+      return {
+        ...base,
+        timeLimit: 30,
+        answers: [{ text: 'Answer' }]
+      };
+    case 'puzzle':
+      return {
+        ...base,
+        timeLimit: 30,
+        answers: [
+          { text: 'First', order: 0 },
+          { text: 'Second', order: 1 },
+          { text: 'Third', order: 2 }
+        ]
+      };
+    case 'slider':
+      return {
+        ...base,
+        timeLimit: 20,
+        sliderConfig: {
+          min: 0,
+          max: 100,
+          correctValue: 50,
+          margin: 'medium'
+        }
+      };
+    case 'quiz-audio':
+      return {
+        ...base,
+        audioLanguage: 'en',
+        answers: [
+          { text: 'Answer 1', isCorrect: true },
+          { text: 'Answer 2', isCorrect: false }
+        ]
+      };
+    case 'pin-answer':
+      return {
+        ...base,
+        timeLimit: 30,
+        mediaUrl: '',
+        pinConfig: { x: 50, y: 50, radius: 10 }
+      };
+    // Opinion types (no points)
+    case 'poll':
+      return {
+        ...base,
+        points: 0,
+        answers: [
+          { text: 'Option 1' },
+          { text: 'Option 2' }
+        ]
+      };
+    case 'word-cloud':
+      return { ...base, points: 0, timeLimit: 30 };
+    case 'brainstorm':
+      return {
+        ...base,
+        points: 0,
+        timeLimit: 60,
+        brainstormConfig: { maxIdeas: 3, votingTime: 30 }
+      };
+    case 'drop-pin':
+      return {
+        ...base,
+        points: 0,
+        timeLimit: 30,
+        mediaUrl: '/placeholder-image.jpg'
+      };
+    case 'open-ended':
+      return { ...base, points: 0, timeLimit: 60 };
+    case 'scale':
+      return {
+        ...base,
+        points: 0,
+        scaleConfig: { scaleType: 'likert', min: 1, max: 5, startLabel: 'Disagree', endLabel: 'Agree' }
+      };
+    case 'nps-scale':
+      return {
+        ...base,
+        points: 0,
+        scaleConfig: { scaleType: 'nps', min: 0, max: 10, startLabel: 'Not likely', endLabel: 'Very likely' }
+      };
+    default:
+      return base;
+  }
+}
+
+// Update question locally (no API call)
+function updateQuestion(questionData) {
+  const index = questions.value.findIndex(q => q._id === questionData._id);
+  if (index !== -1) {
+    questions.value[index] = { ...questionData };
+    hasUnsavedChanges.value = true;
+  }
+}
+
+// Delete question locally (no API call)
+function deleteQuestion(questionId) {
+  if (!confirm('Are you sure you want to delete this question?')) return;
+
+  // If it's a real question (not temp), track for deletion on save
+  if (!isTemporaryId(questionId)) {
+    deletedQuestionIds.value.push(questionId);
+  }
+
+  questions.value = questions.value.filter(q => q._id !== questionId);
+
+  // Select another question if the deleted one was selected
+  if (selectedQuestionId.value === questionId) {
+    selectedQuestionId.value = questions.value[0]?._id || null;
+  }
+
+  hasUnsavedChanges.value = true;
+}
+
+// Duplicate question locally
+function duplicateQuestion(questionId) {
+  const original = questions.value.find(q => q._id === questionId);
+  if (!original) return;
+
+  const { _id, createdAt, updatedAt, order, ...questionData } = original;
+  const tempId = generateTempId();
+
+  const duplicated = {
+    ...questionData,
+    _id: tempId,
+    order: questions.value.length
+  };
+
+  questions.value.push(duplicated);
+  selectedQuestionId.value = tempId;
+  hasUnsavedChanges.value = true;
+}
+
+// Save everything to the server
+async function saveAll() {
+  saving.value = true;
+  saveStatus.value = 'saving';
+  error.value = '';
+
+  try {
+    // Step 1: Create quiz if it doesn't exist
+    if (!quiz.value._id) {
+      const data = await apiFetch('/api/quizzes', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: quiz.value.title || 'Untitled Quiz',
+          description: quiz.value.description,
+          category: quiz.value.category
+        })
+      });
+      quiz.value._id = data.data.quiz._id;
+      // Update URL without full navigation
+      router.replace(`/quiz/${quiz.value._id}/edit`);
+    } else {
+      // Update quiz metadata
+      await apiFetch(`/api/quizzes/${quiz.value._id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: quiz.value.title,
+          description: quiz.value.description,
+          category: quiz.value.category
+        })
+      });
+    }
+
+    // Step 2: Delete removed questions
+    for (const questionId of deletedQuestionIds.value) {
+      try {
+        await apiFetch(`/api/questions/${questionId}`, {
+          method: 'DELETE'
+        });
+      } catch (err) {
+        console.error(`Failed to delete question ${questionId}:`, err);
+      }
+    }
+    deletedQuestionIds.value = [];
+
+    // Step 3: Create new questions and update existing ones
+    const updatedQuestions = [];
+    for (const question of questions.value) {
+      const { _id, createdAt, updatedAt, ...questionData } = question;
+
+      if (isTemporaryId(_id)) {
+        // Create new question
+        const data = await apiFetch(`/api/quizzes/${quiz.value._id}/questions`, {
+          method: 'POST',
+          body: JSON.stringify(questionData)
+        });
+        updatedQuestions.push(data.data.question);
+      } else {
+        // Update existing question
+        const data = await apiFetch(`/api/questions/${_id}`, {
+          method: 'PUT',
+          body: JSON.stringify(questionData)
+        });
+        updatedQuestions.push(data.data.question);
+      }
+    }
+
+    // Replace local questions with server responses (to get real IDs)
+    questions.value = updatedQuestions;
+
+    // Update selected question ID if it was temporary
+    if (selectedQuestionId.value && isTemporaryId(selectedQuestionId.value)) {
+      const selectedIndex = questions.value.findIndex(
+        (q, i) => i === questions.value.findIndex(oq => oq._id === selectedQuestionId.value)
+      );
+      if (selectedIndex >= 0 && selectedIndex < updatedQuestions.length) {
+        selectedQuestionId.value = updatedQuestions[selectedIndex]._id;
+      } else if (updatedQuestions.length > 0) {
+        selectedQuestionId.value = updatedQuestions[0]._id;
+      }
+    }
+
+    hasUnsavedChanges.value = false;
+    saveStatus.value = 'saved';
+    setTimeout(() => {
+      if (saveStatus.value === 'saved') saveStatus.value = '';
+    }, 2000);
+  } catch (err) {
+    error.value = err.message;
+    saveStatus.value = 'error';
+  } finally {
+    saving.value = false;
+  }
+}
+
+// Get question preview text
+function getQuestionPreview(question) {
+  if (question.text) {
+    return question.text.length > 40
+      ? question.text.substring(0, 40) + '...'
+      : question.text;
+  }
+  return 'No question text';
+}
+
+// Navigate back (with unsaved changes warning)
+function goBack() {
+  if (hasUnsavedChanges.value) {
+    if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
+      return;
+    }
+  }
+  router.push('/dashboard');
+}
+
+// Initialize
+onMounted(() => {
+  fetchQuiz();
+});
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
+  <div class="min-h-screen bg-background flex flex-col">
+    <!-- Header -->
     <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+      <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         <div class="flex items-center gap-4">
-          <router-link to="/dashboard" class="text-muted-foreground hover:text-primary transition">&larr;</router-link>
-          <h1 class="text-xl font-bold">Edit Quiz</h1>
+          <button
+            @click="goBack"
+            class="text-muted-foreground hover:text-primary transition p-2"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+
+          <input
+            v-model="quiz.title"
+            type="text"
+            placeholder="Untitled Quiz"
+            class="text-xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 w-64"
+            @input="hasUnsavedChanges = true"
+          />
+
+          <PixelBadge variant="secondary">
+            {{ questionCount }} {{ questionCount === 1 ? 'question' : 'questions' }}
+          </PixelBadge>
+
+          <span v-if="hasUnsavedChanges" class="text-xs text-warning font-medium">
+            Unsaved changes
+          </span>
         </div>
-        <PixelButton variant="primary" size="sm">Save</PixelButton>
+
+        <div class="flex items-center gap-3">
+          <span v-if="saveStatus === 'saving'" class="text-sm text-muted-foreground">Saving...</span>
+          <span v-else-if="saveStatus === 'saved'" class="text-sm text-success">Saved</span>
+          <span v-else-if="saveStatus === 'error'" class="text-sm text-destructive">Save failed</span>
+
+          <PixelButton
+            variant="primary"
+            size="sm"
+            :disabled="saving"
+            @click="saveAll"
+          >
+            <svg v-if="saving" class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ saving ? 'Saving...' : 'Save Quiz' }}
+          </PixelButton>
+        </div>
       </div>
     </header>
 
-    <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div class="border-[3px] border-border pixel-shadow bg-card p-12 text-center">
-        <p class="text-muted-foreground">
-          Quiz editor for ID: {{ route.params.id }}
-        </p>
+    <!-- Loading State -->
+    <div v-if="loading" class="flex-1 flex items-center justify-center">
+      <p class="text-muted-foreground text-lg">Loading quiz...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error && !quiz._id && !isNewQuiz" class="flex-1 flex items-center justify-center">
+      <div class="text-center">
+        <p class="text-destructive text-lg mb-4">{{ error }}</p>
+        <PixelButton variant="outline" @click="fetchQuiz">Retry</PixelButton>
       </div>
-    </main>
+    </div>
+
+    <!-- Main Editor -->
+    <div v-else class="flex-1 flex overflow-hidden">
+      <!-- Sidebar: Question List -->
+      <aside class="w-72 border-r-[3px] border-black bg-white flex flex-col">
+        <div class="p-4 border-b-[3px] border-border">
+          <PixelButton
+            variant="primary"
+            size="sm"
+            class="w-full"
+            @click="showTypeSelector = true"
+          >
+            <svg class="inline mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Question
+          </PixelButton>
+        </div>
+
+        <!-- Question List -->
+        <div class="flex-1 overflow-y-auto">
+          <div v-if="questions.length === 0" class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 bg-primary/10 border-2 border-primary flex items-center justify-center">
+              <svg class="text-primary" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </div>
+            <p class="text-sm text-muted-foreground">No questions yet</p>
+            <p class="text-xs text-muted-foreground mt-1">Click "Add Question" to get started</p>
+          </div>
+
+          <div
+            v-for="(question, index) in questions"
+            :key="question._id"
+            class="group"
+          >
+            <button
+              class="w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors"
+              :class="{
+                'bg-primary/10 border-l-4 border-l-primary': selectedQuestionId === question._id,
+                'border-l-4 border-l-warning': isTemporaryId(question._id) && selectedQuestionId !== question._id
+              }"
+              @click="selectedQuestionId = question._id"
+            >
+              <div class="flex items-start gap-3">
+                <span class="text-sm font-bold text-muted-foreground min-w-[24px]">
+                  {{ index + 1 }}
+                </span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <PixelBadge
+                      :variant="questionTypeInfo[question.type]?.color || 'primary'"
+                      class="text-[10px]"
+                    >
+                      {{ questionTypeInfo[question.type]?.label || question.type }}
+                    </PixelBadge>
+                    <span v-if="isTemporaryId(question._id)" class="text-[10px] text-warning">new</span>
+                  </div>
+                  <p class="text-sm text-foreground truncate">
+                    {{ getQuestionPreview(question) }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Hover actions -->
+              <div class="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  class="p-1 text-muted-foreground hover:text-primary"
+                  title="Duplicate"
+                  @click.stop="duplicateQuestion(question._id)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+                <button
+                  class="p-1 text-muted-foreground hover:text-destructive"
+                  title="Delete"
+                  @click.stop="deleteQuestion(question._id)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Quiz Settings (collapsible) -->
+        <div class="border-t-[3px] border-border">
+          <details class="group">
+            <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-muted/50 transition-colors">
+              <span class="font-medium text-sm">Quiz Settings</span>
+              <svg class="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </summary>
+            <div class="p-4 pt-0 space-y-4">
+              <div>
+                <label class="text-xs text-muted-foreground mb-1 block">Description</label>
+                <textarea
+                  v-model="quiz.description"
+                  placeholder="Add a description..."
+                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none resize-none"
+                  rows="2"
+                  @input="hasUnsavedChanges = true"
+                ></textarea>
+              </div>
+              <div>
+                <label class="text-xs text-muted-foreground mb-1 block">Category</label>
+                <input
+                  v-model="quiz.category"
+                  type="text"
+                  placeholder="e.g., Science, History"
+                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
+                  @input="hasUnsavedChanges = true"
+                />
+              </div>
+            </div>
+          </details>
+        </div>
+      </aside>
+
+      <!-- Main Content: Question Editor -->
+      <main class="flex-1 overflow-y-auto bg-muted/30">
+        <div v-if="!selectedQuestion" class="h-full flex items-center justify-center">
+          <div class="text-center max-w-md">
+            <div class="w-24 h-24 mx-auto mb-6 bg-primary/10 border-2 border-primary flex items-center justify-center">
+              <svg class="text-primary" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">No question selected</h3>
+            <p class="text-muted-foreground mb-6">
+              Select a question from the sidebar or add a new one to get started
+            </p>
+            <PixelButton variant="primary" @click="showTypeSelector = true">
+              <svg class="inline mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add Your First Question
+            </PixelButton>
+          </div>
+        </div>
+
+        <QuestionEditor
+          v-else
+          :key="selectedQuestionId"
+          :question="selectedQuestion"
+          :question-type-info="questionTypeInfo"
+          @update="updateQuestion"
+          @delete="deleteQuestion"
+        />
+      </main>
+    </div>
+
+    <!-- Question Type Selector Modal -->
+    <QuestionTypeSelector
+      v-if="showTypeSelector"
+      @select="addQuestion"
+      @close="showTypeSelector = false"
+    />
+
+    <!-- Error Toast -->
+    <div
+      v-if="error"
+      class="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-3 border-2 border-black pixel-shadow"
+    >
+      <div class="flex items-center gap-3">
+        <span>{{ error }}</span>
+        <button @click="error = ''" class="hover:opacity-80">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
