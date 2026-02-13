@@ -54,7 +54,9 @@ answr/
 │   │   │   └── database.js     # MongoDB Connection
 │   │   │
 │   │   └── utils/               # Hilfsfunktionen
-│   │       └── pinGenerator.js # 6-stellige numerische PIN-Generierung
+│   │       ├── pinGenerator.js    # 6-stellige numerische PIN-Generierung
+│   │       ├── responseHelper.js  # Konsistente API-Response-Formate
+│   │       └── scoring.js         # WS-5: Punkteberechnung (Zeit-Bonus, konfigurierbar)
 │   │
 │   └── tests/                   # Tests (Jest)
 │       ├── quiz.test.js
@@ -148,10 +150,11 @@ GitHub-spezifische Dateien wie Issue-Templates.
 19. ✅ Player-Check-PIN Event (leichtgewichtige PIN-Validierung)
 20. ✅ Auto-End bei Timer-Ablauf oder alle Antworten eingegangen
 21. ✅ Kahoot-style Antwortverteilung & Leaderboard auf Moderator-Seite
-22. [ ] Question CRUD API Endpoints
-23. [ ] PlayerResultsPage (Endergebnis-Seite)
-24. [ ] Testing
-25. [ ] Deployment
+22. ✅ WS-5: Scoring Utility (Punkteberechnung, konfigurierbares Zeit-Bonus-System)
+23. [ ] Question CRUD API Endpoints
+24. [ ] PlayerResultsPage (Endergebnis-Seite)
+25. [ ] Testing
+26. [ ] Deployment
 
 ## Entwicklung starten
 
