@@ -3,6 +3,11 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 
+import PixelButton from '../components/PixelButton.vue';
+import PixelCard from '../components/PixelCard.vue';
+import PixelInput from '../components/PixelInput.vue';
+import PixelLogo from '../components/icons/PixelLogo.vue';
+
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -23,51 +28,58 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center bg-white">
-    <div class="w-full max-w-sm">
-      <h1 class="text-3xl font-bold mb-8 text-center">Register</h1>
+  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary/5 via-primary/5 to-background px-4">
+    <div class="w-full max-w-md">
+      <PixelCard class="space-y-6">
+        <div class="text-center space-y-3">
+          <PixelLogo class="text-primary mx-auto" :size="48" />
+          <h1 class="text-3xl font-bold">Create Account</h1>
+          <p class="text-muted-foreground">Start creating and hosting quizzes</p>
+        </div>
 
-      <form class="space-y-4" @submit.prevent="handleRegister">
-        <input
-          v-model="name"
-          type="text"
-          placeholder="Name"
-          required
-          class="w-full border-2 border-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-        />
-        <input
-          v-model="email"
-          type="email"
-          placeholder="Email"
-          required
-          class="w-full border-2 border-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-        />
-        <input
-          v-model="password"
-          type="password"
-          placeholder="Password"
-          required
-          class="w-full border-2 border-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-        />
+        <form class="space-y-4" @submit.prevent="handleRegister">
+          <PixelInput
+            v-model="name"
+            type="text"
+            label="Name"
+            placeholder="Your name"
+            required
+            :error="!!error"
+          />
+          <PixelInput
+            v-model="email"
+            type="email"
+            label="Email"
+            placeholder="you@example.com"
+            required
+            :error="!!error"
+          />
+          <PixelInput
+            v-model="password"
+            type="password"
+            label="Password"
+            placeholder="Choose a password"
+            required
+            :error="!!error"
+          />
 
-        <p v-if="error" class="text-red-600 text-sm">{{ error }}</p>
+          <p v-if="error" class="text-destructive text-sm font-medium">{{ error }}</p>
 
-        <button
-          type="submit"
-          class="w-full bg-black text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-800 transition"
-        >
-          Create Account
-        </button>
-      </form>
+          <PixelButton type="submit" variant="primary" class="w-full">
+            Create Account
+          </PixelButton>
+        </form>
 
-      <p class="mt-6 text-center text-gray-500">
-        Already have an account?
-        <router-link to="/login" class="text-black underline">Login</router-link>
-      </p>
-
-      <p class="mt-4 text-center">
-        <router-link to="/" class="text-gray-400 text-sm hover:text-black">&larr; Back</router-link>
-      </p>
+        <div class="pt-4 border-t-2 border-border text-center space-y-3">
+          <p class="text-sm text-muted-foreground">
+            Already have an account?
+            <router-link to="/login" class="text-primary font-semibold hover:underline">Login</router-link>
+          </p>
+          <router-link to="/" class="text-sm text-muted-foreground hover:text-primary block">
+            &larr; Back to Home
+          </router-link>
+        </div>
+      </PixelCard>
     </div>
   </div>
 </template>

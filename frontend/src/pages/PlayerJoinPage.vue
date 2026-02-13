@@ -4,6 +4,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
 import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
 
+import PixelButton from '../components/PixelButton.vue';
+import PixelCard from '../components/PixelCard.vue';
+import PixelInput from '../components/PixelInput.vue';
+import PixelLogo from '../components/icons/PixelLogo.vue';
+
 const route = useRoute();
 const router = useRouter();
 const game = useGameStore();
@@ -23,7 +28,6 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // Clean up listeners if we leave the page without joining
   const socket = getSocket();
   if (socket) {
     socket.off('player:joined');
@@ -47,7 +51,6 @@ function handleJoin() {
     return;
   }
 
-  // PIN must be exactly 6 digits
   if (!/^\d{6}$/.test(trimmedPin)) {
     error.value = 'PIN must be exactly 6 digits.';
     triggerShake();
@@ -64,11 +67,9 @@ function handleJoin() {
 
   const socket = connectSocket();
 
-  // Clean up any previous listeners
   socket.off('player:joined');
   socket.off('player:error');
 
-  // Timeout: if no response in 5 seconds, assume server is unreachable
   const timeout = setTimeout(() => {
     loading.value = false;
     error.value = 'Could not reach the server. Is it running?';
@@ -77,7 +78,6 @@ function handleJoin() {
     socket.off('player:error');
   }, 5000);
 
-  // Listen for success
   socket.on('player:joined', (data) => {
     clearTimeout(timeout);
     loading.value = false;
@@ -87,7 +87,6 @@ function handleJoin() {
     router.push('/play/lobby');
   });
 
-  // Listen for error (e.g. PIN_INVALID — session does not exist)
   socket.on('player:error', () => {
     clearTimeout(timeout);
     loading.value = false;
@@ -97,7 +96,6 @@ function handleJoin() {
     socket.off('player:error');
   });
 
-  // Connect handler: emit join once connected
   if (socket.connected) {
     socket.emit('player:join', { pin: trimmedPin, name: name.value.trim() });
   } else {
@@ -109,65 +107,63 @@ function handleJoin() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center bg-white">
-    <h1 class="text-3xl font-bold mb-8">Join Game</h1>
+  <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-secondary/10 via-primary/5 to-background px-4">
+    <div class="w-full max-w-md">
+      <PixelCard class="space-y-6">
+        <div class="text-center space-y-3">
+          <PixelLogo class="text-primary mx-auto" :size="48" />
+          <h2 class="text-3xl font-bold">Join a Quiz</h2>
+          <p class="text-muted-foreground">Enter the 6-digit PIN from your host</p>
+        </div>
 
-    <div
-      class="w-full max-w-sm space-y-4 transition-transform"
-      :class="{ 'animate-shake': shake }"
-    >
-      <input
-        v-model="pin"
-        type="text"
-        inputmode="numeric"
-        maxlength="6"
-        placeholder="Game PIN"
-        class="w-full text-center text-2xl tracking-widest border-2 border-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-        :class="{ 'border-red-500': error }"
-        @keyup.enter="handleJoin"
-      />
-      <input
-        v-model="name"
-        type="text"
-        maxlength="20"
-        placeholder="Your name"
-        class="w-full text-center border-2 border-black rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
-        @keyup.enter="handleJoin"
-      />
+        <div
+          class="space-y-4"
+          :class="{ 'animate-shake': shake }"
+        >
+          <PixelInput
+            v-model="pin"
+            inputmode="numeric"
+            maxlength="6"
+            placeholder="123456"
+            label="Game PIN"
+            class="text-center text-2xl font-bold tracking-wider"
+            :error="!!error"
+            @keyup.enter="handleJoin"
+          />
 
-      <p v-if="error" class="text-sm text-center font-medium text-red-600">
-        {{ error }}
+          <PixelInput
+            v-model="name"
+            maxlength="20"
+            placeholder="Enter your name"
+            label="Your Nickname"
+            :error="!!error"
+            @keyup.enter="handleJoin"
+          />
+
+          <p v-if="error" class="text-sm text-center font-medium text-destructive">
+            {{ error }}
+          </p>
+
+          <PixelButton
+            variant="secondary"
+            class="w-full"
+            :disabled="loading"
+            @click="handleJoin"
+          >
+            {{ loading ? 'Joining...' : 'Join Game' }}
+          </PixelButton>
+        </div>
+
+        <div class="pt-4 border-t-2 border-border">
+          <p class="text-sm text-center text-muted-foreground">
+            No account needed — play from any device
+          </p>
+        </div>
+      </PixelCard>
+
+      <p class="mt-6 text-center">
+        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; Back to Home</router-link>
       </p>
-
-      <button
-        class="w-full bg-black text-white text-lg font-semibold py-3 rounded-lg hover:bg-gray-800 transition disabled:opacity-50"
-        :disabled="loading"
-        @click="handleJoin"
-      >
-        {{ loading ? 'Joining...' : 'Join' }}
-      </button>
     </div>
-
-    <p class="mt-8">
-      <router-link to="/" class="text-gray-400 text-sm hover:text-black">&larr; Back</router-link>
-    </p>
   </div>
 </template>
-
-<style scoped>
-/*
- * Shake animation — wobbles the form left-right when an error occurs.
- * Same effect as macOS wrong-password shake.
- * Triggered by toggling the `shake` ref (adds/removes .animate-shake class).
- */
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-8px); }
-  40% { transform: translateX(8px); }
-  60% { transform: translateX(-6px); }
-  80% { transform: translateX(6px); }
-}
-.animate-shake {
-  animation: shake 0.4s ease-in-out;
-}
-</style>

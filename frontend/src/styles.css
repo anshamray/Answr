@@ -1,1 +1,219 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Press+Start+2P&display=swap');
 @import "tailwindcss";
+
+/* ─── Answr Brand Theme — Pixel Energy Palette ────────────────────────── */
+
+:root {
+  /* Typography */
+  --font-size: 16px;
+  --font-pixel: 'Press Start 2P', cursive;
+  --font-main: 'Space Grotesk', sans-serif;
+
+  /* Background & Foreground */
+  --background: #FAF9FF;
+  --foreground: #1E1B3D;
+
+  --card: #FFFFFF;
+  --card-foreground: #1E1B3D;
+
+  --popover: #FFFFFF;
+  --popover-foreground: #1E1B3D;
+
+  /* Primary — Electric Purple */
+  --primary: #8B5CF6;
+  --primary-foreground: #FFFFFF;
+  --primary-light: #A78BFA;
+  --primary-dark: #7C3AED;
+
+  /* Secondary — Cyber Cyan */
+  --secondary: #06B6D4;
+  --secondary-foreground: #FFFFFF;
+  --secondary-light: #22D3EE;
+  --secondary-dark: #0891B2;
+
+  /* Accent — Coral Energy */
+  --accent: #FF6B6B;
+  --accent-foreground: #FFFFFF;
+  --accent-light: #FF8787;
+  --accent-dark: #EE5A52;
+
+  /* Success — Mint Fresh */
+  --success: #10B981;
+  --success-foreground: #FFFFFF;
+
+  /* Warning — Amber Glow */
+  --warning: #F59E0B;
+  --warning-foreground: #1E1B3D;
+
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #E5E7EB;
+  --input: transparent;
+  --input-background: #F9FAFB;
+
+  --ring: #8B5CF6;
+
+  /* Chart Colors */
+  --chart-1: #8B5CF6;
+  --chart-2: #06B6D4;
+  --chart-3: #FF6B6B;
+  --chart-4: #10B981;
+  --chart-5: #F59E0B;
+
+  /* Pixel-specific */
+  --pixel-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
+  --pixel-shadow-lg: 8px 8px 0px rgba(0, 0, 0, 0.1);
+  --pixel-border: 3px;
+
+  /* Border radius */
+  --radius: 0.5rem;
+}
+
+/* ─── Tailwind v4 Theme Registration ──────────────────────────────────── */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-light: var(--primary-light);
+  --color-primary-dark: var(--primary-dark);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-light: var(--secondary-light);
+  --color-secondary-dark: var(--secondary-dark);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-light: var(--accent-light);
+  --color-accent-dark: var(--accent-dark);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ─── Base Styles ─────────────────────────────────────────────────────── */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-main);
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+}
+
+/* ─── Pixel Utility Classes ───────────────────────────────────────────── */
+
+@layer utilities {
+  .pixel-font {
+    font-family: var(--font-pixel);
+  }
+
+  .pixel-shadow {
+    box-shadow: var(--pixel-shadow);
+  }
+
+  .pixel-shadow-lg {
+    box-shadow: var(--pixel-shadow-lg);
+  }
+
+  .pixel-border {
+    border-width: var(--pixel-border);
+  }
+
+  .pixelated {
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* ─── Shake Animation ─────────────────────────────────────────────────── */
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
