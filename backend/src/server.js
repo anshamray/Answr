@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import quizRoutes from './routes/quizzes.js';
 import sessionRoutes from './routes/sessions.js';
 import libraryRoutes from './routes/library.js';
+import { standaloneRouter as questionRoutes } from './routes/questions.js';
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,7 @@ app.get('/', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/quizzes', quizRoutes);
+app.use('/api/questions', questionRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/library', libraryRoutes);
 
