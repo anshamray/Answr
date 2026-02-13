@@ -39,3 +39,7 @@ CLAUDE.md
 
 # Cursor Code
 .cursor/
+
+# Uploads (keep directory structure)
+backend/uploads/media/*
+!backend/uploads/media/.gitkeep

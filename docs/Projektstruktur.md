@@ -23,21 +23,25 @@ answr/
 │   │   │   ├── Question.js     # Frage-Schema (mit Answers embedded)
 │   │   │   ├── Session.js      # Session-Schema (TTL-Index, 2h Ablauf)
 │   │   │   ├── Participant.js  # Teilnehmer-Schema
-│   │   │   └── Submission.js   # Antwort-Einreichung-Schema
+│   │   │   ├── Submission.js   # Antwort-Einreichung-Schema
+│   │   │   └── Media.js        # Medien-Schema (Upload-Tracking)
 │   │   │
 │   │   ├── routes/              # REST API Routes
 │   │   │   ├── auth.js         # Authentifizierung
 │   │   │   ├── quizzes.js      # Quiz-CRUD
 │   │   │   ├── questions.js    # Question-CRUD & Reorder
 │   │   │   ├── sessions.js     # Session-Management
-│   │   │   └── library.js      # Quiz-Bibliothek (Browse, Clone, Publish)
+│   │   │   ├── library.js      # Quiz-Bibliothek (Browse, Clone, Publish)
+│   │   │   ├── media.js        # Media Upload API
+│   │   │   └── health.js       # Health Check Endpoint
 │   │   │
 │   │   ├── controllers/         # Business Logic
 │   │   │   ├── authController.js
 │   │   │   ├── quizController.js
 │   │   │   ├── questionController.js  # Question: Add, Update, Delete, Reorder
 │   │   │   ├── sessionController.js
-│   │   │   └── libraryController.js   # Library: Browse, Clone, Publish/Unpublish
+│   │   │   ├── libraryController.js   # Library: Browse, Clone, Publish/Unpublish
+│   │   │   └── mediaController.js     # Media: Upload, Delete, Serve
 │   │   │
 │   │   ├── socket/              # WebSocket Event-Handler
 │   │   │   ├── index.js        # Socket-Initialisierung & Connection-Handling
@@ -50,7 +54,8 @@ answr/
 │   │   │
 │   │   ├── middleware/          # Custom Middleware
 │   │   │   ├── auth.js         # JWT Verification (authenticate, optionalAuth, requireAdmin)
-│   │   │   └── validate.js     # Request Body Validation
+│   │   │   ├── validate.js     # Request Body Validation
+│   │   │   └── upload.js       # Multer File Upload Config
 │   │   │
 │   │   ├── config/              # Konfiguration
 │   │   │   └── database.js     # MongoDB Connection
@@ -59,6 +64,9 @@ answr/
 │   │       ├── pinGenerator.js    # 6-stellige numerische PIN-Generierung
 │   │       ├── responseHelper.js  # Konsistente API-Response-Formate
 │   │       └── scoring.js         # WS-5: Punkteberechnung (Zeit-Bonus, konfigurierbar)
+│   │
+│   ├── uploads/                  # Uploaded Files (gitignored)
+│   │   └── media/               # Media uploads
 │   │
 │   └── tests/                   # Tests (Jest)
 │       ├── quiz.test.js
@@ -154,9 +162,11 @@ GitHub-spezifische Dateien wie Issue-Templates.
 21. ✅ Kahoot-style Antwortverteilung & Leaderboard auf Moderator-Seite
 22. ✅ WS-5: Scoring Utility (Punkteberechnung, konfigurierbares Zeit-Bonus-System)
 23. ✅ API-5: Question CRUD API Endpoints (Add, Update, Delete, Reorder)
-24. [ ] PlayerResultsPage (Endergebnis-Seite)
-25. [ ] Testing
-26. [ ] Deployment
+24. ✅ API-7: Media Upload (Upload, Delete, Access-Controlled Serving)
+25. ✅ API-8: Health Check Endpoint
+26. [ ] PlayerResultsPage (Endergebnis-Seite)
+27. [ ] Testing
+28. [ ] Deployment
 
 ## Entwicklung starten
 

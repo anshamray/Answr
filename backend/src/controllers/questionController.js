@@ -7,6 +7,7 @@ import {
   sendNotFound,
   sendServerError
 } from '../utils/responseHelper.js';
+import { linkMediaToQuiz } from './mediaController.js';
 
 /**
  * Helper to verify quiz ownership
@@ -97,6 +98,11 @@ export async function addQuestion(req, res) {
 
     await question.save();
 
+    // Link media to quiz for access control
+    if (question.mediaUrl) {
+      await linkMediaToQuiz(question.mediaUrl, quizId);
+    }
+
     // Add question to quiz's questions array
     quiz.questions.push(question._id);
     await quiz.save();
@@ -156,6 +162,11 @@ export async function updateQuestion(req, res) {
     }
 
     await question.save();
+
+    // Link media to quiz for access control if mediaUrl was updated
+    if (req.body.mediaUrl) {
+      await linkMediaToQuiz(question.mediaUrl, question.quizId);
+    }
 
     sendSuccess(res, { message: 'Question updated', data: { question } });
   } catch (error) {

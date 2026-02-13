@@ -454,21 +454,78 @@ poll | word-cloud | brainstorm | drop-pin | open-ended | scale | nps-scale
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/media/upload` | Upload image (max 2MB, jpg/png/gif) | Yes |
+| POST | `/api/media/upload` | Upload image (max 5MB, jpg/png/gif) | Yes |
+| GET | `/api/media/:id` | Get media metadata | Yes |
 | DELETE | `/api/media/:id` | Delete uploaded media | Yes |
+| GET | `/media/:id` | Serve media file (access-controlled) | Optional |
 
 #### POST `/api/media/upload`
-```
+```json
 // Request: multipart/form-data
-file: <binary>
+// Field name: "file"
+// Allowed types: image/jpeg, image/png, image/gif
+// Max size: 5MB
 
 // Response 201
 {
-  "id": "string",
-  "url": "/media/abc123.png",
-  "filename": "question-image.png",
-  "size": 102400,
-  "mimeType": "image/png"
+  "success": true,
+  "message": "File uploaded successfully",
+  "data": {
+    "id": "string",
+    "url": "/media/abc123.png",
+    "filename": "question-image.png",
+    "size": 102400,
+    "mimeType": "image/png"
+  }
+}
+```
+
+#### GET `/api/media/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Media info retrieved",
+  "data": {
+    "id": "string",
+    "url": "/media/abc123.png",
+    "filename": "question-image.png",
+    "mimeType": "image/png",
+    "size": 102400,
+    "uploadedBy": "userId",
+    "createdAt": "ISO8601"
+  }
+}
+```
+
+#### DELETE `/api/media/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Media deleted"
+}
+```
+
+#### GET `/media/:id` (File Serving)
+
+Serves the actual media file with access control. If the media is linked to a question, any authenticated user or players in an active session using that quiz can access it. Orphan files (not linked to questions) are only accessible by the uploader.
+
+```
+// Response 200
+// Content-Type: image/png (or appropriate mime type)
+// Body: binary file data
+
+// Response 404 (media not found)
+{
+  "success": false,
+  "error": "Media not found"
+}
+
+// Response 403 (access denied)
+{
+  "success": false,
+  "error": "Access denied"
 }
 ```
 
@@ -799,16 +856,44 @@ Create a quiz that is immediately published and marked as official.
 | GET | `/api/health` | Health check endpoint | No |
 
 #### GET `/api/health`
+
+Returns server health status. Returns HTTP 200 when healthy, HTTP 503 when degraded (e.g., database disconnected).
+
 ```json
-// Response 200
+// Response 200 (healthy)
 {
-  "status": "ok",
-  "timestamp": "ISO8601",
-  "uptime": 3600,
-  "database": "connected",
-  "activeSessions": 5
+  "success": true,
+  "message": "Health check",
+  "data": {
+    "status": "healthy",
+    "timestamp": "ISO8601",
+    "uptime": 3600,
+    "database": "connected",
+    "activeSessions": 5
+  }
+}
+
+// Response 503 (degraded)
+{
+  "success": true,
+  "message": "Health check",
+  "data": {
+    "status": "degraded",
+    "timestamp": "ISO8601",
+    "uptime": 3600,
+    "database": "disconnected",
+    "activeSessions": 0
+  }
 }
 ```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | `"healthy"` or `"degraded"` |
+| `timestamp` | string | ISO8601 timestamp |
+| `uptime` | number | Server uptime in seconds |
+| `database` | string | `"connected"` or `"disconnected"` |
+| `activeSessions` | number | Count of in-memory active game sessions |
 
 ---
 

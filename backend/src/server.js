@@ -10,6 +10,8 @@ import quizRoutes from './routes/quizzes.js';
 import sessionRoutes from './routes/sessions.js';
 import libraryRoutes from './routes/library.js';
 import { standaloneRouter as questionRoutes } from './routes/questions.js';
+import { apiRouter as mediaApiRoutes, serveRouter as mediaServeRoutes, handleUploadError } from './routes/media.js';
+import healthRoutes, { setActiveSessionsGetter } from './routes/health.js';
 
 // Load environment variables
 dotenv.config();
@@ -45,9 +47,20 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/library', libraryRoutes);
+app.use('/api/media', mediaApiRoutes);
+app.use('/api/health', healthRoutes);
+
+// Media file serving (access-controlled, not static)
+app.use('/media', mediaServeRoutes);
+
+// Upload error handler
+app.use(handleUploadError);
 
 // Initialize WebSocket handler
 const { activeSessions } = initializeSocket(io);
+
+// Set up health check session counter
+setActiveSessionsGetter(() => activeSessions.size);
 
 // Start server
 const PORT = process.env.PORT || 3000;
