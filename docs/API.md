@@ -229,11 +229,24 @@ All API responses follow a consistent format:
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/quizzes/:quizId/questions` | List all questions | Yes |
+| GET | `/api/quizzes/:quizId/questions` | List all questions for a quiz | Yes |
+| GET | `/api/questions/:id` | Get single question | Yes |
 | POST | `/api/quizzes/:quizId/questions` | Add question to quiz | Yes |
 | PUT | `/api/questions/:id` | Update question | Yes |
 | DELETE | `/api/questions/:id` | Delete question | Yes |
 | PUT | `/api/quizzes/:quizId/questions/reorder` | Reorder questions | Yes |
+
+#### GET `/api/quizzes/:quizId/questions`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Questions retrieved",
+  "data": {
+    "questions": [...]
+  }
+}
+```
 
 #### Supported Question Types
 
@@ -355,20 +368,83 @@ poll | word-cloud | brainstorm | drop-pin | open-ended | scale | nps-scale
 ```json
 // Response 201
 {
-  "id": "string",
-  "quizId": "string",
-  "type": "multiple-choice",
-  "text": "What is 2 + 2?",
-  "mediaUrl": null,
-  "timeLimit": 30,
-  "points": 1000,
-  "order": 1,
-  "answers": [...],
-  "allowMultipleAnswers": false,
-  "sliderConfig": null,
-  "pinConfig": null,
-  "scaleConfig": null,
-  "brainstormConfig": null
+  "success": true,
+  "message": "Question added",
+  "data": {
+    "question": {
+      "id": "string",
+      "quizId": "string",
+      "type": "multiple-choice",
+      "text": "What is 2 + 2?",
+      "mediaUrl": null,
+      "timeLimit": 30,
+      "points": 1000,
+      "order": 1,
+      "answers": [...],
+      "allowMultipleAnswers": false,
+      "sliderConfig": null,
+      "pinConfig": null,
+      "scaleConfig": null,
+      "brainstormConfig": null
+    }
+  }
+}
+```
+
+#### GET `/api/questions/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Question retrieved",
+  "data": {
+    "question": { ... }
+  }
+}
+```
+
+#### PUT `/api/questions/:id`
+```json
+// Request (partial update allowed)
+{
+  "text": "Updated question text",
+  "timeLimit": 45,
+  "answers": [...]
+}
+
+// Response 200
+{
+  "success": true,
+  "message": "Question updated",
+  "data": {
+    "question": { ... }
+  }
+}
+```
+
+#### DELETE `/api/questions/:id`
+```json
+// Response 200
+{
+  "success": true,
+  "message": "Question deleted"
+}
+```
+
+#### PUT `/api/quizzes/:quizId/questions/reorder`
+```json
+// Request
+{
+  "questionIds": ["questionId3", "questionId1", "questionId2"]
+}
+
+// Response 200
+{
+  "success": true,
+  "message": "Questions reordered",
+  "data": {
+    "questions": [...]
+  }
 }
 ```
 

@@ -8,6 +8,7 @@ import {
   updateQuiz,
   deleteQuiz
 } from '../controllers/quizController.js';
+import questionRoutes from './questions.js';
 
 const router = Router();
 
@@ -28,5 +29,8 @@ router.put('/:id', updateQuiz);
 
 // DELETE /api/quizzes/:id - Delete quiz
 router.delete('/:id', deleteQuiz);
+
+// Mount question routes under /api/quizzes/:quizId/questions
+router.use('/:quizId/questions', questionRoutes);
 
 export default router;

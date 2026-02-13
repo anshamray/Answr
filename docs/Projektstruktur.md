@@ -28,14 +28,16 @@ answr/
 │   │   ├── routes/              # REST API Routes
 │   │   │   ├── auth.js         # Authentifizierung
 │   │   │   ├── quizzes.js      # Quiz-CRUD
+│   │   │   ├── questions.js    # Question-CRUD & Reorder
 │   │   │   ├── sessions.js     # Session-Management
 │   │   │   └── library.js      # Quiz-Bibliothek (Browse, Clone, Publish)
 │   │   │
 │   │   ├── controllers/         # Business Logic
 │   │   │   ├── authController.js
 │   │   │   ├── quizController.js
+│   │   │   ├── questionController.js  # Question: Add, Update, Delete, Reorder
 │   │   │   ├── sessionController.js
-│   │   │   └── libraryController.js  # Library: Browse, Clone, Publish/Unpublish
+│   │   │   └── libraryController.js   # Library: Browse, Clone, Publish/Unpublish
 │   │   │
 │   │   ├── socket/              # WebSocket Event-Handler
 │   │   │   ├── index.js        # Socket-Initialisierung & Connection-Handling
@@ -151,7 +153,7 @@ GitHub-spezifische Dateien wie Issue-Templates.
 20. ✅ Auto-End bei Timer-Ablauf oder alle Antworten eingegangen
 21. ✅ Kahoot-style Antwortverteilung & Leaderboard auf Moderator-Seite
 22. ✅ WS-5: Scoring Utility (Punkteberechnung, konfigurierbares Zeit-Bonus-System)
-23. [ ] Question CRUD API Endpoints
+23. ✅ API-5: Question CRUD API Endpoints (Add, Update, Delete, Reorder)
 24. [ ] PlayerResultsPage (Endergebnis-Seite)
 25. [ ] Testing
 26. [ ] Deployment
