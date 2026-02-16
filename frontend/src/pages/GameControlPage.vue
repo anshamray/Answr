@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -101,7 +102,7 @@ function getCorrectCount() {
 
 async function fetchSession() {
   try {
-    let url = `/api/sessions/${sessionId}`;
+    let url = apiUrl(`/api/sessions/${sessionId}`);
     const headers = {};
 
     if (auth.isAuthenticated) {

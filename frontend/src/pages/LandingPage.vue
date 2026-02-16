@@ -285,7 +285,7 @@ function handlePinSubmit() {
             </div>
             <h3 class="text-xl font-bold">14 Question Types</h3>
             <p class="text-muted-foreground">
-              Multiple choice, true/false, slider, puzzle, and many more. Flexibility for every learning style.
+              Multiple choice, true/false, slider, sort, and many more. Flexibility for every learning style.
             </p>
           </PixelCard>
 

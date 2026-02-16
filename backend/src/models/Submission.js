@@ -12,7 +12,7 @@ import mongoose from 'mongoose';
  *   type-answer / word-cloud / open-ended → textAnswer
  *   slider                                → numericAnswer
  *   pin-answer / drop-pin                 → pinAnswer { x, y }
- *   puzzle                                → orderedAnswerIds [ObjectId]
+ *   sort                                  → orderedAnswerIds [ObjectId]
  *   brainstorm                            → textAnswer (idea text)
  *   scale / nps-scale                     → numericAnswer
  *   quiz-audio                            → answerId (same as MC)
@@ -66,7 +66,7 @@ const submissionSchema = new mongoose.Schema({
     y: { type: Number, min: 0, max: 100 }
   },
 
-  // For puzzle: answers in the order the player arranged them
+  // For sort: answers in the order the player arranged them
   orderedAnswerIds: [{
     type: mongoose.Schema.Types.ObjectId
   }],

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -32,7 +33,7 @@ async function fetchLibrary() {
     params.set('page', page.value);
     params.set('limit', '12');
 
-    const res = await fetch(`/api/library?${params}`);
+    const res = await fetch(apiUrl(`/api/library?${params}`));
     if (!res.ok) throw new Error('Failed to load library');
 
     const json = await res.json();

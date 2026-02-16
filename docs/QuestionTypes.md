@@ -11,7 +11,7 @@ This document maps Kahoot-style question types to our schema design and verifies
 | multiple-choice | ✓ | ✓ | Core MVP |
 | true-false | ✓ | ✓ | Core MVP |
 | slider | ✓ | ✗ | Architektur missing |
-| puzzle | ✓ | ✗ | Architektur missing |
+| sort | ✓ | ✗ | Architektur missing |
 | free-text | ✓ | ✗ | Architektur missing |
 
 ### Kahoot Question Types to Support (Future)
@@ -23,7 +23,7 @@ This document maps Kahoot-style question types to our schema design and verifies
 | **Quiz** (MC) | 120 chars | 5s–4min | 0/1000/2000 | 2–6 options, 75 chars each | image/video | single/multi select |
 | **True/False** | 120 chars | 5s–4min | 0/1000/2000 | fixed True/False | image/video | — |
 | **Type Answer** | 120 chars | 20s–4min | 0/1000/2000 | 1–4 answers, 20 chars | image/video | case-insensitive |
-| **Puzzle** | 120 chars | 20s–4min | 0/1000/2000 | 3–4 ordered, 75 chars | image/video | textToReadAloud |
+| **Sort** | 120 chars | 20s–4min | 0/1000/2000 | 3–4 ordered, 75 chars | image/video | textToReadAloud |
 | **Quiz + Audio** | 120 chars | — | 0/1000/2000 | per type | audio only | language (37) |
 | **Slider** | 120 chars | 10s–4min | 0/1000/2000 | min, max, unit | image/video | margin, precision |
 | **Pin Answer** | 120 chars | 20s–4min | 0/1000/2000 | correct area (coords) | image required | — |
@@ -52,7 +52,7 @@ To support all types above, the Question schema uses a flexible `answers` array 
   quizId: ObjectId (ref: Quiz),
   type: String,  // see QuestionType enum below
   text: String,  // max 120 chars (validate in API)
-  textToReadAloud: String,  // for Puzzle, Quiz+Audio; max 120 chars
+  textToReadAloud: String,  // for Sort, Quiz+Audio; max 120 chars
   mediaUrl: String,  // image or video URL
   mediaType: String,  // 'image' | 'video' | 'audio'
   audioLanguage: String,  // for Quiz+Audio; e.g. 'en', 'de'
@@ -60,13 +60,13 @@ To support all types above, the Question schema uses a flexible `answers` array 
   points: Number,  // 0, 1000, or 2000
   order: Number,
 
-  // Standard options (Quiz, True/False, Poll, Puzzle, Type Answer)
+  // Standard options (Quiz, True/False, Poll, Sort, Type Answer)
   answers: [{
     _id: ObjectId,
     text: String,  // max 75 chars for MC, 20 for type-answer
     imageUrl: String,  // optional for Poll/Quiz
     isCorrect: Boolean,  // null for Poll, Word Cloud, etc.
-    order: Number  // for Puzzle (correct order)
+    order: Number  // for Sort (correct order)
   }],
 
   // Slider-specific
@@ -114,7 +114,7 @@ const QUESTION_TYPES = [
   'true-false',
   // Test knowledge (future)
   'type-answer',
-  'puzzle',
+  'sort',
   'quiz-audio',
   'slider',
   'pin-answer',
@@ -138,7 +138,7 @@ const QUESTION_TYPES = [
 | multiple-choice | required, 120 | 5–240 | 0/1000/2000 | 2–6, 1+ correct | allowMultipleAnswers |
 | true-false | required, 120 | 5–240 | 0/1000/2000 | 2 (fixed) | — |
 | type-answer | required, 120 | 20–240 | 0/1000/2000 | 1–4 | case-insensitive |
-| puzzle | required, 120 | 20–240 | 0/1000/2000 | 3–4 | textToReadAloud |
+| sort | required, 120 | 20–240 | 0/1000/2000 | 3–4 | textToReadAloud |
 | quiz-audio | required, 120 | 5–240 | 0/1000/2000 | varies | audioLanguage |
 | slider | required, 120 | 10–240 | 0/1000/2000 | sliderConfig | — |
 | pin-answer | required, 120 | 20–240 | 0/1000/2000 | pinConfig | mediaUrl required |
@@ -177,7 +177,7 @@ Which field is populated depends on `questionType`:
 | type-answer, word-cloud, open-ended, brainstorm | `textAnswer` |
 | slider, scale, nps-scale | `numericAnswer` |
 | pin-answer, drop-pin | `pinAnswer { x, y }` |
-| puzzle | `orderedAnswerIds` |
+| sort | `orderedAnswerIds` |
 
 ```javascript
 {
@@ -189,7 +189,7 @@ Which field is populated depends on `questionType`:
   textAnswer: String,                // type-answer, word-cloud, open-ended, brainstorm
   numericAnswer: Number,             // slider, scale, nps-scale
   pinAnswer: { x: Number, y: Number }, // pin-answer, drop-pin (0–100 %)
-  orderedAnswerIds: [ObjectId],      // puzzle
+  orderedAnswerIds: [ObjectId],      // sort
   timeTaken: Number,
   pointsAwarded: Number,
   createdAt: Date
@@ -206,8 +206,8 @@ All 14 question types are validated in `Question.pre('validate')`:
 
 - **text**: Required for all types except brainstorm, scale, nps-scale
 - **points**: Must be 0 for opinion types (poll, word-cloud, brainstorm, drop-pin, open-ended, scale, nps-scale)
-- **timeLimit**: Per-type minimum enforced (5s for MC/TF, 10s for slider, 20s for type-answer/puzzle/pin-answer/word-cloud/drop-pin/open-ended, 30s for brainstorm)
-- **answers**: Count validated per type (MC: 2–6 with 1+ correct; TF: exactly 2; type-answer: 1–4; puzzle: 3–4; poll: 2–6)
+- **timeLimit**: Per-type minimum enforced (5s for MC/TF, 10s for slider, 20s for type-answer/sort/pin-answer/word-cloud/drop-pin/open-ended, 30s for brainstorm)
+- **answers**: Count validated per type (MC: 2–6 with 1+ correct; TF: exactly 2; type-answer: 1–4; sort: 3–4; poll: 2–6)
 - **configs**: Required where applicable (sliderConfig for slider, pinConfig for pin-answer, scaleConfig for scale/nps-scale, brainstormConfig for brainstorm)
 - **media**: `mediaUrl` required for pin-answer and drop-pin
 - **audio**: `audioLanguage` required for quiz-audio

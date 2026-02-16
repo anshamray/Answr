@@ -9,7 +9,7 @@ export const QUESTION_TYPES = [
   'multiple-choice',
   'true-false',
   'type-answer',
-  'puzzle',
+  'sort',
   'quiz-audio',
   'slider',
   'pin-answer',
@@ -29,7 +29,7 @@ const TEXT_OPTIONAL_TYPES = ['brainstorm', 'scale', 'nps-scale'];
 /** Types that award points (0 / 1000 / 2000). Opinion types are always 0. */
 const SCORED_TYPES = [
   'multiple-choice', 'true-false', 'type-answer',
-  'puzzle', 'quiz-audio', 'slider', 'pin-answer'
+  'sort', 'quiz-audio', 'slider', 'pin-answer'
 ];
 
 /** Per-type minimum timeLimit (types not listed default to 5). */
@@ -37,7 +37,7 @@ const MIN_TIME_LIMIT = {
   'multiple-choice': 5,
   'true-false':      5,
   'type-answer':     20,
-  'puzzle':          20,
+  'sort':            20,
   'quiz-audio':      5,
   'slider':          10,
   'pin-answer':      20,
@@ -238,10 +238,10 @@ questionSchema.pre('validate', function (next) {
       break;
     }
 
-    // ─── puzzle ────────────────────────────────────────────────────────
-    case 'puzzle': {
+    // ─── sort ──────────────────────────────────────────────────────────
+    case 'sort': {
       if (answerCount < 3 || answerCount > 4) {
-        errors.push('Puzzle requires 3–4 answers');
+        errors.push('Sort requires 3–4 answers');
       }
       break;
     }

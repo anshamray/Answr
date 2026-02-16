@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed, watchEffect } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -44,7 +45,7 @@ const joinUrl = computed(() => {
 
 async function fetchSession() {
   try {
-    let url = `/api/sessions/${sessionId}`;
+    let url = apiUrl(`/api/sessions/${sessionId}`);
     const headers = {};
 
     if (auth.isAuthenticated) {

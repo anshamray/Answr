@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   mediaUrl: {
@@ -24,9 +24,40 @@ const localPinConfig = ref({ ...props.pinConfig });
 
 // Image container ref for click positioning
 const imageContainer = ref(null);
+const imageElement = ref(null);
 
 // Drag state
 const isDragging = ref(false);
+
+// Get actual image bounds within container (handles object-contain)
+function getImageBounds() {
+  if (!imageElement.value || !imageContainer.value) return null;
+
+  const img = imageElement.value;
+  const container = imageContainer.value;
+
+  const containerRect = container.getBoundingClientRect();
+  const imgNaturalRatio = img.naturalWidth / img.naturalHeight;
+  const containerRatio = containerRect.width / containerRect.height;
+
+  let imgWidth, imgHeight, imgLeft, imgTop;
+
+  if (imgNaturalRatio > containerRatio) {
+    // Image is wider - fits width, has vertical padding
+    imgWidth = containerRect.width;
+    imgHeight = containerRect.width / imgNaturalRatio;
+    imgLeft = containerRect.left;
+    imgTop = containerRect.top + (containerRect.height - imgHeight) / 2;
+  } else {
+    // Image is taller - fits height, has horizontal padding
+    imgHeight = containerRect.height;
+    imgWidth = containerRect.height * imgNaturalRatio;
+    imgLeft = containerRect.left + (containerRect.width - imgWidth) / 2;
+    imgTop = containerRect.top;
+  }
+
+  return { left: imgLeft, top: imgTop, width: imgWidth, height: imgHeight };
+}
 
 // Watch for external changes
 watch(() => props.mediaUrl, (newVal) => {
@@ -58,13 +89,13 @@ function handleImageClick(event) {
 
 // Update pin position from mouse event
 function updatePinFromEvent(event) {
-  if (!imageContainer.value) return;
+  const bounds = getImageBounds();
+  if (!bounds) return;
 
-  const rect = imageContainer.value.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * 100;
-  const y = ((event.clientY - rect.top) / rect.height) * 100;
+  const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+  const y = ((event.clientY - bounds.top) / bounds.height) * 100;
 
-  // Clamp to 0-100
+  // Clamp to 0-100 (keeps pin within actual image)
   localPinConfig.value.x = Math.max(0, Math.min(100, Math.round(x * 10) / 10));
   localPinConfig.value.y = Math.max(0, Math.min(100, Math.round(y * 10) / 10));
 
@@ -91,15 +122,76 @@ function stopDrag() {
   window.removeEventListener('mouseup', stopDrag);
 }
 
-// Computed radius in pixels for preview (assuming ~400px image width)
-const radiusPreviewStyle = computed(() => {
+// Image dimensions for reactive positioning
+const imageDimensions = ref({ offsetX: 0, offsetY: 0, width: 100, height: 100 });
+
+function updateImageDimensions() {
+  if (!imageElement.value || !imageContainer.value) return;
+
+  const img = imageElement.value;
+  const container = imageContainer.value;
+  const containerWidth = container.offsetWidth;
+  const containerHeight = container.offsetHeight;
+
+  const imgNaturalRatio = img.naturalWidth / img.naturalHeight;
+  const containerRatio = containerWidth / containerHeight;
+
+  let imgWidth, imgHeight, offsetX, offsetY;
+
+  if (imgNaturalRatio > containerRatio) {
+    imgWidth = containerWidth;
+    imgHeight = containerWidth / imgNaturalRatio;
+    offsetX = 0;
+    offsetY = (containerHeight - imgHeight) / 2;
+  } else {
+    imgHeight = containerHeight;
+    imgWidth = containerHeight * imgNaturalRatio;
+    offsetX = (containerWidth - imgWidth) / 2;
+    offsetY = 0;
+  }
+
+  imageDimensions.value = {
+    offsetX: (offsetX / containerWidth) * 100,
+    offsetY: (offsetY / containerHeight) * 100,
+    width: (imgWidth / containerWidth) * 100,
+    height: (imgHeight / containerHeight) * 100
+  };
+}
+
+// Computed styles that position relative to actual image bounds
+const pinStyle = computed(() => {
+  const d = imageDimensions.value;
+  const left = d.offsetX + (localPinConfig.value.x / 100) * d.width;
+  const top = d.offsetY + (localPinConfig.value.y / 100) * d.height;
   return {
-    width: `${localPinConfig.value.radius * 2}%`,
-    height: `${localPinConfig.value.radius * 2}%`,
-    left: `${localPinConfig.value.x}%`,
-    top: `${localPinConfig.value.y}%`,
+    left: `${left}%`,
+    top: `${top}%`,
+    transform: 'translate(-50%, -100%)'
+  };
+});
+
+const radiusPreviewStyle = computed(() => {
+  const d = imageDimensions.value;
+  const left = d.offsetX + (localPinConfig.value.x / 100) * d.width;
+  const top = d.offsetY + (localPinConfig.value.y / 100) * d.height;
+  // Use smaller dimension for consistent circle
+  const radiusPercent = (localPinConfig.value.radius / 100) * Math.min(d.width, d.height) * 2;
+  return {
+    width: `${radiusPercent}%`,
+    height: `${radiusPercent}%`,
+    left: `${left}%`,
+    top: `${top}%`,
     transform: 'translate(-50%, -50%)'
   };
+});
+
+// Handle window resize
+onMounted(() => {
+  window.addEventListener('resize', updateImageDimensions);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateImageDimensions);
 });
 </script>
 
@@ -119,9 +211,11 @@ const radiusPreviewStyle = computed(() => {
         @click="handleImageClick"
       >
         <img
+          ref="imageElement"
           :src="localMediaUrl"
           alt="Pin answer image"
           class="w-full max-h-96 object-contain"
+          @load="updateImageDimensions"
         />
 
         <!-- Target area circle -->
@@ -134,11 +228,7 @@ const radiusPreviewStyle = computed(() => {
         <div
           class="absolute w-8 h-8 cursor-grab active:cursor-grabbing select-none"
           :class="{ 'scale-110': isDragging }"
-          :style="{
-            left: `${localPinConfig.x}%`,
-            top: `${localPinConfig.y}%`,
-            transform: 'translate(-50%, -100%)'
-          }"
+          :style="pinStyle"
           @mousedown="startDrag"
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="#10B981" stroke="#065F46" stroke-width="2" class="drop-shadow-md">

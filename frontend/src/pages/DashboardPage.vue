@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -15,12 +16,14 @@ const loading = ref(true);
 const error = ref('');
 const filter = ref('all');
 const view = ref('grid');
+const publishDialogQuiz = ref(null);
+const unpublishDialogQuiz = ref(null);
 
 async function fetchQuizzes() {
   loading.value = true;
   error.value = '';
   try {
-    const res = await fetch('/api/quizzes', {
+    const res = await fetch(apiUrl('/api/quizzes'), {
       headers: { Authorization: `Bearer ${auth.token}` }
     });
     if (!res.ok) throw new Error('Failed to load quizzes');
@@ -35,7 +38,7 @@ async function fetchQuizzes() {
 
 async function startSession(quizId) {
   try {
-    const res = await fetch('/api/sessions', {
+    const res = await fetch(apiUrl('/api/sessions'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,10 +59,79 @@ function editQuiz(quizId) {
   router.push(`/quiz/${quizId}/edit`);
 }
 
+function openPublishDialog(quizId) {
+  const quiz = quizzes.value.find(q => (q._id || q.id) === quizId);
+  const qCount = quiz?.questionCount ?? quiz?.questions?.length ?? 0;
+  if (qCount < 1) {
+    alert('Quiz must have at least 1 question to publish');
+    return;
+  }
+  publishDialogQuiz.value = quiz;
+}
+
+function closePublishDialog() {
+  publishDialogQuiz.value = null;
+}
+
+async function confirmPublish() {
+  const quiz = publishDialogQuiz.value;
+  if (!quiz) return;
+  const quizId = quiz._id || quiz.id;
+  try {
+    const tags = Array.isArray(quiz.tags) ? quiz.tags : [];
+    const res = await fetch(apiUrl(`/api/library/publish/${quizId}`), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${auth.token}`
+      },
+      body: JSON.stringify({ tags })
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.message || 'Failed to publish');
+    }
+    const q = quizzes.value.find(q => (q._id || q.id) === quizId);
+    if (q) q.isPublished = true;
+    closePublishDialog();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function openUnpublishDialog(quizId) {
+  unpublishDialogQuiz.value = quizzes.value.find(q => (q._id || q.id) === quizId);
+}
+
+function closeUnpublishDialog() {
+  unpublishDialogQuiz.value = null;
+}
+
+async function confirmUnpublish() {
+  const quiz = unpublishDialogQuiz.value;
+  if (!quiz) return;
+  const quizId = quiz._id || quiz.id;
+  try {
+    const res = await fetch(apiUrl(`/api/library/unpublish/${quizId}`), {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      throw new Error(json.message || 'Failed to unpublish');
+    }
+    const q = quizzes.value.find(q => (q._id || q.id) === quizId);
+    if (q) q.isPublished = false;
+    closeUnpublishDialog();
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
 async function deleteQuiz(quizId) {
   if (!confirm('Are you sure you want to delete this quiz?')) return;
   try {
-    const res = await fetch(`/api/quizzes/${quizId}`, {
+    const res = await fetch(apiUrl(`/api/quizzes/${quizId}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${auth.token}` }
     });
@@ -169,7 +241,7 @@ onMounted(async () => {
             :class="filter === 'draft' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
             @click="filter = 'draft'"
           >
-            Drafts
+            Private
           </button>
         </div>
 
@@ -244,12 +316,12 @@ onMounted(async () => {
                 </div>
               </div>
               <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
-                {{ quiz.isPublished ? 'published' : 'draft' }}
+                {{ quiz.isPublished ? 'Published' : 'Private' }}
               </PixelBadge>
             </div>
 
-            <div class="flex items-center gap-2">
-              <PixelButton variant="primary" size="sm" class="flex-1" @click="startSession(quiz._id || quiz.id)">
+            <div class="flex items-center gap-2 flex-wrap">
+              <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click="startSession(quiz._id || quiz.id)">
                 <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
@@ -275,12 +347,117 @@ onMounted(async () => {
               </button>
             </div>
 
-            <div class="text-xs text-muted-foreground pt-2 border-t-2 border-border">
-              {{ quiz.questionCount || quiz.questions?.length || 0 }} questions
+            <div class="pt-2 border-t-2 border-border">
+              <PixelButton
+                v-if="!quiz.isPublished"
+                variant="secondary"
+                size="sm"
+                class="w-full"
+                @click="openPublishDialog(quiz._id || quiz.id)"
+                title="Publish to library (visible to everyone)"
+              >
+                Publish
+              </PixelButton>
+              <PixelButton
+                v-else
+                variant="outline"
+                size="sm"
+                class="w-full"
+                @click="openUnpublishDialog(quiz._id || quiz.id)"
+                title="Remove from library"
+              >
+                Unpublish
+              </PixelButton>
             </div>
           </PixelCard>
         </template>
       </div>
     </main>
+
+    <!-- Publish Dialog -->
+    <div
+      v-if="publishDialogQuiz"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      @click.self="closePublishDialog"
+    >
+      <div class="bg-white border-[3px] border-black pixel-shadow max-w-lg w-full p-6 space-y-4">
+        <h3 class="text-xl font-bold">Publish to Library</h3>
+        <p class="text-muted-foreground">
+          Everyone will be able to see this quiz in the library.
+        </p>
+        <div
+          v-if="!publishDialogQuiz.description?.trim() || !publishDialogQuiz.tags?.length"
+          class="p-4 border-2 border-warning bg-warning/10 text-warning"
+        >
+          <p class="text-sm font-medium">
+            <template v-if="!publishDialogQuiz.description?.trim() && !publishDialogQuiz.tags?.length">
+              Description and tags are empty. It would be better to add them so others can find and understand your quiz.
+            </template>
+            <template v-else-if="!publishDialogQuiz.description?.trim()">
+              Description is empty. It would be better to add one so others can understand what your quiz is about.
+            </template>
+            <template v-else>
+              Tags are empty. It would be better to add tags so others can find your quiz in the library.
+            </template>
+          </p>
+        </div>
+        <div class="space-y-3 border-2 border-border p-4 bg-muted/30">
+          <div>
+            <span class="text-xs font-medium text-muted-foreground">Title</span>
+            <p class="font-medium">{{ publishDialogQuiz.title || 'Untitled Quiz' }}</p>
+          </div>
+          <div v-if="publishDialogQuiz.description">
+            <span class="text-xs font-medium text-muted-foreground">Description</span>
+            <p class="text-sm">{{ publishDialogQuiz.description }}</p>
+          </div>
+          <div v-if="publishDialogQuiz.tags?.length">
+            <span class="text-xs font-medium text-muted-foreground">Tags</span>
+            <p class="text-sm">
+              <span
+                v-for="tag in publishDialogQuiz.tags"
+                :key="tag"
+                class="inline-block bg-primary/10 text-primary px-2 py-0.5 mr-1 mb-1 text-xs"
+              >
+                {{ tag }}
+              </span>
+            </p>
+          </div>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+          <PixelButton variant="outline" size="sm" @click="editQuiz(publishDialogQuiz._id || publishDialogQuiz.id); closePublishDialog()">
+            Edit
+          </PixelButton>
+          <PixelButton variant="primary" size="sm" @click="confirmPublish">
+            Publish
+          </PixelButton>
+          <PixelButton variant="outline" size="sm" @click="closePublishDialog">
+            Cancel
+          </PixelButton>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unpublish Dialog -->
+    <div
+      v-if="unpublishDialogQuiz"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      @click.self="closeUnpublishDialog"
+    >
+      <div class="bg-white border-[3px] border-black pixel-shadow max-w-lg w-full p-6 space-y-4">
+        <h3 class="text-xl font-bold">Unpublish Quiz</h3>
+        <p class="text-muted-foreground">
+          This quiz will no longer be available in the library. Other users will not be able to find or play it.
+        </p>
+        <p class="font-medium">{{ unpublishDialogQuiz.title || 'Untitled Quiz' }}</p>
+        <div class="flex gap-2">
+          <PixelButton variant="outline" size="sm" @click="confirmUnpublish">
+            Unpublish
+          </PixelButton>
+          <PixelButton variant="primary" size="sm" @click="closeUnpublishDialog">
+            Cancel
+          </PixelButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

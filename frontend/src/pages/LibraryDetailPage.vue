@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -22,7 +23,7 @@ async function fetchQuiz() {
   error.value = '';
 
   try {
-    const res = await fetch(`/api/library/${route.params.id}`);
+    const res = await fetch(apiUrl(`/api/library/${route.params.id}`));
     if (!res.ok) throw new Error('Quiz not found');
 
     const json = await res.json();
@@ -43,7 +44,7 @@ async function startQuiz() {
     const token = localStorage.getItem('token');
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    const res = await fetch(`/api/library/${route.params.id}/start`, {
+    const res = await fetch(apiUrl(`/api/library/${route.params.id}/start`), {
       method: 'POST',
       headers
     });
@@ -73,7 +74,7 @@ const typeLabels = {
   'multiple-choice': 'Multiple Choice',
   'true-false': 'True / False',
   'type-answer': 'Type Answer',
-  'puzzle': 'Puzzle',
+  'sort': 'Sort',
   'quiz-audio': 'Audio Quiz',
   'slider': 'Slider',
   'pin-answer': 'Pin Answer',

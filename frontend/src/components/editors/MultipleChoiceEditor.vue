@@ -73,7 +73,7 @@ function addAnswer() {
   if (localAnswers.value.length >= 6) return;
 
   localAnswers.value.push({
-    text: `Answer ${localAnswers.value.length + 1}`,
+    text: '',
     isCorrect: false
   });
   emit('update:answers', localAnswers.value);
@@ -139,7 +139,10 @@ function removeAnswer(index) {
         title="Remove answer"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+          <line x1="10" y1="11" x2="10" y2="17" />
+          <line x1="14" y1="11" x2="14" y2="17" />
         </svg>
       </button>
     </div>

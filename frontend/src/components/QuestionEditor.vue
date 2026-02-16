@@ -1,9 +1,10 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { apiUrl } from '../lib/api.js';
 import MultipleChoiceEditor from './editors/MultipleChoiceEditor.vue';
 import TrueFalseEditor from './editors/TrueFalseEditor.vue';
 import TypeAnswerEditor from './editors/TypeAnswerEditor.vue';
-import PuzzleEditor from './editors/PuzzleEditor.vue';
+import SortEditor from './editors/SortEditor.vue';
 import SliderEditor from './editors/SliderEditor.vue';
 import QuizAudioEditor from './editors/QuizAudioEditor.vue';
 import PinAnswerEditor from './editors/PinAnswerEditor.vue';
@@ -27,6 +28,9 @@ const localQuestion = ref({ ...props.question });
 // File input ref
 const fileInputRef = ref(null);
 
+// Media section collapsed by default (optional, not often used)
+const mediaExpanded = ref(false);
+
 // Time limit options
 const timeLimitOptions = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240];
 
@@ -36,7 +40,7 @@ const pointsOptions = [0, 1000, 2000];
 // Scored types that can have points
 const scoredTypes = [
   'multiple-choice', 'true-false', 'type-answer',
-  'puzzle', 'quiz-audio', 'slider', 'pin-answer'
+  'sort', 'quiz-audio', 'slider', 'pin-answer'
 ];
 
 // Computed
@@ -127,8 +131,11 @@ function getIcon(iconName) {
     type: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" />
     </svg>`,
-    puzzle: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611" />
+    sort: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="16" width="16" height="4" rx="1" />
+      <rect x="6" y="11" width="12" height="4" rx="1" />
+      <rect x="8" y="6" width="8" height="4" rx="1" />
+      <rect x="10" y="1" width="4" height="4" rx="1" />
     </svg>`,
     sliders: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
@@ -193,45 +200,68 @@ function getIcon(iconName) {
         </div>
       </div>
 
-      <!-- Media Upload -->
-      <div class="bg-white border-[3px] border-black pixel-shadow p-6">
-        <label class="block text-sm font-medium mb-2">Media (optional)</label>
-        <!-- Hidden file input -->
-        <input
-          ref="fileInputRef"
-          type="file"
-          accept="image/*"
-          class="hidden"
-          @change="handleFileSelect"
-        />
-        <div class="border-2 border-dashed border-border p-8 text-center hover:border-primary transition-colors">
-          <div v-if="localQuestion.mediaUrl" class="relative">
-            <img
-              :src="localQuestion.mediaUrl"
-              alt="Question media"
-              class="max-h-48 mx-auto object-contain"
-            />
-            <button
-              @click="updateMediaUrl('')"
-              class="absolute top-2 right-2 p-1 bg-destructive text-white hover:bg-destructive/80"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      <!-- Media Upload (collapsible) -->
+      <div class="bg-white border-[3px] border-black pixel-shadow">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"
+          @click="mediaExpanded = !mediaExpanded"
+        >
+          <span class="text-sm font-medium">
+            Media (optional)
+            <span v-if="localQuestion.mediaUrl" class="text-muted-foreground font-normal">— 1 image</span>
+          </span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="flex-shrink-0 transition-transform"
+            :class="{ 'rotate-180': mediaExpanded }"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div v-show="mediaExpanded" class="p-6 pt-0">
+          <!-- Hidden file input -->
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleFileSelect"
+          />
+          <div class="border-2 border-dashed border-border p-8 text-center hover:border-primary transition-colors">
+            <div v-if="localQuestion.mediaUrl" class="relative">
+              <img
+                :src="apiUrl(localQuestion.mediaUrl)"
+                alt="Question media"
+                class="max-h-48 mx-auto object-contain"
+              />
+              <button
+                @click="updateMediaUrl('')"
+                class="absolute top-2 right-2 p-1 bg-destructive text-white hover:bg-destructive/80"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            <div v-else class="cursor-pointer" @click="triggerFileInput">
+              <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
               </svg>
-            </button>
-          </div>
-          <div v-else class="cursor-pointer" @click="triggerFileInput">
-            <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
-            </svg>
-            <p class="text-sm text-muted-foreground mb-2">Drag and drop an image, or click to browse</p>
-            <input
-              type="text"
-              placeholder="Or paste an image URL"
-              class="w-full max-w-sm mx-auto px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
-              @click.stop
-              @blur="updateMediaUrl($event.target.value)"
-            />
+              <p class="text-sm text-muted-foreground mb-2">Drag and drop an image, or click to browse</p>
+              <input
+                type="text"
+                placeholder="Or paste an image URL"
+                class="w-full max-w-sm mx-auto px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
+                @click.stop
+                @blur="updateMediaUrl($event.target.value)"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -239,6 +269,19 @@ function getIcon(iconName) {
       <!-- Type-Specific Editor -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
         <label class="block text-sm font-medium mb-4">Answers</label>
+
+        <!-- Allow Multiple Answers (multiple-choice only) -->
+        <div v-if="canHaveMultipleAnswers" class="mb-4">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="localQuestion.allowMultipleAnswers"
+              class="w-5 h-5 border-2 border-border accent-primary"
+              @change="emitUpdate"
+            />
+            <span class="text-sm">Allow multiple answers</span>
+          </label>
+        </div>
 
         <MultipleChoiceEditor
           v-if="localQuestion.type === 'multiple-choice'"
@@ -259,8 +302,8 @@ function getIcon(iconName) {
           @update:answers="updateAnswers"
         />
 
-        <PuzzleEditor
-          v-else-if="localQuestion.type === 'puzzle'"
+        <SortEditor
+          v-else-if="localQuestion.type === 'sort'"
           :answers="localQuestion.answers"
           @update:answers="updateAnswers"
         />
@@ -325,19 +368,6 @@ function getIcon(iconName) {
                 {{ pts === 0 ? 'No points' : `${pts} points` }}
               </option>
             </select>
-          </div>
-
-          <!-- Allow Multiple Answers -->
-          <div v-if="canHaveMultipleAnswers" class="flex items-center">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                v-model="localQuestion.allowMultipleAnswers"
-                class="w-5 h-5 border-2 border-border accent-primary"
-                @change="emitUpdate"
-              />
-              <span class="text-sm">Allow multiple answers</span>
-            </label>
           </div>
         </div>
       </div>

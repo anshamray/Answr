@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -47,7 +48,7 @@ async function fetchResults() {
       headers['Authorization'] = `Bearer ${auth.token}`;
     }
 
-    let url = `/api/sessions/${sessionId}`;
+    let url = apiUrl(`/api/sessions/${sessionId}`);
     if (guestToken) url += `?guestToken=${encodeURIComponent(guestToken)}`;
 
     const res = await fetch(url, { headers });

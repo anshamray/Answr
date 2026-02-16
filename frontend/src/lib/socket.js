@@ -1,14 +1,17 @@
 import { io } from 'socket.io-client';
+import { apiBase } from './api.js';
 
 let socket = null;
 
+const defaultSocketUrl = apiBase || 'http://localhost:3000';
+
 /**
  * Connect to the WebSocket server.
- * @param {string} url - Server URL (default: http://localhost:3000)
+ * @param {string} url - Server URL (default: VITE_API_URL or http://localhost:3000)
  * @param {object} opts - Extra Socket.io options (e.g. auth headers)
  * @returns {import('socket.io-client').Socket}
  */
-export function connectSocket(url = 'http://localhost:3000', opts = {}) {
+export function connectSocket(url = defaultSocketUrl, opts = {}) {
   if (socket) {
     socket.disconnect();
   }

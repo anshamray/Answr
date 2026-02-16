@@ -135,7 +135,7 @@ npm run format:fix
 - ⏳ Session Pause/Resume im Frontend
 
 ### Future (Could-Have)
-- 💡 Weitere Fragetypen (Slider, Puzzle, Word Cloud, etc.)
+- 💡 Weitere Fragetypen (Slider, Sort, Word Cloud, etc.)
 - 💡 Hintergrundmusik & Soundeffekte
 - 💡 Export/Import von Quizzen
 

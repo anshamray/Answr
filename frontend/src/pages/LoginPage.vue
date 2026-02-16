@@ -14,7 +14,8 @@ const email = ref('');
 const password = ref('');
 const error = ref('');
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import { apiBase } from '../lib/api.js';
+const API_URL = apiBase || 'http://localhost:3000';
 
 async function handleLogin() {
   error.value = '';

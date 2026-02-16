@@ -16,9 +16,16 @@ export async function listQuizzes(req, res) {
   try {
     const quizzes = await Quiz.find({ moderatorId: req.user.userId })
       .sort({ updatedAt: -1 })
-      .select('-questions');
+      .lean();
 
-    sendSuccess(res, { message: 'Quizzes retrieved', data: { quizzes } });
+    // Add questionCount and ensure playCount for display (exclude questions array to keep payload small)
+    const enriched = quizzes.map(({ questions, ...q }) => ({
+      ...q,
+      questionCount: (questions || []).length,
+      playCount: q.playCount ?? 0
+    }));
+
+    sendSuccess(res, { message: 'Quizzes retrieved', data: { quizzes: enriched } });
   } catch (error) {
     console.error('List quizzes error:', error);
     sendServerError(res, 'Failed to fetch quizzes');

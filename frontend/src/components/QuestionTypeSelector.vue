@@ -24,10 +24,10 @@ const scoredTypes = [
     icon: 'type'
   },
   {
-    type: 'puzzle',
-    name: 'Puzzle',
+    type: 'sort',
+    name: 'Sort',
     description: 'Arrange 3-4 items in the correct order',
-    icon: 'puzzle'
+    icon: 'sort'
   },
   {
     type: 'slider',
@@ -124,8 +124,11 @@ function getIcon(iconName) {
     type: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" />
     </svg>`,
-    puzzle: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.743-.952a2.5 2.5 0 0 0-2.5-2.5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5a2.5 2.5 0 0 0 2.146-1.209.98.98 0 0 1 .952.743c.07.47-.166.8-.276.837l-1.611 1.611a2.41 2.41 0 0 1-1.704.706c-.617 0-1.233-.235-1.704-.706l-1.568-1.568a.98.98 0 0 1-.878-.289c-.322.049-.648-.059-.878-.289l-1.568-1.568A2.41 2.41 0 0 1 7 14.565V9.435c0-.617.235-1.233.706-1.704l1.568-1.568c.47-.47 1.087-.706 1.704-.706h5.13c.617 0 1.233.235 1.704.706l1.568 1.568c.23.23.338.556.289.878z" />
+    sort: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="4" y="16" width="16" height="4" rx="1" />
+      <rect x="6" y="11" width="12" height="4" rx="1" />
+      <rect x="8" y="6" width="8" height="4" rx="1" />
+      <rect x="10" y="1" width="4" height="4" rx="1" />
     </svg>`,
     sliders: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />

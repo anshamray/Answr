@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
+import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelBadge from '../components/PixelBadge.vue';
@@ -44,7 +45,7 @@ const questionTypeInfo = {
   'multiple-choice': { icon: 'grid', label: 'Multiple Choice', color: 'primary' },
   'true-false': { icon: 'check', label: 'True/False', color: 'secondary' },
   'type-answer': { icon: 'type', label: 'Type Answer', color: 'accent' },
-  'puzzle': { icon: 'puzzle', label: 'Puzzle', color: 'warning' },
+  'sort': { icon: 'sort', label: 'Sort', color: 'warning' },
   'slider': { icon: 'sliders', label: 'Slider', color: 'success' },
   'quiz-audio': { icon: 'volume', label: 'Quiz Audio', color: 'primary' },
   'pin-answer': { icon: 'map-pin', label: 'Pin Answer', color: 'secondary' },
@@ -69,7 +70,7 @@ function generateTempId() {
 
 // API helpers
 async function apiFetch(url, options = {}) {
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(url), {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -141,8 +142,8 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         answers: [
-          { text: 'Answer 1', isCorrect: true },
-          { text: 'Answer 2', isCorrect: false }
+          { text: '', isCorrect: true },
+          { text: '', isCorrect: false }
         ]
       };
     case 'true-false':
@@ -159,14 +160,14 @@ function getDefaultQuestionData(type) {
         timeLimit: 30,
         answers: [{ text: 'Answer' }]
       };
-    case 'puzzle':
+    case 'sort':
       return {
         ...base,
         timeLimit: 30,
         answers: [
-          { text: 'First', order: 0 },
-          { text: 'Second', order: 1 },
-          { text: 'Third', order: 2 }
+          { text: '', order: 0 },
+          { text: '', order: 1 },
+          { text: '', order: 2 }
         ]
       };
     case 'slider':
@@ -305,18 +306,25 @@ async function saveAll() {
           category: quiz.value.category
         })
       });
-      quiz.value._id = data.data.quiz._id;
+      // Sync local quiz state with server response (includes generated title)
+      quiz.value = data.data.quiz;
       // Update URL without full navigation
       router.replace(`/quiz/${quiz.value._id}/edit`);
     } else {
       // Update quiz metadata
+      const updatePayload = {
+        description: quiz.value.description,
+        category: quiz.value.category
+      };
+
+      // Only send title if it's non-empty to avoid validation errors
+      if (quiz.value.title && quiz.value.title.trim()) {
+        updatePayload.title = quiz.value.title.trim();
+      }
+
       await apiFetch(`/api/quizzes/${quiz.value._id}`, {
         method: 'PUT',
-        body: JSON.stringify({
-          title: quiz.value.title,
-          description: quiz.value.description,
-          category: quiz.value.category
-        })
+        body: JSON.stringify(updatePayload)
       });
     }
 
@@ -354,19 +362,18 @@ async function saveAll() {
       }
     }
 
+    // Preserve current question selection (stay on same question after save)
+    const selectedIndex = questions.value.findIndex(q => q._id === selectedQuestionId.value);
+
     // Replace local questions with server responses (to get real IDs)
     questions.value = updatedQuestions;
 
-    // Update selected question ID if it was temporary
-    if (selectedQuestionId.value && isTemporaryId(selectedQuestionId.value)) {
-      const selectedIndex = questions.value.findIndex(
-        (q, i) => i === questions.value.findIndex(oq => oq._id === selectedQuestionId.value)
-      );
-      if (selectedIndex >= 0 && selectedIndex < updatedQuestions.length) {
-        selectedQuestionId.value = updatedQuestions[selectedIndex]._id;
-      } else if (updatedQuestions.length > 0) {
-        selectedQuestionId.value = updatedQuestions[0]._id;
-      }
+    if (selectedIndex >= 0 && selectedIndex < updatedQuestions.length) {
+      selectedQuestionId.value = updatedQuestions[selectedIndex]._id;
+    } else if (updatedQuestions.length > 0) {
+      // Selected question was deleted or not found; stay near same position or first
+      const fallbackIndex = selectedIndex >= 0 ? Math.min(selectedIndex, updatedQuestions.length - 1) : 0;
+      selectedQuestionId.value = updatedQuestions[fallbackIndex]._id;
     }
 
     hasUnsavedChanges.value = false;
@@ -409,10 +416,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex flex-col">
+  <div class="min-h-screen bg-background flex flex-col max-w-full">
     <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50 max-w-full">
+      <div class="px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 max-w-full">
         <div class="flex items-center gap-4">
           <button
             @click="goBack"
@@ -427,7 +434,7 @@ onMounted(() => {
             v-model="quiz.title"
             type="text"
             placeholder="Untitled Quiz"
-            class="text-xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 w-64"
+            class="text-xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 w-48"
             @input="hasUnsavedChanges = true"
           />
 
@@ -435,7 +442,7 @@ onMounted(() => {
             {{ questionCount }} {{ questionCount === 1 ? 'question' : 'questions' }}
           </PixelBadge>
 
-          <span v-if="hasUnsavedChanges" class="text-xs text-warning font-medium">
+          <span v-if="hasUnsavedChanges" class="text-xs text-warning font-medium hidden sm:inline">
             Unsaved changes
           </span>
         </div>
@@ -475,7 +482,7 @@ onMounted(() => {
     </div>
 
     <!-- Main Editor -->
-    <div v-else class="flex-1 flex overflow-hidden">
+    <div v-else class="flex-1 flex overflow-hidden min-w-0">
       <!-- Sidebar: Question List -->
       <aside class="w-72 border-r-[3px] border-black bg-white flex flex-col">
         <div class="p-4 border-b-[3px] border-border">
@@ -598,7 +605,7 @@ onMounted(() => {
       </aside>
 
       <!-- Main Content: Question Editor -->
-      <main class="flex-1 overflow-y-auto bg-muted/30">
+      <main class="flex-1 overflow-y-auto bg-muted/30 min-w-0">
         <div v-if="!selectedQuestion" class="h-full flex items-center justify-center">
           <div class="text-center max-w-md">
             <div class="w-24 h-24 mx-auto mb-6 bg-primary/10 border-2 border-primary flex items-center justify-center">

@@ -183,7 +183,7 @@ All API responses follow a consistent format:
       "questions": [
         {
           "id": "string",
-          "type": "multiple-choice | true-false | slider | puzzle | type-answer | poll | ...",
+          "type": "multiple-choice | true-false | slider | sort | type-answer | poll | ...",
           "text": "string",
           "mediaUrl": "string (optional)",
           "timeLimit": 30,
@@ -251,7 +251,7 @@ All API responses follow a consistent format:
 #### Supported Question Types
 
 ```
-multiple-choice | true-false | type-answer | puzzle | quiz-audio | slider | pin-answer
+multiple-choice | true-false | type-answer | sort | quiz-audio | slider | pin-answer
 poll | word-cloud | brainstorm | drop-pin | open-ended | scale | nps-scale
 ```
 
@@ -262,7 +262,7 @@ poll | word-cloud | brainstorm | drop-pin | open-ended | scale | nps-scale
 | multiple-choice | required, 120 | 5–240 | 0/1000/2000 | 2–6, 1+ correct | allowMultipleAnswers |
 | true-false | required, 120 | 5–240 | 0/1000/2000 | 2 (fixed) | — |
 | type-answer | required, 120 | 20–240 | 0/1000/2000 | 1–4 (max 20 chars) | case-insensitive |
-| puzzle | required, 120 | 20–240 | 0/1000/2000 | 3–4 (ordered) | textToReadAloud |
+| sort | required, 120 | 20–240 | 0/1000/2000 | 3–4 (ordered) | textToReadAloud |
 | quiz-audio | required, 120 | 5–240 | 0/1000/2000 | varies | audioLanguage required |
 | slider | required, 120 | 10–240 | 0/1000/2000 | — | sliderConfig required |
 | pin-answer | required, 120 | 20–240 | 0/1000/2000 | — | pinConfig + mediaUrl required |
@@ -1127,25 +1127,25 @@ All three paths are idempotent (a `questionEnded` flag prevents double-scoring).
   _id: ObjectId,
   quizId: ObjectId (ref: Quiz),
   type: Enum [
-    'multiple-choice', 'true-false', 'type-answer', 'puzzle',
+    'multiple-choice', 'true-false', 'type-answer', 'sort',
     'quiz-audio', 'slider', 'pin-answer',
     'poll', 'word-cloud', 'brainstorm', 'drop-pin',
     'open-ended', 'scale', 'nps-scale'
   ],
   text: String,           // max 120 chars; required for most types, optional for brainstorm/scale/nps-scale
-  textToReadAloud: String, // for Puzzle, Quiz+Audio; max 120 chars
+  textToReadAloud: String, // for Sort, Quiz+Audio; max 120 chars
   mediaUrl: String,
   mediaType: String,       // 'image' | 'video' | 'audio'
   audioLanguage: String,   // for quiz-audio; e.g. 'en', 'de'
   timeLimit: Number,       // 5–240 seconds; minimum varies by type
   points: Number,          // 0 | 1000 | 2000; opinion types must be 0
   order: Number,
-  answers: [{              // used by MC, true-false, type-answer, puzzle, poll
+  answers: [{              // used by MC, true-false, type-answer, sort, poll
     _id: ObjectId,
     text: String,          // max 75 chars (20 for type-answer)
     imageUrl: String,
     isCorrect: Boolean,    // null for opinion types
-    order: Number          // for Puzzle (correct order)
+    order: Number          // for Sort (correct order)
   }],
   allowMultipleAnswers: Boolean,   // for multiple-choice, poll
   sliderConfig: {                  // for slider
@@ -1228,7 +1228,7 @@ Polymorphic answer payload — which fields are populated depends on `questionTy
   textAnswer: String,                // type-answer, word-cloud, open-ended, brainstorm
   numericAnswer: Number,             // slider, scale, nps-scale
   pinAnswer: { x: Number, y: Number }, // pin-answer, drop-pin (0–100 %)
-  orderedAnswerIds: [ObjectId],      // puzzle (player's ordering)
+  orderedAnswerIds: [ObjectId],      // sort (player's ordering)
 
   // Common
   timeTaken: Number (ms),
