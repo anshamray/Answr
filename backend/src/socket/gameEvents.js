@@ -5,6 +5,9 @@
 
 import { GAME_EVENTS, LOBBY_EVENTS } from './events.js';
 
+// Duration of the intro phase in milliseconds (3-2-1-Go!)
+export const INTRO_DURATION = 3000;
+
 /**
  * Broadcast an event to all clients in a session
  * @param {Server} io - Socket.io server instance
@@ -44,6 +47,28 @@ export function broadcastQuestion(io, sessionPin, questionData) {
     options: questionData.options,
     timeLimit: questionData.timeLimit
   });
+}
+
+/**
+ * Broadcast question intro (signals start of intro countdown)
+ * @param {Server} io - Socket.io server instance
+ * @param {string} sessionPin - The session PIN
+ * @param {Object} data - { questionNumber, totalQuestions }
+ */
+export function broadcastQuestionIntro(io, sessionPin, data) {
+  io.to(sessionPin).emit(GAME_EVENTS.QUESTION_INTRO, {
+    questionNumber: data.questionNumber,
+    totalQuestions: data.totalQuestions
+  });
+}
+
+/**
+ * Broadcast question start (signals end of intro, show answers)
+ * @param {Server} io - Socket.io server instance
+ * @param {string} sessionPin - The session PIN
+ */
+export function broadcastQuestionStart(io, sessionPin) {
+  io.to(sessionPin).emit(GAME_EVENTS.QUESTION_START, {});
 }
 
 /**

@@ -32,6 +32,9 @@ const timeRemaining = ref(0);
 const answerDistribution = ref({});
 const leaderboard = ref([]);
 
+// Intro phase: 'intro' (question only) -> 'answering' (answers visible) -> handled by status='reveal'
+const phase = ref('answering');
+
 // Game settings from lobby
 const gameSettings = ref({
   showLeaderboard: true,
@@ -158,9 +161,19 @@ function attachListeners(socket) {
   socket.off('player:answer:detail');
   socket.off('player:answer:received');
   socket.off('game:timer');
+  socket.off('game:questionIntro');
+  socket.off('game:questionStart');
   socket.off('game:questionEnd');
   socket.off('game:leaderboard');
   socket.off('lobby:update');
+
+  socket.on('game:questionIntro', () => {
+    phase.value = 'intro';
+  });
+
+  socket.on('game:questionStart', () => {
+    phase.value = 'answering';
+  });
 
   socket.on('player:answer:detail', (data) => {
     if (data?.answerId) {
@@ -207,6 +220,8 @@ function cleanup() {
     socket.off('player:answer:detail');
     socket.off('player:answer:received');
     socket.off('game:timer');
+    socket.off('game:questionIntro');
+    socket.off('game:questionStart');
     socket.off('game:questionEnd');
     socket.off('game:leaderboard');
     socket.off('lobby:update');
@@ -243,6 +258,7 @@ function sendFirstQuestion() {
   answerDistribution.value = {};
   leaderboard.value = [];
   status.value = 'question';
+  phase.value = 'intro';
 
   const q = currentQuestion.value;
   if (!q) return;
@@ -275,6 +291,7 @@ function sendNextQuestion() {
   answerDistribution.value = {};
   leaderboard.value = [];
   status.value = 'question';
+  phase.value = 'intro';
 
   const q = currentQuestion.value;
   if (!q) return;
@@ -352,65 +369,93 @@ onUnmounted(cleanup);
 
     <!-- ── Question phase ─────────────────────────────────────────── -->
     <template v-else-if="currentQuestion && !showCorrect">
-      <main class="flex-1 p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-secondary/10">
-        <div class="max-w-7xl mx-auto space-y-4">
-          <!-- Question Header -->
-          <div class="flex items-center justify-between">
-            <PixelBadge variant="primary" class="text-base px-4 py-2">
+      <!-- Intro Phase: Show question only, no answers -->
+      <template v-if="phase === 'intro'">
+        <main class="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/20 to-secondary/20">
+          <div class="max-w-4xl w-full text-center space-y-8">
+            <PixelBadge variant="primary" class="text-xl px-6 py-3">
               Question {{ questionNumber }} of {{ totalQuestions }}
             </PixelBadge>
 
-            <div class="flex items-center gap-4">
-              <div
-                class="px-4 py-2 border-[3px] border-black text-white"
-                :class="timeRemaining > 10 ? 'bg-success' : timeRemaining > 5 ? 'bg-warning' : 'bg-destructive animate-pulse'"
-              >
-                <div class="flex items-center gap-2">
-                  <PixelClock :size="20" />
-                  <span class="text-2xl lg:text-3xl font-bold pixel-font">{{ timeRemaining }}</span>
-                </div>
-              </div>
+            <PixelCard class="!p-8 lg:!p-12">
+              <h1 class="text-3xl lg:text-5xl font-bold leading-tight">
+                {{ currentQuestion.text }}
+              </h1>
+            </PixelCard>
 
-              <div class="text-right">
-                <div class="text-xl lg:text-2xl font-bold">{{ answersReceived }}/{{ playerCount }}</div>
-                <div class="text-xs text-muted-foreground">Answered</div>
-              </div>
+            <div class="text-2xl text-muted-foreground animate-pulse">
+              Get ready...
             </div>
           </div>
+        </main>
 
-          <!-- Question -->
-          <PixelCard class="space-y-4 !p-4 lg:!p-6">
-            <h1 class="text-2xl lg:text-3xl font-bold leading-tight">
-              {{ currentQuestion.text }}
-            </h1>
+        <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
+          <PixelButton variant="outline" @click="endGame">End Game</PixelButton>
+        </footer>
+      </template>
 
-            <div class="grid grid-cols-2 gap-3">
-              <div
-                v-for="(answer, i) in currentQuestion.answers"
-                :key="answer._id"
-                class="group relative p-4 lg:p-5 text-white border-[3px] border-black pixel-shadow transition-all"
-                :class="'bg-gradient-to-br ' + (answerGradients[i] || answerGradients[0])"
-              >
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 border-2 border-white flex items-center justify-center text-lg lg:text-xl font-bold pixel-font">
-                    {{ barLabels[i] }}
+      <!-- Answering Phase: Show question + answers + timer -->
+      <template v-else>
+        <main class="flex-1 p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <div class="max-w-7xl mx-auto space-y-4">
+            <!-- Question Header -->
+            <div class="flex items-center justify-between">
+              <PixelBadge variant="primary" class="text-base px-4 py-2">
+                Question {{ questionNumber }} of {{ totalQuestions }}
+              </PixelBadge>
+
+              <div class="flex items-center gap-4">
+                <div
+                  class="px-4 py-2 border-[3px] border-black text-white"
+                  :class="timeRemaining > 10 ? 'bg-success' : timeRemaining > 5 ? 'bg-warning' : 'bg-destructive animate-pulse'"
+                >
+                  <div class="flex items-center gap-2">
+                    <PixelClock :size="20" />
+                    <span class="text-2xl lg:text-3xl font-bold pixel-font">{{ timeRemaining }}</span>
                   </div>
-                  <span class="text-xl lg:text-2xl font-bold">{{ answer.text }}</span>
                 </div>
-                <div class="absolute top-2 right-2">
-                  <PixelUsers class="text-white/50" :size="20" />
+
+                <div class="text-right">
+                  <div class="text-xl lg:text-2xl font-bold">{{ answersReceived }}/{{ playerCount }}</div>
+                  <div class="text-xs text-muted-foreground">Answered</div>
                 </div>
               </div>
             </div>
-          </PixelCard>
-        </div>
-      </main>
 
-      <!-- Controls -->
-      <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
-        <PixelButton variant="primary" @click="revealAnswer">Reveal Answer</PixelButton>
-        <PixelButton variant="outline" @click="endGame">End Game</PixelButton>
-      </footer>
+            <!-- Question -->
+            <PixelCard class="space-y-4 !p-4 lg:!p-6">
+              <h1 class="text-2xl lg:text-3xl font-bold leading-tight">
+                {{ currentQuestion.text }}
+              </h1>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div
+                  v-for="(answer, i) in currentQuestion.answers"
+                  :key="answer._id"
+                  class="group relative p-4 lg:p-5 text-white border-[3px] border-black pixel-shadow transition-all"
+                  :class="'bg-gradient-to-br ' + (answerGradients[i] || answerGradients[0])"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 border-2 border-white flex items-center justify-center text-lg lg:text-xl font-bold pixel-font">
+                      {{ barLabels[i] }}
+                    </div>
+                    <span class="text-xl lg:text-2xl font-bold">{{ answer.text }}</span>
+                  </div>
+                  <div class="absolute top-2 right-2">
+                    <PixelUsers class="text-white/50" :size="20" />
+                  </div>
+                </div>
+              </div>
+            </PixelCard>
+          </div>
+        </main>
+
+        <!-- Controls -->
+        <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
+          <PixelButton variant="primary" @click="revealAnswer">Reveal Answer</PixelButton>
+          <PixelButton variant="outline" @click="endGame">End Game</PixelButton>
+        </footer>
+      </template>
     </template>
 
     <!-- ── Reveal phase ─────────────────────────────────────────── -->

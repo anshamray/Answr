@@ -181,12 +181,13 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         session.currentCorrectAnswerIds = Array.isArray(firstQuestion.correctAnswerIds)
           ? firstQuestion.correctAnswerIds
           : [];
+        session.totalQuestions = firstQuestion.totalQuestions ?? 1;
         session.questionEnded = false;
 
         const questionPayload = {
           questionId: session.currentQuestionId,
           questionNumber: 1,
-          totalQuestions: firstQuestion.totalQuestions ?? 1,
+          totalQuestions: session.totalQuestions,
           text: firstQuestion.text,
           options: firstQuestion.options,
           timeLimit: firstQuestion.timeLimit
@@ -251,12 +252,16 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       session.currentCorrectAnswerIds = Array.isArray(question.correctAnswerIds)
         ? question.correctAnswerIds
         : [];
+      // Update totalQuestions if provided (might change if quiz was modified)
+      if (question.totalQuestions != null) {
+        session.totalQuestions = question.totalQuestions;
+      }
       session.questionEnded = false;
 
       const questionPayload = {
         questionId: session.currentQuestionId,
         questionNumber: question.questionNumber ?? session.currentQuestionIndex,
-        totalQuestions: question.totalQuestions,
+        totalQuestions: session.totalQuestions || question.totalQuestions,
         text: question.text,
         options: question.options,
         timeLimit: question.timeLimit

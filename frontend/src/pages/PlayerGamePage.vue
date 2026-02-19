@@ -22,6 +22,11 @@ const correctAnswerIds = ref([]);
 const leaderboard = ref([]);
 const pointsEarned = ref(null);
 
+// Intro phase state
+const phase = ref('answering'); // 'intro' | 'answering'
+const introCountdown = ref(3);
+let introInterval = null;
+
 let timerInterval = null;
 let previousScore = 0;
 
@@ -38,6 +43,14 @@ const myEntry = computed(() =>
 );
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
+
+// Grid layout for shape buttons based on number of options
+const shapeButtonGridClass = computed(() => {
+  const count = options.value.length;
+  if (count <= 2) return 'grid-cols-2 grid-rows-1';
+  if (count <= 4) return 'grid-cols-2 grid-rows-2';
+  return 'grid-cols-2 grid-rows-3'; // 5-6 options
+});
 
 // Use shared answer colors from constants
 const answerBg = ANSWER_COLORS.BUTTON_GRADIENTS;
@@ -58,6 +71,26 @@ function selectAnswer(optionId, index) {
       ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
       : 0
   });
+}
+
+function startIntroCountdown() {
+  stopIntroCountdown();
+  introCountdown.value = 3;
+  phase.value = 'intro';
+
+  introInterval = setInterval(() => {
+    introCountdown.value--;
+    if (introCountdown.value <= 0) {
+      stopIntroCountdown();
+    }
+  }, 1000);
+}
+
+function stopIntroCountdown() {
+  if (introInterval) {
+    clearInterval(introInterval);
+    introInterval = null;
+  }
 }
 
 function startTimer() {
@@ -89,7 +122,20 @@ function setup() {
     return;
   }
 
-  startTimer();
+  // Start intro countdown for initial question
+  startIntroCountdown();
+
+  socket.on('game:questionIntro', () => {
+    // Start the intro countdown (3-2-1-Go!)
+    startIntroCountdown();
+  });
+
+  socket.on('game:questionStart', () => {
+    // Intro ended, show answers and start timer
+    stopIntroCountdown();
+    phase.value = 'answering';
+    startTimer();
+  });
 
   socket.on('game:timer', (data) => {
     if (data?.remaining != null) {
@@ -113,7 +159,7 @@ function setup() {
     correctAnswerIds.value = [];
     leaderboard.value = [];
     pointsEarned.value = null;
-    startTimer();
+    // Don't start timer here - wait for game:questionStart after intro
   });
 
   socket.on('game:questionEnd', (data) => {
@@ -141,10 +187,13 @@ function setup() {
 
 function cleanup() {
   stopTimer();
+  stopIntroCountdown();
   const socket = getSocket();
   if (socket) {
     socket.off('game:timer');
     socket.off('game:question');
+    socket.off('game:questionIntro');
+    socket.off('game:questionStart');
     socket.off('game:questionEnd');
     socket.off('game:leaderboard');
     socket.off('game:end');
@@ -157,13 +206,16 @@ onUnmounted(cleanup);
 
 <template>
   <div class="min-h-screen flex flex-col bg-background">
-    <!-- Header -->
-    <header class="px-4 py-3 border-b-[3px] border-black bg-white flex items-center justify-between">
+    <!-- Header (hidden during shape buttons mode in answering phase) -->
+    <header
+      v-if="phase === 'intro' || game.playerSettings.showAnswerText || questionEnded"
+      class="px-4 py-3 border-b-[3px] border-black bg-white flex items-center justify-between"
+    >
       <PixelBadge variant="primary">
         Q{{ question?.questionNumber || '?' }} / {{ question?.totalQuestions || '?' }}
       </PixelBadge>
       <div
-        v-if="timeRemaining != null && !questionEnded"
+        v-if="timeRemaining != null && !questionEnded && phase === 'answering'"
         class="flex items-center gap-2 px-4 py-2 border-2 border-black font-bold"
         :class="timeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : timeRemaining <= 10 ? 'bg-warning text-warning-foreground' : 'bg-success text-white'"
       >
@@ -175,54 +227,116 @@ onUnmounted(cleanup);
       </PixelBadge>
     </header>
 
-    <!-- ── Active question ────────────────────── -->
-    <template v-if="!questionEnded">
-      <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
-        <!-- Question -->
-        <PixelCard class="mb-6">
-          <h2 class="text-xl sm:text-2xl font-bold leading-tight">
-            {{ question?.text || 'Waiting for question...' }}
-          </h2>
-        </PixelCard>
+    <!-- ── Intro Phase: Question X + Countdown ────────────────────── -->
+    <template v-if="!questionEnded && phase === 'intro'">
+      <div class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+        <div class="text-center space-y-6">
+          <PixelBadge variant="primary" class="text-2xl px-6 py-3">
+            Question {{ question?.questionNumber || '?' }}
+          </PixelBadge>
 
-        <div v-if="timedOut && !submitted" class="mb-6 text-center">
-          <p class="text-xl font-bold text-destructive">Time's up!</p>
-        </div>
-        <div v-else-if="submitted" class="mb-6 text-center">
-          <p class="text-success font-bold text-lg">Answer submitted!</p>
-        </div>
+          <div
+            class="text-9xl font-bold pixel-font transition-all duration-300"
+            :class="introCountdown > 0 ? 'text-primary scale-100' : 'text-success scale-110'"
+          >
+            {{ introCountdown > 0 ? introCountdown : 'GO!' }}
+          </div>
 
-        <!-- Answer buttons -->
-        <div class="flex-1 grid grid-cols-1 gap-4 content-start">
+          <p class="text-xl text-muted-foreground">Get ready to answer!</p>
+        </div>
+      </div>
+    </template>
+
+    <!-- ── Active question (answering phase) ────────────────────── -->
+    <template v-else-if="!questionEnded && phase === 'answering'">
+      <!-- Shape buttons mode (no answer text) - Full screen grid -->
+      <template v-if="!game.playerSettings.showAnswerText">
+        <div
+          class="flex-1 grid gap-2 p-2"
+          :class="shapeButtonGridClass"
+        >
           <button
             v-for="(option, i) in options"
             :key="option.id"
-            class="group relative p-6 min-h-[56px] border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
+            class="flex items-center justify-center border-[3px] border-black transition-all duration-200"
             :class="[
               answerBg[i % answerBg.length],
               selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
               submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
-              submitted || timedOut ? 'pointer-events-none' : 'active:translate-x-1 active:translate-y-1 active:shadow-none'
+              submitted || timedOut ? 'pointer-events-none' : 'active:scale-95'
             ]"
             :disabled="submitted || timedOut"
             @click="selectAnswer(option.id, i)"
           >
-            <div class="flex items-center gap-3">
-              <span class="w-12 h-12 bg-white/20 border-2 border-white flex items-center justify-center text-xl font-bold pixel-font flex-shrink-0">
-                {{ answerLabels[i] }}
-              </span>
-              <span v-if="game.playerSettings.showAnswerText" class="flex-1 text-2xl font-bold">{{ option.text }}</span>
-            </div>
+            <span
+              class="font-bold pixel-font text-white"
+              :class="options.length <= 4 ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-6xl'"
+            >
+              {{ answerLabels[i] }}
+            </span>
           </button>
         </div>
 
-        <!-- Footer -->
-        <div class="mt-6 text-center">
-          <div class="text-sm text-muted-foreground">
-            Playing as <span class="font-bold text-primary">{{ game.playerName || 'Player' }}</span>
+        <!-- Submitted/Timed out overlay -->
+        <div
+          v-if="submitted || timedOut"
+          class="fixed bottom-4 left-1/2 -translate-x-1/2 z-10"
+        >
+          <PixelBadge :variant="submitted ? 'success' : 'destructive'" class="text-lg px-6 py-3">
+            {{ submitted ? 'Answer submitted!' : "Time's up!" }}
+          </PixelBadge>
+        </div>
+      </template>
+
+      <!-- Normal mode (with answer text) -->
+      <template v-else>
+        <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <!-- Question -->
+          <PixelCard class="mb-6">
+            <h2 class="text-xl sm:text-2xl font-bold leading-tight">
+              {{ question?.text || 'Waiting for question...' }}
+            </h2>
+          </PixelCard>
+
+          <div v-if="timedOut && !submitted" class="mb-6 text-center">
+            <p class="text-xl font-bold text-destructive">Time's up!</p>
+          </div>
+          <div v-else-if="submitted" class="mb-6 text-center">
+            <p class="text-success font-bold text-lg">Answer submitted!</p>
+          </div>
+
+          <!-- Answer buttons -->
+          <div class="flex-1 grid grid-cols-1 gap-4 content-start">
+            <button
+              v-for="(option, i) in options"
+              :key="option.id"
+              class="group relative p-6 min-h-[56px] border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
+              :class="[
+                answerBg[i % answerBg.length],
+                selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
+                submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
+                submitted || timedOut ? 'pointer-events-none' : 'active:translate-x-1 active:translate-y-1 active:shadow-none'
+              ]"
+              :disabled="submitted || timedOut"
+              @click="selectAnswer(option.id, i)"
+            >
+              <div class="flex items-center gap-3">
+                <span class="w-12 h-12 bg-white/20 border-2 border-white flex items-center justify-center text-xl font-bold pixel-font flex-shrink-0">
+                  {{ answerLabels[i] }}
+                </span>
+                <span class="flex-1 text-2xl font-bold">{{ option.text }}</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Footer -->
+          <div class="mt-6 text-center">
+            <div class="text-sm text-muted-foreground">
+              Playing as <span class="font-bold text-primary">{{ game.playerName || 'Player' }}</span>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
     </template>
 
     <!-- ── Question ended (results) ────────────────── -->

@@ -50,6 +50,8 @@ export const MODERATOR_EVENTS = {
 export const GAME_EVENTS = {
   STARTED: 'game:started',
   QUESTION: 'game:question',
+  QUESTION_INTRO: 'game:questionIntro',
+  QUESTION_START: 'game:questionStart',
   TIMER: 'game:timer',
   QUESTION_END: 'game:questionEnd',
   LEADERBOARD: 'game:leaderboard',

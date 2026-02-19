@@ -10,15 +10,23 @@
 import {
   broadcastTimer,
   broadcastQuestionEnd,
-  broadcastLeaderboard
+  broadcastLeaderboard,
+  broadcastQuestionIntro,
+  broadcastQuestionStart,
+  INTRO_DURATION
 } from './gameEvents.js';
 import { calculateScore, DEFAULT_SCORING_CONFIG } from '../utils/scoring.js';
 
 // ─── Timer ──────────────────────────────────────────────────────────────
 
 /**
- * Start the server-side question timer.
- * Emits `game:timer` every second; auto-ends the question when it reaches 0.
+ * Start the server-side question timer with an intro phase.
+ *
+ * Flow:
+ * 1. Emits `game:questionIntro` immediately (host shows question only, players see countdown)
+ * 2. After INTRO_DURATION (3s), emits `game:questionStart` (answers can be shown)
+ * 3. Starts the actual answer timer, emitting `game:timer` every second
+ * 4. Auto-ends the question when timer reaches 0
  *
  * @param {import('socket.io').Server} io
  * @param {string} sessionPin
@@ -30,22 +38,41 @@ export function startQuestionTimer(io, sessionPin, session) {
   const timeLimit = session.currentTimeLimit || 30;
   session.questionTimeRemaining = timeLimit;
 
-  session.questionTimer = setInterval(() => {
-    session.questionTimeRemaining--;
-    broadcastTimer(io, sessionPin, session.questionTimeRemaining);
+  // Emit intro event immediately
+  broadcastQuestionIntro(io, sessionPin, {
+    questionNumber: (session.currentQuestionIndex ?? 0) + 1,
+    totalQuestions: session.totalQuestions || 1
+  });
 
-    if (session.questionTimeRemaining <= 0) {
-      clearQuestionTimer(session);
-      endCurrentQuestion(io, sessionPin, session);
-    }
-  }, 1000);
+  // After intro duration, signal that answers can be shown and start the timer
+  session.introTimer = setTimeout(() => {
+    session.introTimer = null;
+
+    // Signal end of intro phase - answers can now be shown
+    broadcastQuestionStart(io, sessionPin);
+
+    // Start the actual answer timer
+    session.questionTimer = setInterval(() => {
+      session.questionTimeRemaining--;
+      broadcastTimer(io, sessionPin, session.questionTimeRemaining);
+
+      if (session.questionTimeRemaining <= 0) {
+        clearQuestionTimer(session);
+        endCurrentQuestion(io, sessionPin, session);
+      }
+    }, 1000);
+  }, INTRO_DURATION);
 }
 
 /**
- * Stop the question timer for a session.
+ * Stop the question timer (and intro timer if still running) for a session.
  * @param {object} session
  */
 export function clearQuestionTimer(session) {
+  if (session.introTimer) {
+    clearTimeout(session.introTimer);
+    session.introTimer = null;
+  }
   if (session.questionTimer) {
     clearInterval(session.questionTimer);
     session.questionTimer = null;
