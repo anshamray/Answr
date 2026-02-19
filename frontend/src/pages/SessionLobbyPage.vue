@@ -27,7 +27,7 @@ const starting = ref(false);
 const copied = ref(false);
 
 // Quick Settings
-const showLeaderboard = ref(true);
+const showLeaderboard = ref(false);
 const musicEnabled = ref(true);
 const allowLateJoins = ref(false);
 
