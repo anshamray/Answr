@@ -36,7 +36,11 @@ const userSchema = new mongoose.Schema({
   },
   avatar: {
     type: String
-  }
+  },
+  favorites: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Quiz'
+  }]
 }, {
   timestamps: true
 });

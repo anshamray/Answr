@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
+import User from '../models/User.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 import {
   sendSuccess,
@@ -91,6 +92,15 @@ export async function browseLibrary(req, res) {
       Quiz.countDocuments(filter)
     ]);
 
+    // Get user's favorites if authenticated
+    let userFavorites = new Set();
+    if (req.user) {
+      const user = await User.findById(req.user.userId).select('favorites');
+      if (user?.favorites) {
+        userFavorites = new Set(user.favorites.map(id => id.toString()));
+      }
+    }
+
     sendSuccess(res, {
       message: 'Library retrieved',
       data: {
@@ -103,7 +113,8 @@ export async function browseLibrary(req, res) {
           isOfficial: q.isOfficial,
           playCount: q.playCount,
           publishedAt: q.publishedAt,
-          author: q.moderatorId?.name || 'Unknown'
+          author: q.moderatorId?.name || 'Unknown',
+          isFavorited: userFavorites.has(q._id.toString())
         })),
         pagination: {
           page: pageNum,
@@ -139,6 +150,15 @@ export async function getLibraryQuiz(req, res) {
       return sendNotFound(res, 'Quiz not found in library');
     }
 
+    // Check if user has favorited this quiz
+    let isFavorited = false;
+    if (req.user) {
+      const user = await User.findById(req.user.userId).select('favorites');
+      if (user?.favorites) {
+        isFavorited = user.favorites.some(id => id.toString() === quiz._id.toString());
+      }
+    }
+
     sendSuccess(res, {
       message: 'Library quiz retrieved',
       data: {
@@ -153,6 +173,7 @@ export async function getLibraryQuiz(req, res) {
           publishedAt: quiz.publishedAt,
           author: quiz.moderatorId?.name || 'Unknown',
           questionCount: quiz.questions.length,
+          isFavorited,
           questions: quiz.questions.map(q => ({
             id: q._id,
             type: q.type,

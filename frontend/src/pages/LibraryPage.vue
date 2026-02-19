@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiUrl } from '../lib/api.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { TIMING } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
@@ -11,6 +12,7 @@ import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelStar from '../components/icons/PixelStar.vue';
 
 const router = useRouter();
+const auth = useAuthStore();
 
 const quizzes = ref([]);
 const loading = ref(true);
@@ -34,7 +36,12 @@ async function fetchLibrary() {
     params.set('page', page.value);
     params.set('limit', '12');
 
-    const res = await fetch(apiUrl(`/api/library?${params}`));
+    const headers = {};
+    if (auth.token) {
+      headers['Authorization'] = `Bearer ${auth.token}`;
+    }
+
+    const res = await fetch(apiUrl(`/api/library?${params}`), { headers });
     if (!res.ok) throw new Error('Failed to load library');
 
     const json = await res.json();
@@ -83,9 +90,16 @@ onMounted(fetchLibrary);
           <span class="text-xl font-bold text-primary pixel-font">Answr</span>
         </router-link>
         <div class="flex items-center gap-3">
-          <router-link to="/login">
-            <PixelButton variant="outline" size="sm">Sign In</PixelButton>
-          </router-link>
+          <template v-if="auth.isAuthenticated">
+            <router-link to="/dashboard">
+              <PixelButton variant="primary" size="sm">Dashboard</PixelButton>
+            </router-link>
+          </template>
+          <template v-else>
+            <router-link to="/login">
+              <PixelButton variant="outline" size="sm">Sign In</PixelButton>
+            </router-link>
+          </template>
         </div>
       </div>
     </header>
@@ -99,7 +113,7 @@ onMounted(fetchLibrary);
             <p class="text-muted-foreground">Discover thousands of community-created quizzes</p>
           </div>
 
-          <router-link to="/login">
+          <router-link :to="auth.isAuthenticated ? '/dashboard' : '/login'">
             <PixelButton variant="primary">
               <svg class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -169,10 +183,15 @@ onMounted(fetchLibrary);
                     <h3 class="text-2xl font-bold mb-2">{{ quiz.title }}</h3>
                     <p class="text-muted-foreground mb-3">{{ quiz.description || 'No description' }}</p>
                   </div>
-                  <PixelBadge variant="warning" class="ml-2 shrink-0">
-                    <PixelStar class="inline mr-1" :size="10" />
-                    Featured
-                  </PixelBadge>
+                  <div class="flex items-center gap-2 ml-2 shrink-0">
+                    <svg v-if="quiz.isFavorited" class="text-accent" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    <PixelBadge variant="warning">
+                      <PixelStar class="inline mr-1" :size="10" />
+                      Featured
+                    </PixelBadge>
+                  </div>
                 </div>
 
                 <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
@@ -213,7 +232,12 @@ onMounted(fetchLibrary);
               <PixelCard class="space-y-3 hover:border-primary transition-all cursor-pointer h-full">
                 <div class="flex items-start justify-between">
                   <h3 class="text-xl font-bold group-hover:text-primary transition">{{ quiz.title }}</h3>
-                  <PixelBadge v-if="quiz.isOfficial" variant="primary" class="ml-2 shrink-0">Official</PixelBadge>
+                  <div class="flex items-center gap-2 ml-2 shrink-0">
+                    <svg v-if="quiz.isFavorited" class="text-accent" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                    </svg>
+                    <PixelBadge v-if="quiz.isOfficial" variant="primary">Official</PixelBadge>
+                  </div>
                 </div>
                 <p class="text-sm text-muted-foreground line-clamp-2">{{ quiz.description || 'No description' }}</p>
 

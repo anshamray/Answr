@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { useShakeAnimation } from '../composables/useShakeAnimation.js';
 import { usePinValidation } from '../composables/usePinValidation.js';
 
@@ -16,10 +17,18 @@ import PixelClock from '../components/icons/PixelClock.vue';
 
 const router = useRouter();
 const game = useGameStore();
+const auth = useAuthStore();
 
 const pin = ref('');
 const { shake, triggerShake } = useShakeAnimation();
 const { loading, error, checkPin, cleanupListeners } = usePinValidation();
+
+onMounted(() => {
+  // Fetch user info if authenticated
+  if (auth.isAuthenticated && !auth.user) {
+    auth.fetchMe();
+  }
+});
 
 onUnmounted(() => {
   cleanupListeners();
@@ -58,12 +67,19 @@ function handlePinSubmit() {
           </div>
 
           <div class="flex items-center gap-3">
-            <router-link to="/login" class="hidden sm:inline-flex">
-              <PixelButton variant="outline" size="sm">Login</PixelButton>
-            </router-link>
-            <router-link to="/login">
-              <PixelButton variant="primary" size="sm">Host Quiz</PixelButton>
-            </router-link>
+            <template v-if="auth.isAuthenticated">
+              <router-link to="/dashboard">
+                <PixelButton variant="primary" size="sm">Dashboard</PixelButton>
+              </router-link>
+            </template>
+            <template v-else>
+              <router-link to="/login" class="hidden sm:inline-flex">
+                <PixelButton variant="outline" size="sm">Login</PixelButton>
+              </router-link>
+              <router-link to="/login">
+                <PixelButton variant="primary" size="sm">Host Quiz</PixelButton>
+              </router-link>
+            </template>
           </div>
         </div>
       </div>
@@ -71,7 +87,7 @@ function handlePinSubmit() {
 
     <!-- ── Hero Section ──────────────────────────────────────────────── -->
     <section class="relative overflow-hidden bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5 border-b-[3px] border-black">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 lg:py-28">
         <div class="grid lg:grid-cols-2 gap-12 items-center">
           <!-- Left — Text + Join Form -->
           <div class="space-y-8">
@@ -203,7 +219,9 @@ function handlePinSubmit() {
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <PixelCard class="space-y-4 hover:transform hover:-translate-y-2 transition-all duration-300">
             <div class="w-12 h-12 bg-primary/20 flex items-center justify-center">
-              <PixelLightning class="text-primary" :size="32" />
+              <svg class="text-primary" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
             </div>
             <h3 class="text-xl font-bold">Real-Time Play</h3>
             <p class="text-muted-foreground">

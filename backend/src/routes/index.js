@@ -4,6 +4,7 @@ import quizRoutes from './quizzes.js';
 import { standaloneRouter as questionRoutes } from './questions.js';
 import sessionRoutes from './sessions.js';
 import libraryRoutes from './library.js';
+import favoritesRoutes from './favorites.js';
 import { apiRouter as mediaApiRoutes, serveRouter as mediaServeRoutes, handleUploadError } from './media.js';
 import healthRoutes, { setActiveSessionsGetter } from './health.js';
 
@@ -15,6 +16,7 @@ apiRouter.use('/quizzes', quizRoutes);
 apiRouter.use('/questions', questionRoutes);
 apiRouter.use('/sessions', sessionRoutes);
 apiRouter.use('/library', libraryRoutes);
+apiRouter.use('/favorites', favoritesRoutes);
 apiRouter.use('/media', mediaApiRoutes);
 apiRouter.use('/health', healthRoutes);
 

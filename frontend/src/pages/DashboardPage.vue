@@ -12,6 +12,7 @@ const router = useRouter();
 const auth = useAuthStore();
 
 const quizzes = ref([]);
+const favoriteQuizzes = ref([]);
 const loading = ref(true);
 const error = ref('');
 const actionError = ref(''); // Error for quiz actions (start, publish, delete)
@@ -19,6 +20,7 @@ const filter = ref('all');
 const view = ref('grid');
 const publishDialogQuiz = ref(null);
 const unpublishDialogQuiz = ref(null);
+const favoritesLoading = ref(false);
 
 async function fetchQuizzes() {
   loading.value = true;
@@ -35,6 +37,33 @@ async function fetchQuizzes() {
   } finally {
     loading.value = false;
   }
+}
+
+async function fetchFavorites() {
+  favoritesLoading.value = true;
+  try {
+    const res = await fetch(apiUrl('/api/favorites'), {
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
+    if (!res.ok) throw new Error('Failed to load favorites');
+    const json = await res.json();
+    favoriteQuizzes.value = json.data?.quizzes ?? [];
+  } catch (err) {
+    actionError.value = err.message;
+  } finally {
+    favoritesLoading.value = false;
+  }
+}
+
+function handleFilterChange(newFilter) {
+  filter.value = newFilter;
+  if (newFilter === 'favorites' && favoriteQuizzes.value.length === 0) {
+    fetchFavorites();
+  }
+}
+
+function viewLibraryQuiz(quizId) {
+  router.push(`/library/${quizId}`);
 }
 
 async function startSession(quizId) {
@@ -161,6 +190,8 @@ const totalPlays = computed(() =>
   quizzes.value.reduce((sum, q) => sum + (q.playCount || 0), 0)
 );
 
+const favoritesCount = computed(() => favoriteQuizzes.value.length);
+
 onMounted(fetchQuizzes);
 </script>
 
@@ -205,7 +236,7 @@ onMounted(fetchQuizzes);
       </div>
 
       <!-- Stats -->
-      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <PixelCard variant="primary" class="text-center">
           <div class="text-4xl font-bold text-primary">{{ quizzes.length }}</div>
           <div class="text-sm text-muted-foreground">Total Quizzes</div>
@@ -222,31 +253,45 @@ onMounted(fetchQuizzes);
           <div class="text-4xl font-bold text-success">{{ quizzes.filter(q => q.isPublished).length }}</div>
           <div class="text-sm text-muted-foreground">Published</div>
         </PixelCard>
+        <PixelCard class="text-center cursor-pointer hover:border-accent transition-colors" @click="handleFilterChange('favorites')">
+          <div class="text-4xl font-bold text-accent">{{ favoritesCount }}</div>
+          <div class="text-sm text-muted-foreground">Favorites</div>
+        </PixelCard>
       </div>
 
       <!-- Filters -->
       <div class="flex items-center justify-between">
-        <div class="flex gap-2">
+        <div class="flex gap-2 flex-wrap">
           <button
             class="px-4 py-2 border-2 font-medium transition-colors"
             :class="filter === 'all' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
-            @click="filter = 'all'"
+            @click="handleFilterChange('all')"
           >
             All
           </button>
           <button
             class="px-4 py-2 border-2 font-medium transition-colors"
             :class="filter === 'published' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
-            @click="filter = 'published'"
+            @click="handleFilterChange('published')"
           >
             Published
           </button>
           <button
             class="px-4 py-2 border-2 font-medium transition-colors"
             :class="filter === 'draft' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
-            @click="filter = 'draft'"
+            @click="handleFilterChange('draft')"
           >
             Private
+          </button>
+          <button
+            class="px-4 py-2 border-2 font-medium transition-colors flex items-center gap-2"
+            :class="filter === 'favorites' ? 'border-accent bg-accent/10 text-accent' : 'border-border hover:border-accent hover:bg-accent/5'"
+            @click="handleFilterChange('favorites')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" :fill="filter === 'favorites' ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            Favorites
           </button>
         </div>
 
@@ -289,10 +334,80 @@ onMounted(fetchQuizzes);
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="text-center py-20 text-muted-foreground text-lg">Loading...</div>
+      <div v-if="loading && filter !== 'favorites'" class="text-center py-20 text-muted-foreground text-lg">Loading...</div>
 
       <!-- Error -->
-      <div v-else-if="error" class="text-center py-20 text-destructive">{{ error }}</div>
+      <div v-else-if="error && filter !== 'favorites'" class="text-center py-20 text-destructive">{{ error }}</div>
+
+      <!-- Favorites Section -->
+      <div v-else-if="filter === 'favorites'">
+        <div v-if="favoritesLoading" class="text-center py-20 text-muted-foreground text-lg">Loading favorites...</div>
+
+        <div v-else-if="favoriteQuizzes.length === 0">
+          <PixelCard class="text-center py-16 space-y-6">
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-accent/10 border-2 border-accent">
+              <svg class="text-accent" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-2xl font-bold mb-2">No favorites yet</h3>
+              <p class="text-muted-foreground max-w-md mx-auto">
+                Browse the library and save quizzes you want to play later
+              </p>
+            </div>
+            <router-link to="/library">
+              <PixelButton variant="primary" class="text-lg">
+                Browse Library
+              </PixelButton>
+            </router-link>
+          </PixelCard>
+        </div>
+
+        <div v-else :class="view === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'">
+          <PixelCard
+            v-for="quiz in favoriteQuizzes"
+            :key="quiz.id"
+            class="space-y-4 hover:border-accent transition-all group cursor-pointer"
+            @click="viewLibraryQuiz(quiz.id)"
+          >
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h3 class="text-xl font-bold mb-2 group-hover:text-accent transition-colors">
+                  {{ quiz.title }}
+                </h3>
+                <p class="text-sm text-muted-foreground line-clamp-2 mb-2">{{ quiz.description || 'No description' }}</p>
+                <div class="flex items-center gap-3 text-sm text-muted-foreground">
+                  <span>by {{ quiz.author }}</span>
+                  <span>·</span>
+                  <span>{{ quiz.playCount || 0 }} plays</span>
+                </div>
+              </div>
+              <svg class="text-accent shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              </svg>
+            </div>
+
+            <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+              <span
+                v-for="tag in quiz.tags.slice(0, 3)"
+                :key="tag"
+                class="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium"
+              >{{ tag }}</span>
+            </div>
+
+            <div class="flex items-center justify-between pt-2 border-t-2 border-border">
+              <span class="text-xs text-muted-foreground">{{ quiz.category || 'General' }}</span>
+              <PixelButton variant="accent" size="sm" @click.stop="viewLibraryQuiz(quiz.id)">
+                <svg class="inline mr-1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                Play
+              </PixelButton>
+            </div>
+          </PixelCard>
+        </div>
+      </div>
 
       <!-- Empty State -->
       <div v-else-if="quizzes.length === 0">
@@ -318,7 +433,7 @@ onMounted(fetchQuizzes);
       </div>
 
       <!-- Quiz Grid -->
-      <div v-else :class="view === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'">
+      <div v-else-if="filter !== 'favorites'" :class="view === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'">
         <template v-for="quiz in quizzes" :key="quiz._id || quiz.id">
           <PixelCard
             v-if="filter === 'all' || (filter === 'published' && quiz.isPublished) || (filter === 'draft' && !quiz.isPublished)"

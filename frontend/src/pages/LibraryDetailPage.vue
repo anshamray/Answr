@@ -3,33 +3,113 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiUrl } from '../lib/api.js';
 import { getTypeLabel } from '../lib/questionTypes.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { STORAGE_KEYS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelLightning from '../components/icons/PixelLightning.vue';
 
 const route = useRoute();
 const router = useRouter();
+const auth = useAuthStore();
 
 const quiz = ref(null);
 const loading = ref(true);
 const error = ref('');
 const starting = ref(false);
 const startError = ref('');
+const showAuthPrompt = ref(false);
+const favoriteMessage = ref('');
+const isFavorited = ref(false);
+const favoriteLoading = ref(false);
+const duplicating = ref(false);
+const duplicateError = ref('');
+
+async function handleDuplicateAndEdit() {
+  if (!auth.isAuthenticated) {
+    showAuthPrompt.value = true;
+    return;
+  }
+
+  duplicating.value = true;
+  duplicateError.value = '';
+
+  try {
+    const res = await fetch(apiUrl(`/api/library/${route.params.id}/clone`), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${auth.token}` }
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || 'Failed to clone quiz');
+    }
+
+    const json = await res.json();
+    const clonedQuizId = json.data?.quiz?.id;
+
+    router.push(`/quiz/${clonedQuizId}/edit`);
+  } catch (err) {
+    duplicateError.value = err.message;
+  } finally {
+    duplicating.value = false;
+  }
+}
+
+async function handleFavoriteClick() {
+  if (!auth.isAuthenticated) {
+    showAuthPrompt.value = true;
+    favoriteMessage.value = '';
+    return;
+  }
+
+  showAuthPrompt.value = false;
+  favoriteLoading.value = true;
+  favoriteMessage.value = '';
+
+  try {
+    if (isFavorited.value) {
+      const success = await auth.removeFavorite(quiz.value.id);
+      if (success) {
+        isFavorited.value = false;
+        favoriteMessage.value = 'Removed from favorites';
+      } else {
+        favoriteMessage.value = 'Failed to remove from favorites';
+      }
+    } else {
+      const success = await auth.addFavorite(quiz.value.id);
+      if (success) {
+        isFavorited.value = true;
+        favoriteMessage.value = 'Added to favorites!';
+      } else {
+        favoriteMessage.value = 'Failed to add to favorites';
+      }
+    }
+  } catch {
+    favoriteMessage.value = 'An error occurred';
+  } finally {
+    favoriteLoading.value = false;
+  }
+}
 
 async function fetchQuiz() {
   loading.value = true;
   error.value = '';
 
   try {
-    const res = await fetch(apiUrl(`/api/library/${route.params.id}`));
+    const headers = {};
+    if (auth.token) {
+      headers['Authorization'] = `Bearer ${auth.token}`;
+    }
+
+    const res = await fetch(apiUrl(`/api/library/${route.params.id}`), { headers });
     if (!res.ok) throw new Error('Quiz not found');
 
     const json = await res.json();
     quiz.value = json.data?.quiz ?? null;
+    isFavorited.value = quiz.value?.isFavorited ?? false;
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -109,8 +189,12 @@ onMounted(fetchQuiz);
                 <div>
                   <div class="flex items-start justify-between mb-4">
                     <h1 class="text-3xl lg:text-4xl font-bold">{{ quiz.title }}</h1>
-                    <button class="p-2 hover:text-accent transition-colors">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <button
+                      class="p-2 hover:text-accent transition-colors"
+                      :disabled="favoriteLoading"
+                      @click="handleFavoriteClick"
+                    >
+                      <svg width="28" height="28" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="isFavorited ? 'text-accent' : ''">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                       </svg>
                     </button>
@@ -133,19 +217,19 @@ onMounted(fetchQuiz);
 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-y-2 border-border">
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-primary">{{ quiz.playCount?.toLocaleString() || 0 }}</div>
+                    <div class="text-base font-bold text-primary">{{ quiz.playCount?.toLocaleString() || 0 }}</div>
                     <div class="text-xs text-muted-foreground">Times Played</div>
                   </div>
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-secondary">{{ quiz.questionCount || 0 }}</div>
+                    <div class="text-base font-bold text-secondary">{{ quiz.questionCount || 0 }}</div>
                     <div class="text-xs text-muted-foreground">Questions</div>
                   </div>
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-accent">{{ quiz.category || 'General' }}</div>
+                    <div class="text-base font-bold text-accent">{{ quiz.category || 'General' }}</div>
                     <div class="text-xs text-muted-foreground">Category</div>
                   </div>
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-warning">{{ quiz.isOfficial ? 'Official' : 'Community' }}</div>
+                    <div class="text-base font-bold text-warning">{{ quiz.isOfficial ? 'Official' : 'Community' }}</div>
                     <div class="text-xs text-muted-foreground">Source</div>
                   </div>
                 </div>
@@ -181,7 +265,7 @@ onMounted(fetchQuiz);
 
             <!-- Sidebar -->
             <div class="lg:col-span-1 space-y-4">
-              <PixelCard variant="primary" class="space-y-4 sticky top-24">
+              <PixelCard variant="primary" class="space-y-4 sticky top-24 !bg-primary/20 backdrop-blur-md">
                 <PixelButton
                   variant="primary"
                   class="w-full text-xl py-6"
@@ -194,28 +278,42 @@ onMounted(fetchQuiz);
                   {{ starting ? 'Starting...' : 'Start Quiz' }}
                 </PixelButton>
 
-                <PixelButton variant="secondary" class="w-full">
-                  <PixelUsers class="inline mr-2" :size="20" />
-                  Host Live Session
-                </PixelButton>
-
                 <p v-if="quiz.questionCount === 0" class="text-sm text-muted-foreground">This quiz has no questions yet.</p>
                 <p v-if="startError" class="text-sm text-destructive">{{ startError }}</p>
 
                 <div class="pt-4 border-t-2 border-border space-y-3">
-                  <button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-primary hover:bg-primary/5 transition-colors font-medium">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <button
+                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-primary hover:bg-primary/5 transition-colors font-medium disabled:opacity-50"
+                    :disabled="favoriteLoading"
+                    @click="handleFavoriteClick"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="isFavorited ? 'text-accent' : ''">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
-                    Save to Favorites
+                    {{ favoriteLoading ? 'Loading...' : (isFavorited ? 'Saved to Favorites' : 'Save to Favorites') }}
                   </button>
 
-                  <button class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-secondary hover:bg-secondary/5 transition-colors font-medium">
+                  <button
+                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-secondary hover:bg-secondary/5 transition-colors font-medium disabled:opacity-50"
+                    :disabled="duplicating"
+                    @click="handleDuplicateAndEdit"
+                  >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
-                    Duplicate &amp; Edit
+                    {{ duplicating ? 'Duplicating...' : 'Duplicate & Edit' }}
                   </button>
+
+                  <p v-if="duplicateError" class="text-sm text-destructive">{{ duplicateError }}</p>
+
+                  <!-- Auth prompt for non-authenticated users -->
+                  <div v-if="showAuthPrompt" class="p-3 bg-primary/10 border-2 border-primary text-sm">
+                    <p class="text-foreground mb-2">Create an account to save favorite quizzes and create your own!</p>
+                    <router-link to="/register" class="text-primary font-medium hover:underline">Sign up free &rarr;</router-link>
+                  </div>
+
+                  <!-- Feedback for authenticated users -->
+                  <p v-if="favoriteMessage" class="text-sm text-muted-foreground">{{ favoriteMessage }}</p>
                 </div>
               </PixelCard>
 
