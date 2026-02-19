@@ -27,8 +27,7 @@ async function generateQR() {
       },
       errorCorrectionLevel: 'M'
     });
-  } catch (err) {
-    console.error('QR code generation failed:', err);
+  } catch {
     error.value = true;
     qrDataUrl.value = '';
   }

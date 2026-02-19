@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watchEffect } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
+import { TIMING, STORAGE_KEYS, AVATARS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -32,7 +33,7 @@ const allowLateJoins = ref(false);
 
 const sessionId = route.params.id;
 
-const guestToken = sessionStorage.getItem('guestToken');
+const guestToken = sessionStorage.getItem(STORAGE_KEYS.GUEST_TOKEN);
 const isGuest = !auth.isAuthenticated && !!guestToken;
 
 const playerCount = computed(() => players.value.length);
@@ -80,12 +81,11 @@ function connectAsModerator(sessionPin) {
   const socket = connectSocket();
   cleanup();
 
-  socket.on('moderator:joined', (data) => {
-    console.log('Joined as moderator:', data);
+  socket.on('moderator:joined', () => {
+    // Successfully joined as moderator
   });
 
   socket.on('moderator:error', (data) => {
-    console.error('Moderator error:', data);
     error.value = data.message || 'Moderator error';
   });
 
@@ -119,7 +119,7 @@ function cleanup() {
 function startGame() {
   starting.value = true;
   // Save settings to sessionStorage for use in GameControlPage
-  sessionStorage.setItem('gameSettings', JSON.stringify({
+  sessionStorage.setItem(STORAGE_KEYS.GAME_SETTINGS, JSON.stringify({
     showLeaderboard: showLeaderboard.value,
     musicEnabled: musicEnabled.value,
     allowLateJoins: allowLateJoins.value
@@ -144,7 +144,7 @@ function endSession() {
 function copyPin() {
   navigator.clipboard?.writeText(pin.value);
   copied.value = true;
-  setTimeout(() => { copied.value = false; }, 2000);
+  setTimeout(() => { copied.value = false; }, TIMING.COPY_FEEDBACK_DURATION);
 }
 
 onMounted(fetchSession);
@@ -153,9 +153,8 @@ onUnmounted(() => {
   cleanup();
 });
 
-const playerAvatars = ['🎮', '🔥', '⭐', '💪', '🎯', '🚀', '⚡', '💎', '👑', '🎉', '🎸', '🌟'];
 function getAvatar(index) {
-  return playerAvatars[index % playerAvatars.length];
+  return AVATARS.LOBBY_AVATARS[index % AVATARS.LOBBY_AVATARS.length];
 }
 </script>
 

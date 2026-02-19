@@ -20,10 +20,13 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update', 'delete']);
+const emit = defineEmits(['update', 'delete', 'error']);
 
 // Local copy of question for editing
 const localQuestion = ref({ ...props.question });
+
+// Error state for file validation
+const fileError = ref('');
 
 // File input ref
 const fileInputRef = ref(null);
@@ -98,15 +101,17 @@ function handleFileSelect(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
+  fileError.value = '';
+
   // Validate file type
   if (!file.type.startsWith('image/')) {
-    alert('Please select an image file');
+    fileError.value = 'Please select an image file';
     return;
   }
 
   // Validate file size (max 5MB)
   if (file.size > 5 * 1024 * 1024) {
-    alert('Image must be smaller than 5MB');
+    fileError.value = 'Image must be smaller than 5MB';
     return;
   }
 
@@ -254,6 +259,7 @@ function getIcon(iconName) {
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
               </svg>
               <p class="text-sm text-muted-foreground mb-2">Drag and drop an image, or click to browse</p>
+              <p v-if="fileError" class="text-sm text-destructive mb-2">{{ fileError }}</p>
               <input
                 type="text"
                 placeholder="Or paste an image URL"

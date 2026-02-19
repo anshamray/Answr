@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
+import { TIMING, STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -17,7 +18,7 @@ const router = useRouter();
 const auth = useAuthStore();
 
 const sessionId = route.params.id;
-const guestToken = sessionStorage.getItem('guestToken');
+const guestToken = sessionStorage.getItem(STORAGE_KEYS.GUEST_TOKEN);
 
 const pin = ref('');
 const quizTitle = ref('');
@@ -41,12 +42,12 @@ const gameSettings = ref({
 // Load settings from sessionStorage
 function loadSettings() {
   try {
-    const stored = sessionStorage.getItem('gameSettings');
+    const stored = sessionStorage.getItem(STORAGE_KEYS.GAME_SETTINGS);
     if (stored) {
       gameSettings.value = { ...gameSettings.value, ...JSON.parse(stored) };
     }
-  } catch (e) {
-    console.warn('Failed to load game settings:', e);
+  } catch {
+    // Settings not found or invalid, use defaults
   }
 }
 
@@ -66,15 +67,10 @@ const totalDistributionAnswers = computed(() =>
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 
-// Branded answer colors
-const barBg = ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-success', 'bg-warning', 'bg-primary-light'];
-const barLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
-const answerGradients = [
-  'from-primary to-primary-dark',
-  'from-secondary to-secondary-dark',
-  'from-accent to-accent-dark',
-  'from-warning to-warning/80'
-];
+// Use shared answer colors from constants
+const barBg = ANSWER_COLORS.BAR_COLORS;
+const barLabels = ANSWER_COLORS.LABELS;
+const answerGradients = ANSWER_COLORS.MODERATOR_GRADIENTS;
 
 function getCount(answerId) {
   return answerDistribution.value[answerId] || 0;
@@ -307,7 +303,7 @@ function endGame() {
     } else {
       router.push('/');
     }
-  }, 3000);
+  }, TIMING.REDIRECT_DELAY);
 }
 
 onMounted(() => {

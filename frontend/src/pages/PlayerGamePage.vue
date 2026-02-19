@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
+import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
 
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -38,17 +39,9 @@ const myEntry = computed(() =>
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 
-// Branded answer colors using the theme palette
-const answerBg = [
-  'bg-gradient-to-br from-primary to-primary-dark text-white',
-  'bg-gradient-to-br from-secondary to-secondary-dark text-white',
-  'bg-gradient-to-br from-accent to-accent-dark text-white',
-  'bg-gradient-to-br from-warning to-warning/80 text-warning-foreground',
-  'bg-gradient-to-br from-success to-success text-white',
-  'bg-gradient-to-br from-primary-light to-primary text-white'
-];
-
-const answerLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
+// Use shared answer colors from constants
+const answerBg = ANSWER_COLORS.BUTTON_GRADIENTS;
+const answerLabels = ANSWER_COLORS.LABELS;
 
 function selectAnswer(optionId, index) {
   if (submitted.value || timedOut.value) return;
@@ -187,7 +180,7 @@ onUnmounted(cleanup);
       <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
         <!-- Question -->
         <PixelCard class="mb-6">
-          <h2 class="text-2xl font-bold leading-tight">
+          <h2 class="text-xl sm:text-2xl font-bold leading-tight">
             {{ question?.text || 'Waiting for question...' }}
           </h2>
         </PixelCard>
@@ -204,7 +197,7 @@ onUnmounted(cleanup);
           <button
             v-for="(option, i) in options"
             :key="option.id"
-            class="group relative p-6 border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
+            class="group relative p-6 min-h-[56px] border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
             :class="[
               answerBg[i % answerBg.length],
               selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
@@ -218,7 +211,7 @@ onUnmounted(cleanup);
               <span class="w-12 h-12 bg-white/20 border-2 border-white flex items-center justify-center text-xl font-bold pixel-font flex-shrink-0">
                 {{ answerLabels[i] }}
               </span>
-              <span class="flex-1 text-2xl font-bold">{{ option.text }}</span>
+              <span v-if="game.playerSettings.showAnswerText" class="flex-1 text-2xl font-bold">{{ option.text }}</span>
             </div>
           </button>
         </div>
@@ -321,7 +314,7 @@ onUnmounted(cleanup);
               >
                 <span class="text-sm font-bold w-5 text-center"
                       :class="entry.position <= 3 ? 'text-warning' : 'text-muted-foreground'">
-                  {{ entry.position <= 3 ? ['🥇','🥈','🥉'][entry.position - 1] : entry.position }}
+                  {{ entry.position <= 3 ? AVATARS.MEDALS[entry.position - 1] : entry.position }}
                 </span>
                 <span class="flex-1 text-sm font-medium truncate"
                       :class="entry.playerId === game.playerId ? 'text-primary' : 'text-foreground'">

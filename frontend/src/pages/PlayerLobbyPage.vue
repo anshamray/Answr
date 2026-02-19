@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
+import { TIMING } from '../constants/index.js';
 
 import PixelCard from '../components/PixelCard.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
@@ -14,7 +15,8 @@ const game = useGameStore();
 
 const dots = ref('.');
 const playerCount = ref(0);
-let dotsInterval = null;
+// Use ref for interval ID to ensure reliable cleanup
+const dotsIntervalId = ref(null);
 
 function setup() {
   const socket = getSocket();
@@ -23,9 +25,9 @@ function setup() {
     return;
   }
 
-  dotsInterval = setInterval(() => {
+  dotsIntervalId.value = setInterval(() => {
     dots.value = dots.value.length >= 3 ? '.' : dots.value + '.';
-  }, 500);
+  }, TIMING.DOTS_ANIMATION_INTERVAL);
 
   socket.on('game:started', () => {
     game.status = 'playing';
@@ -51,9 +53,9 @@ function setup() {
 }
 
 function cleanup() {
-  if (dotsInterval) {
-    clearInterval(dotsInterval);
-    dotsInterval = null;
+  if (dotsIntervalId.value) {
+    clearInterval(dotsIntervalId.value);
+    dotsIntervalId.value = null;
   }
   const socket = getSocket();
   if (socket) {
@@ -132,7 +134,7 @@ onUnmounted(cleanup);
 
       <div class="mt-6 text-center">
         <button
-          class="text-sm text-muted-foreground hover:text-destructive transition-colors"
+          class="text-sm text-muted-foreground hover:text-destructive transition-colors py-3 px-4 min-h-[44px]"
           @click="leaveGame"
         >
           Leave Game

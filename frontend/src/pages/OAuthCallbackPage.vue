@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
+import { TIMING, STORAGE_KEYS } from '../constants/index.js';
 
 const router = useRouter();
 const route = useRoute();
@@ -17,20 +18,20 @@ onMounted(async () => {
   if (errorParam) {
     error.value = decodeURIComponent(errorParam);
     loading.value = false;
-    setTimeout(() => router.push('/login'), 3000);
+    setTimeout(() => router.push('/login'), TIMING.REDIRECT_DELAY);
     return;
   }
 
   if (!token) {
     error.value = 'No authentication token received';
     loading.value = false;
-    setTimeout(() => router.push('/login'), 3000);
+    setTimeout(() => router.push('/login'), TIMING.REDIRECT_DELAY);
     return;
   }
 
   try {
     // Store the token
-    localStorage.setItem('token', token);
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
     auth.token = token;
 
     // Fetch user info
@@ -41,7 +42,7 @@ onMounted(async () => {
   } catch (e) {
     error.value = e.message || 'Authentication failed';
     loading.value = false;
-    setTimeout(() => router.push('/login'), 3000);
+    setTimeout(() => router.push('/login'), TIMING.REDIRECT_DELAY);
   }
 });
 </script>

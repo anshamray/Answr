@@ -2,7 +2,10 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
-import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
+import { connectSocket, getSocket } from '../lib/socket.js';
+import { useShakeAnimation } from '../composables/useShakeAnimation.js';
+import { useSocketCleanup } from '../composables/useSocketCleanup.js';
+import { TIMING, AVATARS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -12,31 +15,13 @@ const game = useGameStore();
 
 const nickname = ref(game.playerName || '');
 const selectedEmoji = ref(game.playerEmoji || '');
+const showAnswerText = ref(game.playerSettings?.showAnswerText ?? true);
 const error = ref('');
 const loading = ref(false);
-const shake = ref(false);
+const { shake, triggerShake } = useShakeAnimation();
+const { cleanup: cleanupSocket } = useSocketCleanup(['player:joined', 'player:error']);
 
-const emojiOptions = [
-  '👑', '🔥', '⭐', '💪', '🎯', '🚀', '⚡', '💎',
-  '🎨', '🎭', '🎪', '🎸', '🎮', '🎲', '🏆', '🎵',
-  '🌟', '✨', '💫', '🌈', '🦄', '🐉', '🦋', '🌸',
-  '🍕', '🍔', '🍣', '🍩', '🍿', '🧁', '🍦', '🌮',
-  '⚽', '🏀', '🎾', '⚾', '🏐', '🎱', '🏓', '🎳',
-  '🤖', '👾', '🛸', '🪐', '🌙', '☀️', '🌊', '🏔️'
-];
-
-function triggerShake() {
-  shake.value = true;
-  setTimeout(() => { shake.value = false; }, 500);
-}
-
-function cleanupSocket() {
-  const socket = getSocket();
-  if (socket) {
-    socket.off('player:joined');
-    socket.off('player:error');
-  }
-}
+const emojiOptions = AVATARS.PROFILE_EMOJIS;
 
 onMounted(() => {
   // If no PIN is stored, redirect back to home
@@ -73,13 +58,14 @@ function handleJoin() {
     error.value = 'Could not reach the server. Try again.';
     triggerShake();
     cleanupSocket();
-  }, 5000);
+  }, TIMING.SOCKET_CONNECTION_TIMEOUT);
 
   socket.on('player:joined', (data) => {
     clearTimeout(timeout);
     loading.value = false;
     game.playerName = nickname.value.trim();
     game.playerEmoji = selectedEmoji.value;
+    game.setPlayerSetting('showAnswerText', showAnswerText.value);
     game.setSession(data);
     router.push('/play/lobby');
   });
@@ -152,11 +138,11 @@ function goBack() {
 
         <div class="space-y-3">
           <label class="block text-sm font-medium text-foreground">Choose Your Emoji</label>
-          <div class="grid grid-cols-8 gap-2 max-h-64 overflow-y-auto p-2 bg-muted border-2 border-border">
+          <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-64 overflow-y-auto p-2 bg-muted border-2 border-border">
             <button
               v-for="emoji in emojiOptions"
               :key="emoji"
-              class="text-3xl p-2 transition-all hover:scale-110"
+              class="text-2xl sm:text-3xl p-2 min-h-[44px] min-w-[44px] flex items-center justify-center transition-all hover:scale-110"
               :class="selectedEmoji === emoji
                 ? 'bg-primary border-2 border-black pixel-shadow scale-110'
                 : 'hover:bg-white border-2 border-transparent'"
@@ -168,6 +154,22 @@ function goBack() {
           <p v-if="!selectedEmoji" class="text-xs text-muted-foreground text-center">
             Select an emoji to represent you
           </p>
+        </div>
+
+        <!-- Display Settings -->
+        <div class="space-y-2 pt-4 border-t-2 border-border">
+          <label class="text-sm font-medium text-foreground">Display Settings</label>
+          <label class="flex items-center gap-3 cursor-pointer select-none p-3 bg-muted border-2 border-border">
+            <input
+              v-model="showAnswerText"
+              type="checkbox"
+              class="w-5 h-5 accent-primary"
+            />
+            <div>
+              <span class="text-sm font-medium">Show answer text on my screen</span>
+              <p class="text-xs text-muted-foreground">Turn off to see only A, B, C, D buttons (read answers from host screen)</p>
+            </div>
+          </label>
         </div>
 
         <!-- Preview -->

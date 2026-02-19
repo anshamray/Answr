@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
+import { AVATARS, STORAGE_KEYS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -26,6 +27,7 @@ const leaderboard = computed(() => {
 
 const topThree = computed(() => {
   const top = leaderboard.value.slice(0, 3);
+  // Only reorder if we have exactly 3 entries for podium display
   if (top.length < 3) return top;
   return [top[1], top[0], top[2]];
 });
@@ -42,7 +44,7 @@ async function fetchResults() {
   loading.value = true;
   try {
     const headers = {};
-    const guestToken = sessionStorage.getItem('guestToken');
+    const guestToken = sessionStorage.getItem(STORAGE_KEYS.GUEST_TOKEN);
 
     if (auth.isAuthenticated) {
       headers['Authorization'] = `Bearer ${auth.token}`;
@@ -63,9 +65,8 @@ async function fetchResults() {
   }
 }
 
-const podiumAvatars = ['👑', '⭐', '🔥', '💪', '🎯', '🚀', '⚡', '💎', '🎮', '🌟'];
 function getAvatar(index) {
-  return podiumAvatars[index % podiumAvatars.length];
+  return AVATARS.LEADERBOARD_AVATARS[index % AVATARS.LEADERBOARD_AVATARS.length];
 }
 
 onMounted(fetchResults);

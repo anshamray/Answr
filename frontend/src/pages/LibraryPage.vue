@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { apiUrl } from '../lib/api.js';
+import { TIMING } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -52,7 +53,7 @@ function onSearchInput() {
   debounceTimer = setTimeout(() => {
     page.value = 1;
     fetchLibrary();
-  }, 300);
+  }, TIMING.SEARCH_DEBOUNCE_DELAY);
 }
 
 watch(sort, () => {

@@ -2,7 +2,8 @@
 import { ref, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useGameStore } from '../stores/gameStore.js';
-import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
+import { useShakeAnimation } from '../composables/useShakeAnimation.js';
+import { usePinValidation } from '../composables/usePinValidation.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -18,83 +19,26 @@ const router = useRouter();
 const game = useGameStore();
 
 const pin = ref('');
-const error = ref('');
-const loading = ref(false);
-const shake = ref(false);
-
-function triggerShake() {
-  shake.value = true;
-  setTimeout(() => { shake.value = false; }, 500);
-}
-
-function cleanupSocket() {
-  const socket = getSocket();
-  if (socket) {
-    socket.off('player:pin-valid');
-    socket.off('player:pin-invalid');
-  }
-}
+const { shake, triggerShake } = useShakeAnimation();
+const { loading, error, checkPin, cleanupListeners } = usePinValidation();
 
 onUnmounted(() => {
-  cleanupSocket();
+  cleanupListeners();
 });
 
 function handlePinSubmit() {
-  error.value = '';
-  const trimmed = pin.value.trim();
-
-  if (!trimmed) {
-    error.value = 'Enter a PIN first!';
-    triggerShake();
-    return;
-  }
-
-  if (!/^\d{6}$/.test(trimmed)) {
-    error.value = 'PIN must be exactly 6 digits.';
-    triggerShake();
-    return;
-  }
-
-  loading.value = true;
-  const socket = connectSocket();
-  cleanupSocket();
-
-  const timeout = setTimeout(() => {
-    loading.value = false;
-    error.value = 'Could not reach the server. Is it running?';
-    triggerShake();
-    cleanupSocket();
-    disconnectSocket();
-  }, 5000);
-
-  socket.on('player:pin-valid', () => {
-    clearTimeout(timeout);
-    loading.value = false;
-    cleanupSocket();
-    disconnectSocket();
-    // Store PIN and redirect to profile page
-    game.pin = trimmed;
-    router.push('/play/profile');
+  checkPin(pin.value, {
+    onValid: (validPin) => {
+      game.pin = validPin;
+      router.push('/play/profile');
+    },
+    onInvalid: () => {
+      triggerShake();
+    },
+    onError: () => {
+      triggerShake();
+    }
   });
-
-  socket.on('player:pin-invalid', (data) => {
-    clearTimeout(timeout);
-    loading.value = false;
-    error.value = data?.message || 'This PIN does not exist. Did you make it up?';
-    triggerShake();
-    cleanupSocket();
-    disconnectSocket();
-  });
-
-  const emitCheck = () => {
-    socket.emit('player:check-pin', { pin: trimmed });
-  };
-
-  if (socket.connected) {
-    emitCheck();
-  } else {
-    socket.once('connect', emitCheck);
-  }
 }
 </script>
 
@@ -116,7 +60,7 @@ function handlePinSubmit() {
           </div>
 
           <div class="flex items-center gap-3">
-            <router-link to="/login">
+            <router-link to="/login" class="hidden sm:inline-flex">
               <PixelButton variant="outline" size="sm">Login</PixelButton>
             </router-link>
             <router-link to="/login">

@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { apiUrl } from '../lib/api.js';
+import { getTypeLabel } from '../lib/questionTypes.js';
+import { STORAGE_KEYS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -41,7 +43,7 @@ async function startQuiz() {
 
   try {
     const headers = { 'Content-Type': 'application/json' };
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const res = await fetch(apiUrl(`/api/library/${route.params.id}/start`), {
@@ -58,8 +60,8 @@ async function startQuiz() {
     const session = json.data?.session;
 
     if (session.guestToken) {
-      sessionStorage.setItem('guestToken', session.guestToken);
-      sessionStorage.setItem('guestSessionId', session.id);
+      sessionStorage.setItem(STORAGE_KEYS.GUEST_TOKEN, session.guestToken);
+      sessionStorage.setItem(STORAGE_KEYS.GUEST_SESSION_ID, session.id);
     }
 
     router.push(`/session/${session.id}/lobby`);
@@ -69,23 +71,6 @@ async function startQuiz() {
     starting.value = false;
   }
 }
-
-const typeLabels = {
-  'multiple-choice': 'Multiple Choice',
-  'true-false': 'True / False',
-  'type-answer': 'Type Answer',
-  'sort': 'Sort',
-  'quiz-audio': 'Audio Quiz',
-  'slider': 'Slider',
-  'pin-answer': 'Pin Answer',
-  'poll': 'Poll',
-  'word-cloud': 'Word Cloud',
-  'brainstorm': 'Brainstorm',
-  'drop-pin': 'Drop Pin',
-  'open-ended': 'Open Ended',
-  'scale': 'Scale',
-  'nps-scale': 'NPS Scale'
-};
 
 onMounted(fetchQuiz);
 </script>
@@ -182,7 +167,7 @@ onMounted(fetchQuiz);
                       </div>
                       <div>
                         <div class="font-medium">{{ q.text || '(no text)' }}</div>
-                        <div class="text-xs text-muted-foreground">{{ typeLabels[q.type] || q.type }} · {{ q.timeLimit }}s</div>
+                        <div class="text-xs text-muted-foreground">{{ getTypeLabel(q.type) }} · {{ q.timeLimit }}s</div>
                       </div>
                     </div>
                   </div>

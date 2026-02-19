@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 
 export const useGameStore = defineStore('game', () => {
   const pin = ref(null);
@@ -12,6 +12,18 @@ export const useGameStore = defineStore('game', () => {
   const currentQuestion = ref(null);
   const leaderboard = ref([]);
   const answerResult = ref(null);
+
+  // Player display settings (persisted to localStorage)
+  const defaultSettings = { showAnswerText: true };
+  const saved = localStorage.getItem('playerSettings');
+  const playerSettings = reactive(
+    saved ? { ...defaultSettings, ...JSON.parse(saved) } : { ...defaultSettings }
+  );
+
+  function setPlayerSetting(key, value) {
+    playerSettings[key] = value;
+    localStorage.setItem('playerSettings', JSON.stringify(playerSettings));
+  }
 
   function setSession(data) {
     if (data.pin !== undefined) pin.value = data.pin;
@@ -43,7 +55,9 @@ export const useGameStore = defineStore('game', () => {
     currentQuestion,
     leaderboard,
     answerResult,
+    playerSettings,
     setSession,
+    setPlayerSetting,
     reset
   };
 });

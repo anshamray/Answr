@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
@@ -14,6 +14,7 @@ const auth = useAuthStore();
 const quizzes = ref([]);
 const loading = ref(true);
 const error = ref('');
+const actionError = ref(''); // Error for quiz actions (start, publish, delete)
 const filter = ref('all');
 const view = ref('grid');
 const publishDialogQuiz = ref(null);
@@ -37,6 +38,7 @@ async function fetchQuizzes() {
 }
 
 async function startSession(quizId) {
+  actionError.value = '';
   try {
     const res = await fetch(apiUrl('/api/sessions'), {
       method: 'POST',
@@ -51,7 +53,7 @@ async function startSession(quizId) {
     const session = json.data?.session;
     router.push(`/session/${session._id || session.id}/lobby`);
   } catch (err) {
-    alert(err.message);
+    actionError.value = err.message;
   }
 }
 
@@ -60,10 +62,11 @@ function editQuiz(quizId) {
 }
 
 function openPublishDialog(quizId) {
+  actionError.value = '';
   const quiz = quizzes.value.find(q => (q._id || q.id) === quizId);
   const qCount = quiz?.questionCount ?? quiz?.questions?.length ?? 0;
   if (qCount < 1) {
-    alert('Quiz must have at least 1 question to publish');
+    actionError.value = 'Quiz must have at least 1 question to publish';
     return;
   }
   publishDialogQuiz.value = quiz;
@@ -77,6 +80,7 @@ async function confirmPublish() {
   const quiz = publishDialogQuiz.value;
   if (!quiz) return;
   const quizId = quiz._id || quiz.id;
+  actionError.value = '';
   try {
     const tags = Array.isArray(quiz.tags) ? quiz.tags : [];
     const res = await fetch(apiUrl(`/api/library/publish/${quizId}`), {
@@ -95,7 +99,7 @@ async function confirmPublish() {
     if (q) q.isPublished = true;
     closePublishDialog();
   } catch (err) {
-    alert(err.message);
+    actionError.value = err.message;
   }
 }
 
@@ -111,6 +115,7 @@ async function confirmUnpublish() {
   const quiz = unpublishDialogQuiz.value;
   if (!quiz) return;
   const quizId = quiz._id || quiz.id;
+  actionError.value = '';
   try {
     const res = await fetch(apiUrl(`/api/library/unpublish/${quizId}`), {
       method: 'PUT',
@@ -124,12 +129,13 @@ async function confirmUnpublish() {
     if (q) q.isPublished = false;
     closeUnpublishDialog();
   } catch (err) {
-    alert(err.message);
+    actionError.value = err.message;
   }
 }
 
 async function deleteQuiz(quizId) {
   if (!confirm('Are you sure you want to delete this quiz?')) return;
+  actionError.value = '';
   try {
     const res = await fetch(apiUrl(`/api/quizzes/${quizId}`), {
       method: 'DELETE',
@@ -138,7 +144,7 @@ async function deleteQuiz(quizId) {
     if (!res.ok) throw new Error('Failed to delete quiz');
     quizzes.value = quizzes.value.filter(q => (q._id || q.id) !== quizId);
   } catch (err) {
-    alert(err.message);
+    actionError.value = err.message;
   }
 }
 
@@ -151,12 +157,11 @@ function createNewQuiz() {
   router.push('/quiz/new/edit');
 }
 
-const totalPlays = ref(0);
+const totalPlays = computed(() =>
+  quizzes.value.reduce((sum, q) => sum + (q.playCount || 0), 0)
+);
 
-onMounted(async () => {
-  await fetchQuizzes();
-  totalPlays.value = quizzes.value.reduce((sum, q) => sum + (q.playCount || 0), 0);
-});
+onMounted(fetchQuizzes);
 </script>
 
 <template>
@@ -264,6 +269,21 @@ onMounted(async () => {
             <div class="space-y-1">
               <div class="w-6 h-1 bg-current"></div><div class="w-6 h-1 bg-current"></div><div class="w-6 h-1 bg-current"></div>
             </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Error Toast -->
+      <div
+        v-if="actionError"
+        class="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-3 border-2 border-black pixel-shadow z-50"
+      >
+        <div class="flex items-center gap-3">
+          <span>{{ actionError }}</span>
+          <button @click="actionError = ''" class="hover:opacity-80">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
           </button>
         </div>
       </div>

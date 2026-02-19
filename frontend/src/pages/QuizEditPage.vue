@@ -3,6 +3,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
+import { QUESTION_TYPES } from '../lib/questionTypes.js';
+import { TIMING } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelBadge from '../components/PixelBadge.vue';
@@ -40,23 +42,8 @@ const selectedQuestion = computed(() =>
   questions.value.find(q => q._id === selectedQuestionId.value)
 );
 
-// Question type icons and info
-const questionTypeInfo = {
-  'multiple-choice': { icon: 'grid', label: 'Multiple Choice', color: 'primary' },
-  'true-false': { icon: 'check', label: 'True/False', color: 'secondary' },
-  'type-answer': { icon: 'type', label: 'Type Answer', color: 'accent' },
-  'sort': { icon: 'sort', label: 'Sort', color: 'warning' },
-  'slider': { icon: 'sliders', label: 'Slider', color: 'success' },
-  'quiz-audio': { icon: 'volume', label: 'Quiz Audio', color: 'primary' },
-  'pin-answer': { icon: 'map-pin', label: 'Pin Answer', color: 'secondary' },
-  'poll': { icon: 'bar-chart', label: 'Poll', color: 'accent' },
-  'word-cloud': { icon: 'cloud', label: 'Word Cloud', color: 'primary' },
-  'brainstorm': { icon: 'lightbulb', label: 'Brainstorm', color: 'warning' },
-  'drop-pin': { icon: 'target', label: 'Drop Pin', color: 'secondary' },
-  'open-ended': { icon: 'message', label: 'Open Ended', color: 'accent' },
-  'scale': { icon: 'sliders', label: 'Scale', color: 'success' },
-  'nps-scale': { icon: 'trending-up', label: 'NPS Scale', color: 'primary' }
-};
+// Question type icons and info - use shared definitions
+const questionTypeInfo = QUESTION_TYPES;
 
 // Helper to check if ID is temporary (local-only)
 function isTemporaryId(id) {
@@ -334,8 +321,8 @@ async function saveAll() {
         await apiFetch(`/api/questions/${questionId}`, {
           method: 'DELETE'
         });
-      } catch (err) {
-        console.error(`Failed to delete question ${questionId}:`, err);
+      } catch {
+        // Question may already be deleted, continue with other operations
       }
     }
     deletedQuestionIds.value = [];
@@ -380,7 +367,7 @@ async function saveAll() {
     saveStatus.value = 'saved';
     setTimeout(() => {
       if (saveStatus.value === 'saved') saveStatus.value = '';
-    }, 2000);
+    }, TIMING.SAVE_STATUS_RESET);
   } catch (err) {
     error.value = err.message;
     saveStatus.value = 'error';
@@ -416,10 +403,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex flex-col max-w-full">
-    <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50 max-w-full">
-      <div class="px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16 max-w-full">
+  <div class="safari-overflow-fix">
+    <div class="min-h-screen bg-background flex flex-col">
+      <!-- Header -->
+      <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
+        <div class="px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         <div class="flex items-center gap-4">
           <button
             @click="goBack"
@@ -484,7 +472,7 @@ onMounted(() => {
     <!-- Main Editor -->
     <div v-else class="flex-1 flex overflow-hidden min-w-0">
       <!-- Sidebar: Question List -->
-      <aside class="w-72 border-r-[3px] border-black bg-white flex flex-col">
+      <aside class="w-72 shrink-0 border-r-[3px] border-black bg-white flex flex-col">
         <div class="p-4 border-b-[3px] border-border">
           <PixelButton
             variant="primary"
@@ -658,5 +646,15 @@ onMounted(() => {
         </button>
       </div>
     </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+/* Safari overflow fix: wrapper clips pixel-shadow overflow without breaking flex layout */
+.safari-overflow-fix {
+  width: 100vw;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+</style>
