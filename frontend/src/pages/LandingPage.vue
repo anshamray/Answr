@@ -8,7 +8,6 @@ import { usePinValidation } from '../composables/usePinValidation.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import PixelLogo from '../components/icons/PixelLogo.vue';
 import PixelStar from '../components/icons/PixelStar.vue';
 import PixelLightning from '../components/icons/PixelLightning.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
@@ -49,7 +48,6 @@ function handlePinSubmit() {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center gap-3">
-            <PixelLogo class="text-primary" :size="36" />
             <span class="text-2xl font-bold text-primary pixel-font">Answr</span>
           </div>
 
@@ -255,7 +253,7 @@ function handlePinSubmit() {
 
           <PixelCard class="space-y-4 hover:transform hover:-translate-y-2 transition-all duration-300">
             <div class="w-12 h-12 bg-primary/20 flex items-center justify-center">
-              <PixelLogo class="text-primary" :size="32" />
+              <PixelCheck class="text-primary" :size="32" />
             </div>
             <h3 class="text-xl font-bold">Privacy First</h3>
             <p class="text-muted-foreground">
@@ -346,7 +344,6 @@ function handlePinSubmit() {
         <div class="grid md:grid-cols-4 gap-8 mb-8">
           <div class="space-y-4">
             <div class="flex items-center gap-2">
-              <PixelLogo class="text-primary" :size="32" />
               <span class="text-xl font-bold pixel-font text-primary">Answr</span>
             </div>
             <p class="text-sm text-muted-foreground">
