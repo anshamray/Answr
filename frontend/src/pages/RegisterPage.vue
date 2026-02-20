@@ -22,6 +22,7 @@ const errors = ref({
   email: '',
   password: '',
   confirmPassword: '',
+  terms: '',
   general: ''
 });
 
@@ -29,7 +30,7 @@ import { apiBase } from '../lib/api.js';
 const API_URL = apiBase || 'http://localhost:3000';
 
 function clearErrors() {
-  errors.value = { name: '', email: '', password: '', confirmPassword: '', general: '' };
+  errors.value = { name: '', email: '', password: '', confirmPassword: '', terms: '', general: '' };
 }
 
 function validateForm() {
@@ -62,6 +63,11 @@ function validateForm() {
     isValid = false;
   } else if (password.value !== confirmPassword.value) {
     errors.value.confirmPassword = 'Passwords do not match';
+    isValid = false;
+  }
+
+  if (!agreedToTerms.value) {
+    errors.value.terms = 'You must agree to the Terms and Privacy Policy';
     isValid = false;
   }
 
@@ -160,13 +166,19 @@ function signUpWithGitHub() {
             </div>
           </div>
 
-          <div class="text-xs text-muted-foreground">
-            <label class="flex items-start gap-2 cursor-pointer">
-              <input v-model="agreedToTerms" type="checkbox" class="w-4 h-4 mt-0.5" />
-              <span>
-                I agree to the <button type="button" class="text-primary hover:underline">Terms</button> and <button type="button" class="text-primary hover:underline">Privacy Policy</button>
+          <div>
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input
+                v-model="agreedToTerms"
+                type="checkbox"
+                class="w-5 h-5 shrink-0 accent-primary"
+                :class="{ 'outline outline-2 outline-destructive': errors.terms }"
+              />
+              <span class="text-sm text-muted-foreground">
+                I agree to the <router-link to="/terms" target="_blank" class="text-primary hover:underline">Terms of Service</router-link> and <router-link to="/privacy" target="_blank" class="text-primary hover:underline">Privacy Policy</router-link>
               </span>
             </label>
+            <p v-if="errors.terms" class="text-destructive text-xs mt-1 ml-8">{{ errors.terms }}</p>
           </div>
 
           <p v-if="errors.general" class="text-destructive text-sm font-medium">{{ errors.general }}</p>

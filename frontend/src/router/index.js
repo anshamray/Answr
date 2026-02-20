@@ -8,6 +8,8 @@ import OAuthCallbackPage from '../pages/OAuthCallbackPage.vue';
 import VerifyEmailPage from '../pages/VerifyEmailPage.vue';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue';
 import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
+import TermsPage from '../pages/TermsPage.vue';
+import PrivacyPage from '../pages/PrivacyPage.vue';
 import DashboardPage from '../pages/DashboardPage.vue';
 import QuizEditPage from '../pages/QuizEditPage.vue';
 import LibraryPage from '../pages/LibraryPage.vue';
@@ -30,6 +32,8 @@ const routes = [
   { path: '/verify-email', component: VerifyEmailPage },
   { path: '/forgot-password', component: ForgotPasswordPage },
   { path: '/reset-password', component: ResetPasswordPage },
+  { path: '/terms', component: TermsPage },
+  { path: '/privacy', component: PrivacyPage },
 
   // Library (public, no auth required)
   { path: '/library', component: LibraryPage },

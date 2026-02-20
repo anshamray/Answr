@@ -237,7 +237,7 @@ onMounted(fetchQuiz);
                   <div
                     v-for="(q, i) in quiz.questions.slice(0, 5)"
                     :key="q.id"
-                    class="flex items-start gap-4 p-5 bg-white border border-border rounded-lg"
+                    class="flex items-start gap-4 p-5 bg-white border-[3px] border-black"
                   >
                     <div class="w-6 h-6 bg-primary text-white border-2 border-black flex items-center justify-center font-bold text-xs shrink-0">
                       {{ i + 1 }}
@@ -275,7 +275,7 @@ onMounted(fetchQuiz);
 
                 <div class="pt-4 border-t-2 border-border space-y-3">
                   <button
-                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white shadow-sm hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all font-medium disabled:opacity-50"
+                    class="w-full flex items-center justify-center gap-2 py-3 border-[3px] border-black bg-white pixel-shadow hover:border-primary hover:bg-primary/5 transition-all font-medium disabled:opacity-50"
                     :disabled="favoriteLoading"
                     @click="handleFavoriteClick"
                   >
@@ -286,7 +286,7 @@ onMounted(fetchQuiz);
                   </button>
 
                   <button
-                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white shadow-sm hover:border-secondary hover:bg-secondary/5 hover:shadow-md transition-all font-medium disabled:opacity-50"
+                    class="w-full flex items-center justify-center gap-2 py-3 border-[3px] border-black bg-white pixel-shadow hover:border-secondary hover:bg-secondary/5 transition-all font-medium disabled:opacity-50"
                     :disabled="duplicating"
                     @click="handleDuplicateAndEdit"
                   >

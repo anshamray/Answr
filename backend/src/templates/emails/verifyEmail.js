@@ -16,35 +16,81 @@ export function verifyEmailTemplate({ name, verificationUrl }) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verify your email</title>
 </head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="text-align: center; margin-bottom: 30px;">
-    <h1 style="color: #7c3aed; margin: 0;">Answr</h1>
-  </div>
+<body style="margin: 0; padding: 0; background: linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%); min-height: 100vh;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="min-height: 100vh;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 500px;">
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding-bottom: 30px;">
+              <span style="font-family: 'Courier New', monospace; font-size: 32px; font-weight: bold; color: #7c3aed; letter-spacing: -1px;">Answr</span>
+            </td>
+          </tr>
 
-  <div style="background: #f9fafb; border: 2px solid #e5e7eb; padding: 30px; margin-bottom: 20px;">
-    <h2 style="margin-top: 0;">Welcome, ${name}!</h2>
-    <p>Thanks for signing up for Answr. Please verify your email address to complete your registration.</p>
+          <!-- Main Card -->
+          <tr>
+            <td>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #ffffff; border: 3px solid #000000; box-shadow: 4px 4px 0px #000000;">
+                <tr>
+                  <td style="padding: 40px 30px;">
+                    <!-- Header -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 24px; font-weight: bold; color: #0f172a; padding-bottom: 20px;">
+                          Welcome, ${name}!
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; color: #64748b; line-height: 1.6; padding-bottom: 30px;">
+                          Thanks for signing up for Answr. You're one step away from creating amazing quizzes. Please verify your email address to get started.
+                        </td>
+                      </tr>
+                    </table>
 
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${verificationUrl}"
-         style="display: inline-block; background: #7c3aed; color: white; padding: 12px 30px; text-decoration: none; font-weight: bold; border: 2px solid #000;">
-        Verify Email Address
-      </a>
-    </div>
+                    <!-- Button -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td align="center" style="padding-bottom: 30px;">
+                          <a href="${verificationUrl}" style="display: inline-block; background: #7c3aed; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; font-weight: bold; text-decoration: none; padding: 16px 40px; border: 3px solid #000000; box-shadow: 3px 3px 0px #000000;">
+                            Verify Email Address
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
 
-    <p style="font-size: 14px; color: #666;">
-      Or copy and paste this link into your browser:<br>
-      <a href="${verificationUrl}" style="color: #7c3aed; word-break: break-all;">${verificationUrl}</a>
-    </p>
+                    <!-- Link fallback -->
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top: 2px solid #e2e8f0;">
+                      <tr>
+                        <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #64748b; padding-top: 20px; line-height: 1.6;">
+                          Or copy this link into your browser:<br>
+                          <a href="${verificationUrl}" style="color: #7c3aed; word-break: break-all;">${verificationUrl}</a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13px; color: #94a3b8; padding-top: 15px;">
+                          This link expires in 24 hours.
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
 
-    <p style="font-size: 14px; color: #666;">
-      This link will expire in 24 hours.
-    </p>
-  </div>
-
-  <p style="font-size: 12px; color: #999; text-align: center;">
-    If you didn't create an account with Answr, you can safely ignore this email.
-  </p>
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding-top: 30px;">
+              <p style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 12px; color: #94a3b8; margin: 0;">
+                If you didn't create an account with Answr, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
   `.trim();

@@ -4,6 +4,8 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { TIMING, STORAGE_KEYS } from '../constants/index.js';
 
+import LoadingSpinner from '../components/LoadingSpinner.vue';
+
 const router = useRouter();
 const route = useRoute();
 const auth = useAuthStore();
@@ -48,11 +50,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10">
     <div class="text-center">
       <div v-if="loading" class="space-y-4">
-        <div class="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p class="text-lg text-muted-foreground">Completing sign in...</p>
+        <LoadingSpinner text="Completing sign in..." />
       </div>
 
       <div v-else-if="error" class="space-y-4">

@@ -12,6 +12,7 @@ const auth = useAuthStore();
 
 const email = ref('');
 const password = ref('');
+const rememberMe = ref(false);
 
 // Field-specific errors
 const errors = ref({
@@ -51,7 +52,7 @@ async function handleLogin() {
   if (!validateForm()) return;
 
   try {
-    await auth.login(email.value, password.value);
+    await auth.login(email.value, password.value, rememberMe.value);
     router.push('/dashboard');
   } catch (e) {
     errors.value.general = e.message;
@@ -116,8 +117,8 @@ function loginWithGitHub() {
           </div>
 
           <div class="flex items-center justify-between text-sm">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" class="w-4 h-4" />
+            <label class="flex items-center gap-2 cursor-pointer text-muted-foreground">
+              <input v-model="rememberMe" type="checkbox" class="w-4 h-4 accent-primary" />
               <span>Remember me</span>
             </label>
             <router-link to="/forgot-password" class="text-primary hover:underline">

@@ -86,7 +86,7 @@ export async function register(req, res) {
  */
 export async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const { email, password, rememberMe } = req.body;
 
     // Validate required fields
     if (!email || !password) {
@@ -105,8 +105,10 @@ export async function login(req, res) {
       return sendUnauthorized(res, 'Invalid credentials');
     }
 
-    // Generate token
-    const token = generateToken({ userId: user._id, email: user.email, role: user.role });
+    // Generate token with expiration based on rememberMe
+    // rememberMe: 30 days, otherwise: 3 hours
+    const expiresIn = rememberMe ? '30d' : '3h';
+    const token = generateToken({ userId: user._id, email: user.email, role: user.role }, expiresIn);
 
     sendSuccess(res, { message: 'Login successful', data: { token, user } });
   } catch (error) {
