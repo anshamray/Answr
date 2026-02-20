@@ -9,7 +9,6 @@ import { STORAGE_KEYS } from '../constants/index.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import PixelLightning from '../components/icons/PixelLightning.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -160,8 +159,8 @@ onMounted(fetchQuiz);
     <!-- Header -->
     <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
       <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-        <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition flex items-center gap-1">
-          <span>&larr;</span> Back to Library
+        <router-link to="/library" class="text-sm font-medium text-muted-foreground hover:text-primary transition flex items-center gap-1">
+          <span class="text-base">←</span> Back to Library
         </router-link>
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
           <span class="text-xl font-bold text-primary pixel-font">Answr</span>
@@ -187,22 +186,13 @@ onMounted(fetchQuiz);
             <div class="lg:col-span-2 space-y-6">
               <PixelCard class="space-y-6">
                 <div>
-                  <div class="flex items-start justify-between mb-4">
+                  <div class="mb-4">
                     <h1 class="text-3xl lg:text-4xl font-bold">{{ quiz.title }}</h1>
-                    <button
-                      class="p-2 hover:text-accent transition-colors"
-                      :disabled="favoriteLoading"
-                      @click="handleFavoriteClick"
-                    >
-                      <svg width="28" height="28" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="isFavorited ? 'text-accent' : ''">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
-                    </button>
                   </div>
 
                   <p v-if="quiz.description" class="text-lg text-muted-foreground mb-4">{{ quiz.description }}</p>
 
-                  <div class="flex items-center gap-3 mb-4">
+                  <div class="flex items-center gap-3 mb-6">
                     <span class="text-3xl">👨‍🏫</span>
                     <div>
                       <div class="text-sm text-muted-foreground">Created by</div>
@@ -210,27 +200,31 @@ onMounted(fetchQuiz);
                     </div>
                   </div>
 
-                  <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                  <div v-if="quiz.tags?.length" class="flex flex-wrap items-start gap-2">
                     <PixelBadge v-for="tag in quiz.tags" :key="tag" variant="primary">{{ tag }}</PixelBadge>
                   </div>
                 </div>
 
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 py-6 border-y-2 border-border">
-                  <div class="text-center">
-                    <div class="text-base font-bold text-primary">{{ quiz.playCount?.toLocaleString() || 0 }}</div>
-                    <div class="text-xs text-muted-foreground">Times Played</div>
+                <div class="flex flex-wrap justify-start gap-8 py-6 border-y-2 border-border">
+                  <div>
+                    <div class="text-xl font-extrabold text-foreground">{{ quiz.playCount?.toLocaleString() || 0 }}</div>
+                    <div class="text-sm text-muted-foreground">Times Played</div>
                   </div>
-                  <div class="text-center">
-                    <div class="text-base font-bold text-secondary">{{ quiz.questionCount || 0 }}</div>
-                    <div class="text-xs text-muted-foreground">Questions</div>
+                  <div>
+                    <div class="text-xl font-extrabold text-foreground">{{ quiz.questionCount || 0 }}</div>
+                    <div class="text-sm text-muted-foreground">Questions</div>
                   </div>
-                  <div class="text-center">
-                    <div class="text-base font-bold text-accent">{{ quiz.category || 'General' }}</div>
-                    <div class="text-xs text-muted-foreground">Category</div>
+                  <div>
+                    <div class="text-xl font-extrabold text-foreground">{{ quiz.category || 'General' }}</div>
+                    <div class="text-sm text-muted-foreground">Category</div>
                   </div>
-                  <div class="text-center">
-                    <div class="text-base font-bold text-warning">{{ quiz.isOfficial ? 'Official' : 'Community' }}</div>
-                    <div class="text-xs text-muted-foreground">Source</div>
+                  <div>
+                    <div class="text-xl font-extrabold text-foreground">{{ quiz.isOfficial ? 'Official' : 'Community' }}</div>
+                    <div class="text-sm text-muted-foreground">Source</div>
+                  </div>
+                  <div>
+                    <div class="text-xl font-extrabold text-foreground">English</div>
+                    <div class="text-sm text-muted-foreground">Language</div>
                   </div>
                 </div>
               </PixelCard>
@@ -243,16 +237,14 @@ onMounted(fetchQuiz);
                   <div
                     v-for="(q, i) in quiz.questions.slice(0, 5)"
                     :key="q.id"
-                    class="flex items-center justify-between p-4 bg-muted border-2 border-border"
+                    class="flex items-start gap-4 p-5 bg-white border border-border rounded-lg"
                   >
-                    <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 bg-primary text-white border-2 border-black flex items-center justify-center font-bold text-sm">
-                        {{ i + 1 }}
-                      </div>
-                      <div>
-                        <div class="font-medium">{{ q.text || '(no text)' }}</div>
-                        <div class="text-xs text-muted-foreground">{{ getTypeLabel(q.type) }} · {{ q.timeLimit }}s</div>
-                      </div>
+                    <div class="w-6 h-6 bg-primary text-white border-2 border-black flex items-center justify-center font-bold text-xs shrink-0">
+                      {{ i + 1 }}
+                    </div>
+                    <div>
+                      <div class="font-medium">{{ q.text || '(no text)' }}</div>
+                      <div class="text-xs text-muted-foreground">{{ getTypeLabel(q.type) }} · {{ q.timeLimit }}s</div>
                     </div>
                   </div>
 
@@ -265,10 +257,10 @@ onMounted(fetchQuiz);
 
             <!-- Sidebar -->
             <div class="lg:col-span-1 space-y-4">
-              <PixelCard variant="primary" class="space-y-4 sticky top-24 !bg-primary/20 backdrop-blur-md">
+              <PixelCard variant="primary" class="space-y-4 sticky top-24 !bg-primary/20 backdrop-blur-md border border-border">
                 <PixelButton
                   variant="primary"
-                  class="w-full text-xl py-6"
+                  class="w-full text-xl py-6 !bg-primary-dark hover:!bg-primary"
                   :disabled="starting || quiz.questionCount === 0"
                   @click="startQuiz"
                 >
@@ -283,22 +275,22 @@ onMounted(fetchQuiz);
 
                 <div class="pt-4 border-t-2 border-border space-y-3">
                   <button
-                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-primary hover:bg-primary/5 transition-colors font-medium disabled:opacity-50"
+                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white shadow-sm hover:border-primary hover:bg-primary/5 hover:shadow-md transition-all font-medium disabled:opacity-50"
                     :disabled="favoriteLoading"
                     @click="handleFavoriteClick"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" :class="isFavorited ? 'text-accent' : ''">
+                    <svg width="18" height="18" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" :class="isFavorited ? 'text-accent' : ''">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
                     {{ favoriteLoading ? 'Loading...' : (isFavorited ? 'Saved to Favorites' : 'Save to Favorites') }}
                   </button>
 
                   <button
-                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white hover:border-secondary hover:bg-secondary/5 transition-colors font-medium disabled:opacity-50"
+                    class="w-full flex items-center justify-center gap-2 py-3 border-2 border-border bg-white shadow-sm hover:border-secondary hover:bg-secondary/5 hover:shadow-md transition-all font-medium disabled:opacity-50"
                     :disabled="duplicating"
                     @click="handleDuplicateAndEdit"
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
                     {{ duplicating ? 'Duplicating...' : 'Duplicate & Edit' }}
@@ -317,26 +309,6 @@ onMounted(fetchQuiz);
                 </div>
               </PixelCard>
 
-              <PixelCard class="space-y-3">
-                <h3 class="font-bold flex items-center gap-2">
-                  <PixelLightning class="text-accent" :size="20" />
-                  Quick Info
-                </h3>
-                <div class="space-y-2 text-sm">
-                  <div class="flex justify-between">
-                    <span class="text-muted-foreground">Questions</span>
-                    <span class="font-medium">{{ quiz.questionCount || 0 }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-muted-foreground">Category</span>
-                    <span class="font-medium">{{ quiz.category || 'General' }}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-muted-foreground">Language</span>
-                    <span class="font-medium">English</span>
-                  </div>
-                </div>
-              </PixelCard>
             </div>
           </div>
         </div>

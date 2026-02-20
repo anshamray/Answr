@@ -77,7 +77,7 @@ export const useAuthStore = defineStore('auth', () => {
     return data;
   }
 
-  async function fetchMe() {
+  async function fetchMe(throwOnError = false) {
     if (!token.value) return null;
 
     const res = await fetch(apiUrl('/api/auth/me'), {
@@ -86,6 +86,10 @@ export const useAuthStore = defineStore('auth', () => {
 
     if (!res.ok) {
       clearAuth();
+      if (throwOnError) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to fetch user');
+      }
       return null;
     }
 

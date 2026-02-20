@@ -342,7 +342,7 @@ onUnmounted(cleanup);
     <!-- ── Question ended (results) ────────────────── -->
     <template v-else>
       <div class="flex-1 flex flex-col items-center justify-center px-4 py-6 bg-gradient-to-br from-success/20 to-primary/20">
-        <div class="w-full max-w-sm space-y-6">
+        <div class="w-full max-w-sm space-y-4">
           <!-- Feedback -->
           <div class="text-center space-y-4">
             <div v-if="submitted && wasCorrect === true">
@@ -353,8 +353,8 @@ onUnmounted(cleanup);
               <p class="text-xl text-muted-foreground">Nice work!</p>
             </div>
             <div v-else-if="submitted && wasCorrect === false">
-              <div class="inline-flex items-center justify-center w-24 h-24 bg-destructive border-[3px] border-black pixel-shadow-lg mb-4">
-                <svg class="text-white" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <div class="inline-flex items-center justify-center w-16 h-16 bg-destructive border-[3px] border-black pixel-shadow mb-4">
+                <svg class="text-white" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </div>
@@ -362,8 +362,8 @@ onUnmounted(cleanup);
               <p class="text-xl text-muted-foreground">Better luck next time</p>
             </div>
             <div v-else>
-              <div class="inline-flex items-center justify-center w-24 h-24 bg-muted border-[3px] border-black pixel-shadow-lg mb-4">
-                <svg class="text-muted-foreground" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <div class="inline-flex items-center justify-center w-16 h-16 bg-muted border-[3px] border-black pixel-shadow mb-4">
+                <svg class="text-muted-foreground" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
@@ -372,27 +372,26 @@ onUnmounted(cleanup);
             </div>
           </div>
 
-          <!-- Score details -->
-          <PixelCard v-if="submitted" class="space-y-4">
-            <div class="flex items-center justify-between py-4 border-b-2 border-border">
-              <span class="text-muted-foreground">Points Earned</span>
-              <span class="text-3xl font-bold" :class="wasCorrect ? 'text-primary' : 'text-muted-foreground'">
-                +{{ pointsEarned ?? 0 }}
-              </span>
-            </div>
-
-            <div v-if="myEntry" class="flex items-center justify-between py-4">
-              <span class="text-muted-foreground">Your Rank</span>
-              <div class="flex items-center gap-2">
-                <span class="text-2xl font-bold text-warning">#{{ myEntry.position }}</span>
+          <!-- Combined Score Stats (Points, Total, Rank) -->
+          <PixelCard v-if="submitted && myEntry" class="!p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div class="text-center flex-1">
+                <div class="text-xs text-foreground/60 mb-1">Points</div>
+                <div class="text-2xl font-bold" :class="wasCorrect ? 'text-success' : 'text-muted-foreground'">
+                  +{{ pointsEarned ?? 0 }}
+                </div>
+              </div>
+              <div class="w-px h-12 bg-border"></div>
+              <div class="text-center flex-1">
+                <div class="text-xs text-foreground/60 mb-1">Total</div>
+                <div class="text-2xl font-bold text-foreground">{{ myEntry.score?.toLocaleString() }}</div>
+              </div>
+              <div class="w-px h-12 bg-border"></div>
+              <div class="text-center flex-1">
+                <div class="text-xs text-foreground/60 mb-1">Rank</div>
+                <div class="text-2xl font-bold" :class="wasCorrect ? 'text-warning' : 'text-foreground'">#{{ myEntry.position }}</div>
               </div>
             </div>
-          </PixelCard>
-
-          <!-- Total score -->
-          <PixelCard v-if="myEntry" variant="primary" class="text-center">
-            <div class="text-sm text-muted-foreground mb-1">Total Score</div>
-            <div class="text-5xl font-bold text-primary">{{ myEntry.score?.toLocaleString() }}</div>
           </PixelCard>
 
           <!-- Answer reveal -->
@@ -405,25 +404,25 @@ onUnmounted(cleanup);
               :key="option.id"
               class="border-[3px] py-3 px-3 text-sm font-bold flex items-center gap-2"
               :class="correctAnswerIds.includes(option.id)
-                ? 'border-success bg-success/10 text-success'
-                : 'border-border opacity-40'"
+                ? 'border-success bg-success text-success-foreground'
+                : 'border-border bg-muted/50 text-muted-foreground'"
             >
               <span class="w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 border-2 border-current">
                 {{ answerLabels[i] }}
               </span>
               <span class="flex-1 text-left truncate">{{ option.text }}</span>
-              <span v-if="correctAnswerIds.includes(option.id)" class="text-success font-bold">&#10003;</span>
+              <span v-if="correctAnswerIds.includes(option.id)" class="font-bold">&#10003;</span>
             </div>
           </div>
 
           <!-- Top 5 leaderboard -->
-          <PixelCard v-if="top5.length > 0" class="w-full">
-            <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-3 text-center">Top Players</h3>
+          <PixelCard v-if="top5.length > 0" class="w-full !p-3">
+            <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 text-center">Top Players</h3>
             <div class="space-y-1">
               <div
                 v-for="entry in top5"
                 :key="entry.playerId"
-                class="flex items-center gap-3 px-3 py-2 border-2"
+                class="flex items-center gap-2 px-2 py-1.5 border-2"
                 :class="entry.playerId === game.playerId ? 'border-primary bg-primary/10' : 'border-border'"
               >
                 <span class="text-sm font-bold w-5 text-center"
@@ -439,7 +438,11 @@ onUnmounted(cleanup);
             </div>
           </PixelCard>
 
-          <p class="text-muted-foreground text-sm animate-pulse text-center">Waiting for next question...</p>
+          <div class="text-center">
+            <span class="inline-block px-4 py-2 bg-card/90 backdrop-blur-sm border-2 border-border text-foreground text-sm font-medium animate-pulse">
+              Waiting for next question...
+            </span>
+          </div>
         </div>
       </div>
     </template>

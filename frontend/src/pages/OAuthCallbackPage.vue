@@ -34,8 +34,8 @@ onMounted(async () => {
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
     auth.token = token;
 
-    // Fetch user info
-    await auth.fetchMe();
+    // Fetch user info (throw on error to show error message)
+    await auth.fetchMe(true);
 
     // Redirect to dashboard
     router.push('/dashboard');
