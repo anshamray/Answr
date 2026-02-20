@@ -192,6 +192,23 @@ const totalPlays = computed(() =>
 
 const favoritesCount = computed(() => favoriteQuizzes.value.length);
 
+const verificationSending = ref(false);
+const verificationSent = ref(false);
+const verificationError = ref('');
+
+async function resendVerification() {
+  verificationSending.value = true;
+  verificationError.value = '';
+  try {
+    await auth.resendVerification();
+    verificationSent.value = true;
+  } catch (err) {
+    verificationError.value = err.message;
+  } finally {
+    verificationSending.value = false;
+  }
+}
+
 onMounted(fetchQuizzes);
 </script>
 
@@ -220,6 +237,32 @@ onMounted(fetchQuizzes);
 
     <!-- Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <!-- Email Verification Banner -->
+      <div
+        v-if="auth.user && !auth.user.emailVerified"
+        class="bg-warning/10 border-2 border-warning p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+      >
+        <div class="flex-1">
+          <p class="font-medium text-warning-foreground">
+            Please verify your email address
+          </p>
+          <p class="text-sm text-muted-foreground">
+            Check your inbox for a verification link. Verify to enable password recovery.
+          </p>
+          <p v-if="verificationError" class="text-sm text-destructive mt-1">{{ verificationError }}</p>
+          <p v-if="verificationSent" class="text-sm text-success mt-1">Verification email sent!</p>
+        </div>
+        <button
+          class="px-4 py-2 bg-warning text-warning-foreground font-medium border-2 border-black hover:opacity-90 transition disabled:opacity-50"
+          :disabled="verificationSending || verificationSent"
+          @click="resendVerification"
+        >
+          <template v-if="verificationSending">Sending...</template>
+          <template v-else-if="verificationSent">Sent</template>
+          <template v-else>Resend Email</template>
+        </button>
+      </div>
+
       <!-- Header -->
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>

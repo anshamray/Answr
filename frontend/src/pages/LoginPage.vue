@@ -85,9 +85,9 @@ function loginWithGitHub() {
               <input type="checkbox" class="w-4 h-4" />
               <span>Remember me</span>
             </label>
-            <button type="button" class="text-primary hover:underline">
+            <router-link to="/forgot-password" class="text-primary hover:underline">
               Forgot password?
-            </button>
+            </router-link>
           </div>
 
           <p v-if="error" class="text-destructive text-sm font-medium">{{ error }}</p>

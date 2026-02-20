@@ -32,6 +32,11 @@ async function findOrCreateUser(provider, profile) {
   let user = await User.findOne({ provider, providerId });
 
   if (user) {
+    // Ensure OAuth users are marked as verified
+    if (!user.emailVerified) {
+      user.emailVerified = true;
+      await user.save();
+    }
     return user;
   }
 
@@ -43,19 +48,21 @@ async function findOrCreateUser(provider, profile) {
     if (user.provider === 'local') {
       user.provider = provider;
       user.providerId = providerId;
+      user.emailVerified = true; // OAuth confirms email
       if (avatar) user.avatar = avatar;
       await user.save();
     }
     return user;
   }
 
-  // Create new user
+  // Create new user (OAuth users are automatically verified)
   user = new User({
     email: email.toLowerCase(),
     name,
     provider,
     providerId,
-    avatar
+    avatar,
+    emailVerified: true
   });
 
   await user.save();

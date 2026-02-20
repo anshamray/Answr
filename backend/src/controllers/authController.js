@@ -1,5 +1,8 @@
 import User from '../models/User.js';
 import { generateToken } from '../middleware/auth.js';
+import { createVerificationToken } from './emailController.js';
+import { sendEmail } from '../services/emailService.js';
+import { verifyEmailTemplate } from '../templates/emails/verifyEmail.js';
 import {
   sendSuccess,
   sendCreated,
@@ -9,6 +12,8 @@ import {
   sendConflict,
   sendServerError
 } from '../utils/responseHelper.js';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 /**
  * Register a new moderator account
@@ -29,14 +34,34 @@ export async function register(req, res) {
       return sendConflict(res, 'Email already registered');
     }
 
-    // Create user
+    // Create user (emailVerified defaults to false for local users)
     const user = new User({ email, password, name });
     await user.save();
 
-    // Generate token
+    // Generate verification token and send email
+    try {
+      const plainToken = await createVerificationToken(user);
+      const verificationUrl = `${FRONTEND_URL}/verify-email?token=${plainToken}`;
+      const { subject, html, text } = verifyEmailTemplate({
+        name: user.name,
+        verificationUrl
+      });
+
+      await sendEmail({
+        to: user.email,
+        subject,
+        html,
+        text
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Continue registration even if email fails
+    }
+
+    // Generate auth token
     const token = generateToken({ userId: user._id, email: user.email, role: user.role });
 
-    sendCreated(res, 'Registration successful', { token, user });
+    sendCreated(res, 'Registration successful. Please check your email to verify your account.', { token, user });
   } catch (error) {
     console.error('Registration error:', error);
 

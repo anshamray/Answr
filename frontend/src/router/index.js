@@ -5,6 +5,9 @@ import LandingPage from '../pages/LandingPage.vue';
 import LoginPage from '../pages/LoginPage.vue';
 import RegisterPage from '../pages/RegisterPage.vue';
 import OAuthCallbackPage from '../pages/OAuthCallbackPage.vue';
+import VerifyEmailPage from '../pages/VerifyEmailPage.vue';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage.vue';
+import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
 import DashboardPage from '../pages/DashboardPage.vue';
 import QuizEditPage from '../pages/QuizEditPage.vue';
 import LibraryPage from '../pages/LibraryPage.vue';
@@ -24,6 +27,9 @@ const routes = [
   { path: '/login', component: LoginPage },
   { path: '/register', component: RegisterPage },
   { path: '/oauth/callback', component: OAuthCallbackPage },
+  { path: '/verify-email', component: VerifyEmailPage },
+  { path: '/forgot-password', component: ForgotPasswordPage },
+  { path: '/reset-password', component: ResetPasswordPage },
 
   // Library (public, no auth required)
   { path: '/library', component: LibraryPage },

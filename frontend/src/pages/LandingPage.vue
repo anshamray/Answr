@@ -14,6 +14,7 @@ import PixelLightning from '../components/icons/PixelLightning.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
+import PixelPlay from '../components/icons/PixelPlay.vue';
 
 const router = useRouter();
 const game = useGameStore();
@@ -219,9 +220,7 @@ function handlePinSubmit() {
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <PixelCard class="space-y-4 hover:transform hover:-translate-y-2 transition-all duration-300">
             <div class="w-12 h-12 bg-primary/20 flex items-center justify-center">
-              <svg class="text-primary" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
+              <PixelPlay class="text-primary" :size="32" />
             </div>
             <h3 class="text-xl font-bold">Real-Time Play</h3>
             <p class="text-muted-foreground">

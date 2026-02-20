@@ -98,6 +98,22 @@ export const useAuthStore = defineStore('auth', () => {
     clearAuth();
   }
 
+  async function resendVerification() {
+    if (!token.value) return false;
+
+    const res = await fetch(apiUrl('/api/auth/resend-verification'), {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token.value}` }
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to resend verification email');
+    }
+
+    return true;
+  }
+
   async function fetchFavorites() {
     if (!token.value) return;
 
@@ -167,6 +183,7 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     fetchMe,
     logout,
+    resendVerification,
     fetchFavorites,
     addFavorite,
     removeFavorite,

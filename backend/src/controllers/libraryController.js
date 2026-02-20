@@ -87,7 +87,7 @@ export async function browseLibrary(req, res) {
         .sort(sortOption)
         .skip(skip)
         .limit(limitNum)
-        .select('title description category tags isOfficial playCount publishedAt moderatorId')
+        .select('title description category tags isOfficial playCount publishedAt moderatorId questions')
         .populate('moderatorId', 'name'),
       Quiz.countDocuments(filter)
     ]);
@@ -114,6 +114,7 @@ export async function browseLibrary(req, res) {
           playCount: q.playCount,
           publishedAt: q.publishedAt,
           author: q.moderatorId?.name || 'Unknown',
+          questionCount: q.questions?.length || 0,
           isFavorited: userFavorites.has(q._id.toString())
         })),
         pagination: {
