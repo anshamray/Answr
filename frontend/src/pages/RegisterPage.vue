@@ -15,24 +15,67 @@ const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
 const agreedToTerms = ref(false);
-const error = ref('');
+
+// Field-specific errors
+const errors = ref({
+  name: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+  general: ''
+});
 
 import { apiBase } from '../lib/api.js';
 const API_URL = apiBase || 'http://localhost:3000';
 
-async function handleRegister() {
-  error.value = '';
+function clearErrors() {
+  errors.value = { name: '', email: '', password: '', confirmPassword: '', general: '' };
+}
 
-  if (password.value !== confirmPassword.value) {
-    error.value = 'Passwords do not match';
-    return;
+function validateForm() {
+  clearErrors();
+  let isValid = true;
+
+  if (!name.value.trim()) {
+    errors.value.name = 'Please enter your name';
+    isValid = false;
   }
+
+  if (!email.value.trim()) {
+    errors.value.email = 'Please enter your email';
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+    errors.value.email = 'Please enter a valid email address';
+    isValid = false;
+  }
+
+  if (!password.value) {
+    errors.value.password = 'Please enter a password';
+    isValid = false;
+  } else if (password.value.length < 6) {
+    errors.value.password = 'Password must be at least 6 characters';
+    isValid = false;
+  }
+
+  if (!confirmPassword.value) {
+    errors.value.confirmPassword = 'Please confirm your password';
+    isValid = false;
+  } else if (password.value !== confirmPassword.value) {
+    errors.value.confirmPassword = 'Passwords do not match';
+    isValid = false;
+  }
+
+  return isValid;
+}
+
+async function handleRegister() {
+  if (!validateForm()) return;
 
   try {
     await auth.register(name.value, email.value, password.value);
     router.push('/dashboard');
   } catch (e) {
-    error.value = e.message;
+    errors.value.general = e.message;
   }
 }
 
@@ -46,14 +89,14 @@ function signUpWithGitHub() {
 </script>
 
 <template>
-  <div class="h-screen flex items-center justify-center px-4 py-3 bg-gradient-to-br from-primary/10 to-secondary/10">
-    <div class="w-full max-w-md flex flex-col max-h-full">
+  <div class="min-h-screen flex items-center justify-center px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-y-auto">
+    <div class="w-full max-w-md flex flex-col">
       <div class="text-center mb-3">
         <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
         <p class="text-muted-foreground text-sm">Host quizzes, engage your audience</p>
       </div>
 
-      <PixelCard class="space-y-3 !p-4 flex-1 min-h-0">
+      <PixelCard class="space-y-3 !p-4">
         <!-- Tab Switcher -->
         <div class="grid grid-cols-2 gap-1 p-1 bg-muted">
           <router-link
@@ -69,44 +112,52 @@ function signUpWithGitHub() {
           </div>
         </div>
 
-        <form class="space-y-3" @submit.prevent="handleRegister">
-          <PixelInput
-            v-model="name"
-            type="text"
-            label="Full Name"
-            placeholder="John Doe"
-            required
-            :error="!!error"
-            class="[&_input]:py-2"
-          />
-          <PixelInput
-            v-model="email"
-            type="email"
-            label="Email"
-            placeholder="you@example.com"
-            required
-            :error="!!error"
-            class="[&_input]:py-2"
-          />
+        <form class="space-y-3" novalidate @submit.prevent="handleRegister">
+          <div>
+            <PixelInput
+              v-model="name"
+              type="text"
+              label="Full Name"
+              placeholder="John Doe"
+              :error="!!errors.name"
+              class="[&_input]:py-2"
+            />
+            <p v-if="errors.name" class="text-destructive text-xs mt-1">{{ errors.name }}</p>
+          </div>
+          <div>
+            <PixelInput
+              v-model="email"
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              :error="!!errors.email"
+              class="[&_input]:py-2"
+            />
+            <p v-if="errors.email" class="text-destructive text-xs mt-1">{{ errors.email }}</p>
+          </div>
           <div class="grid grid-cols-2 gap-3">
-            <PixelInput
-              v-model="password"
-              type="password"
-              label="Password"
-              placeholder="••••••••"
-              required
-              :error="!!error"
-              class="[&_input]:py-2"
-            />
-            <PixelInput
-              v-model="confirmPassword"
-              type="password"
-              label="Confirm"
-              placeholder="••••••••"
-              required
-              :error="!!error"
-              class="[&_input]:py-2"
-            />
+            <div>
+              <PixelInput
+                v-model="password"
+                type="password"
+                label="Password"
+                placeholder="••••••••"
+                :error="!!errors.password"
+                class="[&_input]:py-2"
+              />
+              <p v-if="errors.password" class="text-destructive text-xs mt-1">{{ errors.password }}</p>
+            </div>
+            <div>
+              <PixelInput
+                v-model="confirmPassword"
+                type="password"
+                label="Confirm"
+                placeholder="••••••••"
+                :error="!!errors.confirmPassword"
+                class="[&_input]:py-2"
+              />
+              <p v-if="errors.confirmPassword" class="text-destructive text-xs mt-1">{{ errors.confirmPassword }}</p>
+            </div>
           </div>
 
           <div class="text-xs text-muted-foreground">
@@ -118,7 +169,7 @@ function signUpWithGitHub() {
             </label>
           </div>
 
-          <p v-if="error" class="text-destructive text-sm font-medium">{{ error }}</p>
+          <p v-if="errors.general" class="text-destructive text-sm font-medium">{{ errors.general }}</p>
 
           <PixelButton type="submit" variant="primary" class="w-full py-3">
             Create Account

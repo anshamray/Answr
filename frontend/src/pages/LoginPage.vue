@@ -12,18 +12,49 @@ const auth = useAuthStore();
 
 const email = ref('');
 const password = ref('');
-const error = ref('');
+
+// Field-specific errors
+const errors = ref({
+  email: '',
+  password: '',
+  general: ''
+});
 
 import { apiBase } from '../lib/api.js';
 const API_URL = apiBase || 'http://localhost:3000';
 
+function clearErrors() {
+  errors.value = { email: '', password: '', general: '' };
+}
+
+function validateForm() {
+  clearErrors();
+  let isValid = true;
+
+  if (!email.value.trim()) {
+    errors.value.email = 'Please enter your email';
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+    errors.value.email = 'Please enter a valid email address';
+    isValid = false;
+  }
+
+  if (!password.value) {
+    errors.value.password = 'Please enter your password';
+    isValid = false;
+  }
+
+  return isValid;
+}
+
 async function handleLogin() {
-  error.value = '';
+  if (!validateForm()) return;
+
   try {
     await auth.login(email.value, password.value);
     router.push('/dashboard');
   } catch (e) {
-    error.value = e.message;
+    errors.value.general = e.message;
   }
 }
 
@@ -37,8 +68,8 @@ function loginWithGitHub() {
 </script>
 
 <template>
-  <div class="h-screen flex items-center justify-center px-4 py-3 bg-gradient-to-br from-primary/10 to-secondary/10">
-    <div class="w-full max-w-md flex flex-col max-h-full">
+  <div class="min-h-screen flex items-center justify-center px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-y-auto">
+    <div class="w-full max-w-md flex flex-col">
       <div class="text-center mb-3">
         <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
         <p class="text-muted-foreground text-sm">Host quizzes, engage your audience</p>
@@ -60,25 +91,29 @@ function loginWithGitHub() {
           </router-link>
         </div>
 
-        <form class="space-y-3" @submit.prevent="handleLogin">
-          <PixelInput
-            v-model="email"
-            type="email"
-            label="Email"
-            placeholder="you@example.com"
-            required
-            :error="!!error"
-            class="[&_input]:py-2"
-          />
-          <PixelInput
-            v-model="password"
-            type="password"
-            label="Password"
-            placeholder="••••••••"
-            required
-            :error="!!error"
-            class="[&_input]:py-2"
-          />
+        <form class="space-y-3" novalidate @submit.prevent="handleLogin">
+          <div>
+            <PixelInput
+              v-model="email"
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              :error="!!errors.email"
+              class="[&_input]:py-2"
+            />
+            <p v-if="errors.email" class="text-destructive text-xs mt-1">{{ errors.email }}</p>
+          </div>
+          <div>
+            <PixelInput
+              v-model="password"
+              type="password"
+              label="Password"
+              placeholder="••••••••"
+              :error="!!errors.password"
+              class="[&_input]:py-2"
+            />
+            <p v-if="errors.password" class="text-destructive text-xs mt-1">{{ errors.password }}</p>
+          </div>
 
           <div class="flex items-center justify-between text-sm">
             <label class="flex items-center gap-2 cursor-pointer">
@@ -90,7 +125,7 @@ function loginWithGitHub() {
             </router-link>
           </div>
 
-          <p v-if="error" class="text-destructive text-sm font-medium">{{ error }}</p>
+          <p v-if="errors.general" class="text-destructive text-sm font-medium">{{ errors.general }}</p>
 
           <PixelButton type="submit" variant="primary" class="w-full py-3">
             Sign In
