@@ -1,12 +1,15 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { apiUrl } from '../lib/api.js';
 
 import PixelCard from '../components/PixelCard.vue';
 import PixelButton from '../components/PixelButton.vue';
 import PixelInput from '../components/PixelInput.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 
@@ -20,7 +23,7 @@ async function validateToken() {
 
   if (!token) {
     status.value = 'invalid';
-    errorMessage.value = 'No reset token provided';
+    errorMessage.value = t('errors.somethingWentWrong');
     return;
   }
 
@@ -30,14 +33,14 @@ async function validateToken() {
 
     if (!res.ok) {
       status.value = 'invalid';
-      errorMessage.value = data.error || 'Invalid or expired reset token';
+      errorMessage.value = data.error || t('errors.somethingWentWrong');
       return;
     }
 
     status.value = 'form';
   } catch (err) {
     status.value = 'invalid';
-    errorMessage.value = 'Failed to validate reset token';
+    errorMessage.value = t('errors.somethingWentWrong');
   }
 }
 
@@ -45,13 +48,13 @@ async function handleSubmit() {
   errorMessage.value = '';
 
   if (!password.value || password.value.length < 6) {
-    errorMessage.value = 'Password must be at least 6 characters';
+    errorMessage.value = t('validation.passwordMinLength');
     status.value = 'error';
     return;
   }
 
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = 'Passwords do not match';
+    errorMessage.value = t('validation.passwordsNoMatch');
     status.value = 'error';
     return;
   }
@@ -72,14 +75,14 @@ async function handleSubmit() {
 
     if (!res.ok) {
       status.value = 'error';
-      errorMessage.value = data.error || 'Failed to reset password';
+      errorMessage.value = data.error || t('errors.somethingWentWrong');
       return;
     }
 
     status.value = 'success';
   } catch (err) {
     status.value = 'error';
-    errorMessage.value = 'An error occurred. Please try again.';
+    errorMessage.value = t('errors.somethingWentWrong');
   }
 }
 
@@ -97,6 +100,9 @@ onMounted(validateToken);
 <template>
   <div class="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 to-secondary/10">
     <div class="w-full max-w-md">
+      <div class="flex justify-end mb-3">
+        <LanguageSwitcher />
+      </div>
       <div class="text-center mb-6">
         <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
       </div>
@@ -110,8 +116,7 @@ onMounted(validateToken);
               <path d="M12 2a10 10 0 0 1 10 10" />
             </svg>
           </div>
-          <h2 class="text-xl font-bold">Validating...</h2>
-          <p class="text-muted-foreground">Please wait while we validate your reset link.</p>
+          <h2 class="text-xl font-bold">{{ t('common.loading') }}</h2>
         </div>
 
         <!-- Invalid token -->
@@ -122,11 +127,11 @@ onMounted(validateToken);
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </div>
-          <h2 class="text-xl font-bold">Invalid Reset Link</h2>
+          <h2 class="text-xl font-bold">{{ t('errors.somethingWentWrong') }}</h2>
           <p class="text-muted-foreground">{{ errorMessage }}</p>
           <div class="flex gap-2 justify-center pt-2">
             <PixelButton variant="primary" @click="goToForgotPassword">
-              Request New Link
+              {{ t('forgotPassword.sendResetLink') }}
             </PixelButton>
           </div>
         </div>
@@ -134,9 +139,9 @@ onMounted(validateToken);
         <!-- Form -->
         <div v-else-if="status === 'form' || status === 'loading' || status === 'error'" class="space-y-4">
           <div class="text-center">
-            <h2 class="text-xl font-bold mb-2">Set new password</h2>
+            <h2 class="text-xl font-bold mb-2">{{ t('resetPassword.title') }}</h2>
             <p class="text-sm text-muted-foreground">
-              Enter your new password below.
+              {{ t('resetPassword.subtitle') }}
             </p>
           </div>
 
@@ -144,8 +149,8 @@ onMounted(validateToken);
             <PixelInput
               v-model="password"
               type="password"
-              label="New Password"
-              placeholder="At least 6 characters"
+              :label="t('resetPassword.newPassword')"
+              :placeholder="t('auth.passwordPlaceholder')"
               required
               :error="status === 'error'"
               :disabled="status === 'loading'"
@@ -153,8 +158,8 @@ onMounted(validateToken);
             <PixelInput
               v-model="confirmPassword"
               type="password"
-              label="Confirm Password"
-              placeholder="Repeat your password"
+              :label="t('resetPassword.confirmNewPassword')"
+              :placeholder="t('auth.passwordPlaceholder')"
               required
               :error="status === 'error'"
               :disabled="status === 'loading'"
@@ -168,8 +173,8 @@ onMounted(validateToken);
               class="w-full"
               :disabled="status === 'loading'"
             >
-              <template v-if="status === 'loading'">Resetting...</template>
-              <template v-else>Reset Password</template>
+              <template v-if="status === 'loading'">{{ t('resetPassword.resetting') }}</template>
+              <template v-else>{{ t('resetPassword.resetPassword') }}</template>
             </PixelButton>
           </form>
         </div>
@@ -181,20 +186,20 @@ onMounted(validateToken);
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <h2 class="text-xl font-bold">Password Reset!</h2>
+          <h2 class="text-xl font-bold">{{ t('resetPassword.success') }}</h2>
           <p class="text-muted-foreground">
-            Your password has been successfully reset. You can now sign in with your new password.
+            {{ t('resetPassword.redirecting') }}
           </p>
           <div class="pt-2">
             <PixelButton variant="primary" @click="goToLogin">
-              Sign In
+              {{ t('auth.signIn') }}
             </PixelButton>
           </div>
         </div>
       </PixelCard>
 
       <p class="mt-4 text-center">
-        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; Back to Home</router-link>
+        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; {{ t('common.backToHome') }}</router-link>
       </p>
     </div>
   </div>

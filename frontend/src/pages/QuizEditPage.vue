@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
 import { QUESTION_TYPES } from '../lib/questionTypes.js';
@@ -10,6 +11,8 @@ import PixelButton from '../components/PixelButton.vue';
 import PixelBadge from '../components/PixelBadge.vue';
 import QuestionTypeSelector from '../components/QuestionTypeSelector.vue';
 import QuestionEditor from '../components/QuestionEditor.vue';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -240,7 +243,7 @@ function updateQuestion(questionData) {
 
 // Delete question locally (no API call)
 function deleteQuestion(questionId) {
-  if (!confirm('Are you sure you want to delete this question?')) return;
+  if (!confirm(t('quizEditor.deleteConfirm'))) return;
 
   // If it's a real question (not temp), track for deletion on save
   if (!isTemporaryId(questionId)) {
@@ -383,13 +386,13 @@ function getQuestionPreview(question) {
       ? question.text.substring(0, 40) + '...'
       : question.text;
   }
-  return 'No question text';
+  return t('quizEditor.noQuestionText');
 }
 
 // Navigate back (with unsaved changes warning)
 function goBack() {
   if (hasUnsavedChanges.value) {
-    if (!confirm('You have unsaved changes. Are you sure you want to leave?')) {
+    if (!confirm(t('quizEditor.leaveConfirm'))) {
       return;
     }
   }
@@ -421,24 +424,24 @@ onMounted(() => {
           <input
             v-model="quiz.title"
             type="text"
-            placeholder="Untitled Quiz"
+            :placeholder="t('quizEditor.untitledQuiz')"
             class="text-xl font-bold bg-transparent border-none focus:outline-none focus:ring-0 w-48"
             @input="hasUnsavedChanges = true"
           />
 
           <PixelBadge variant="secondary">
-            {{ questionCount }} {{ questionCount === 1 ? 'question' : 'questions' }}
+            {{ questionCount }} {{ questionCount === 1 ? t('quizEditor.question') : t('quizEditor.questions') }}
           </PixelBadge>
 
           <span v-if="hasUnsavedChanges" class="text-xs text-warning font-medium hidden sm:inline">
-            Unsaved changes
+            {{ t('quizEditor.unsavedChanges') }}
           </span>
         </div>
 
         <div class="flex items-center gap-3">
-          <span v-if="saveStatus === 'saving'" class="text-sm text-muted-foreground">Saving...</span>
-          <span v-else-if="saveStatus === 'saved'" class="text-sm text-success">Saved</span>
-          <span v-else-if="saveStatus === 'error'" class="text-sm text-destructive">Save failed</span>
+          <span v-if="saveStatus === 'saving'" class="text-sm text-muted-foreground">{{ t('quizEditor.saving') }}</span>
+          <span v-else-if="saveStatus === 'saved'" class="text-sm text-success">{{ t('quizEditor.saved') }}</span>
+          <span v-else-if="saveStatus === 'error'" class="text-sm text-destructive">{{ t('quizEditor.saveFailed') }}</span>
 
           <PixelButton
             variant="primary"
@@ -450,7 +453,7 @@ onMounted(() => {
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {{ saving ? 'Saving...' : 'Save Quiz' }}
+            {{ saving ? t('quizEditor.saving') : t('quizEditor.saveQuiz') }}
           </PixelButton>
         </div>
       </div>
@@ -458,14 +461,14 @@ onMounted(() => {
 
     <!-- Loading State -->
     <div v-if="loading" class="flex-1 flex items-center justify-center">
-      <p class="text-muted-foreground text-lg">Loading quiz...</p>
+      <p class="text-muted-foreground text-lg">{{ t('quizEditor.loadingQuiz') }}</p>
     </div>
 
     <!-- Error State -->
     <div v-else-if="error && !quiz._id && !isNewQuiz" class="flex-1 flex items-center justify-center">
       <div class="text-center">
         <p class="text-destructive text-lg mb-4">{{ error }}</p>
-        <PixelButton variant="outline" @click="fetchQuiz">Retry</PixelButton>
+        <PixelButton variant="outline" @click="fetchQuiz">{{ t('quizEditor.retry') }}</PixelButton>
       </div>
     </div>
 
@@ -483,7 +486,7 @@ onMounted(() => {
             <svg class="inline mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Add Question
+            {{ t('quizEditor.addQuestion') }}
           </PixelButton>
         </div>
 
@@ -495,8 +498,8 @@ onMounted(() => {
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
             </div>
-            <p class="text-sm text-muted-foreground">No questions yet</p>
-            <p class="text-xs text-muted-foreground mt-1">Click "Add Question" to get started</p>
+            <p class="text-sm text-muted-foreground">{{ t('quizEditor.noQuestionsYet') }}</p>
+            <p class="text-xs text-muted-foreground mt-1">{{ t('quizEditor.clickToStart') }}</p>
           </div>
 
           <div
@@ -524,7 +527,7 @@ onMounted(() => {
                     >
                       {{ questionTypeInfo[question.type]?.label || question.type }}
                     </PixelBadge>
-                    <span v-if="isTemporaryId(question._id)" class="text-[10px] text-warning">new</span>
+                    <span v-if="isTemporaryId(question._id)" class="text-[10px] text-warning">{{ t('quizEditor.new') }}</span>
                   </div>
                   <p class="text-sm text-foreground truncate">
                     {{ getQuestionPreview(question) }}
@@ -536,7 +539,7 @@ onMounted(() => {
               <div class="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   class="p-1 text-muted-foreground hover:text-primary"
-                  title="Duplicate"
+                  :title="t('quizEditor.duplicate')"
                   @click.stop="duplicateQuestion(question._id)"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -545,7 +548,7 @@ onMounted(() => {
                 </button>
                 <button
                   class="p-1 text-muted-foreground hover:text-destructive"
-                  title="Delete"
+                  :title="t('common.delete')"
                   @click.stop="deleteQuestion(question._id)"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -561,28 +564,28 @@ onMounted(() => {
         <div class="border-t-[3px] border-border">
           <details class="group">
             <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-muted/50 transition-colors">
-              <span class="font-medium text-sm">Quiz Settings</span>
+              <span class="font-medium text-sm">{{ t('quizEditor.quizSettings') }}</span>
               <svg class="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </summary>
             <div class="p-4 pt-0 space-y-4">
               <div>
-                <label class="text-xs text-muted-foreground mb-1 block">Description</label>
+                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.description') }}</label>
                 <textarea
                   v-model="quiz.description"
-                  placeholder="Add a description..."
+                  :placeholder="t('quizEditor.addDescription')"
                   class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none resize-none"
                   rows="2"
                   @input="hasUnsavedChanges = true"
                 ></textarea>
               </div>
               <div>
-                <label class="text-xs text-muted-foreground mb-1 block">Category</label>
+                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.category') }}</label>
                 <input
                   v-model="quiz.category"
                   type="text"
-                  placeholder="e.g., Science, History"
+                  :placeholder="t('quizEditor.categoryPlaceholder')"
                   class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
                   @input="hasUnsavedChanges = true"
                 />
@@ -601,15 +604,15 @@ onMounted(() => {
                 <circle cx="12" cy="12" r="10" /><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" /><line x1="12" y1="17" x2="12.01" y2="17" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold mb-2">No question selected</h3>
+            <h3 class="text-xl font-bold mb-2">{{ t('quizEditor.noQuestionSelected') }}</h3>
             <p class="text-muted-foreground mb-6">
-              Select a question from the sidebar or add a new one to get started
+              {{ t('quizEditor.selectQuestionHint') }}
             </p>
             <PixelButton variant="primary" @click="showTypeSelector = true">
               <svg class="inline mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Add Your First Question
+              {{ t('quizEditor.addFirstQuestion') }}
             </PixelButton>
           </div>
         </div>

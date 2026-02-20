@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { apiUrl } from '../lib/api.js';
 import { getTypeLabel } from '../lib/questionTypes.js';
 import { useAuthStore } from '../stores/authStore.js';
@@ -9,6 +10,8 @@ import { STORAGE_KEYS } from '../constants/index.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -73,21 +76,21 @@ async function handleFavoriteClick() {
       const success = await auth.removeFavorite(quiz.value.id);
       if (success) {
         isFavorited.value = false;
-        favoriteMessage.value = 'Removed from favorites';
+        favoriteMessage.value = t('libraryDetail.removedFromFavorites');
       } else {
-        favoriteMessage.value = 'Failed to remove from favorites';
+        favoriteMessage.value = t('libraryDetail.failedToRemove');
       }
     } else {
       const success = await auth.addFavorite(quiz.value.id);
       if (success) {
         isFavorited.value = true;
-        favoriteMessage.value = 'Added to favorites!';
+        favoriteMessage.value = t('libraryDetail.addedToFavorites');
       } else {
-        favoriteMessage.value = 'Failed to add to favorites';
+        favoriteMessage.value = t('libraryDetail.failedToAdd');
       }
     }
   } catch {
-    favoriteMessage.value = 'An error occurred';
+    favoriteMessage.value = t('libraryDetail.errorOccurred');
   } finally {
     favoriteLoading.value = false;
   }
@@ -160,7 +163,7 @@ onMounted(fetchQuiz);
     <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
       <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
         <router-link to="/library" class="text-sm font-medium text-muted-foreground hover:text-primary transition flex items-center gap-1">
-          <span class="text-base">←</span> Back to Library
+          <span class="text-base">←</span> {{ t('libraryDetail.backToLibrary') }}
         </router-link>
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
           <span class="text-xl font-bold text-primary pixel-font">Answr</span>
@@ -170,12 +173,12 @@ onMounted(fetchQuiz);
 
     <main class="max-w-5xl mx-auto px-4 py-8">
       <!-- Loading -->
-      <div v-if="loading" class="text-center py-20 text-muted-foreground text-lg">Loading...</div>
+      <div v-if="loading" class="text-center py-20 text-muted-foreground text-lg">{{ t('common.loading') }}</div>
 
       <!-- Error -->
       <div v-else-if="error" class="text-center py-20">
         <p class="text-destructive text-lg mb-4">{{ error }}</p>
-        <router-link to="/library" class="text-primary hover:underline">Back to Library</router-link>
+        <router-link to="/library" class="text-primary hover:underline">{{ t('libraryDetail.backToLibrary') }}</router-link>
       </div>
 
       <!-- Quiz Detail -->
@@ -195,7 +198,7 @@ onMounted(fetchQuiz);
                   <div class="flex items-center gap-3 mb-6">
                     <span class="text-3xl">👨‍🏫</span>
                     <div>
-                      <div class="text-sm text-muted-foreground">Created by</div>
+                      <div class="text-sm text-muted-foreground">{{ t('libraryDetail.createdBy') }}</div>
                       <div class="font-bold">{{ quiz.author }}</div>
                     </div>
                   </div>
@@ -208,30 +211,30 @@ onMounted(fetchQuiz);
                 <div class="flex flex-wrap justify-start gap-8 py-6 border-y-2 border-border">
                   <div>
                     <div class="text-xl font-extrabold text-foreground">{{ quiz.playCount?.toLocaleString() || 0 }}</div>
-                    <div class="text-sm text-muted-foreground">Times Played</div>
+                    <div class="text-sm text-muted-foreground">{{ t('libraryDetail.timesPlayed') }}</div>
                   </div>
                   <div>
                     <div class="text-xl font-extrabold text-foreground">{{ quiz.questionCount || 0 }}</div>
-                    <div class="text-sm text-muted-foreground">Questions</div>
+                    <div class="text-sm text-muted-foreground">{{ t('libraryDetail.questions') }}</div>
                   </div>
                   <div>
                     <div class="text-xl font-extrabold text-foreground">{{ quiz.category || 'General' }}</div>
-                    <div class="text-sm text-muted-foreground">Category</div>
+                    <div class="text-sm text-muted-foreground">{{ t('libraryDetail.category') }}</div>
                   </div>
                   <div>
-                    <div class="text-xl font-extrabold text-foreground">{{ quiz.isOfficial ? 'Official' : 'Community' }}</div>
-                    <div class="text-sm text-muted-foreground">Source</div>
+                    <div class="text-xl font-extrabold text-foreground">{{ quiz.isOfficial ? t('libraryDetail.official') : t('libraryDetail.community') }}</div>
+                    <div class="text-sm text-muted-foreground">{{ t('libraryDetail.source') }}</div>
                   </div>
                   <div>
-                    <div class="text-xl font-extrabold text-foreground">English</div>
-                    <div class="text-sm text-muted-foreground">Language</div>
+                    <div class="text-xl font-extrabold text-foreground">{{ t('libraryDetail.english') }}</div>
+                    <div class="text-sm text-muted-foreground">{{ t('libraryDetail.language') }}</div>
                   </div>
                 </div>
               </PixelCard>
 
               <!-- Question Preview -->
               <PixelCard v-if="quiz.questions?.length" class="space-y-4">
-                <h2 class="text-2xl font-bold">Question Preview</h2>
+                <h2 class="text-2xl font-bold">{{ t('libraryDetail.questionPreview') }}</h2>
 
                 <div class="space-y-3">
                   <div
@@ -243,13 +246,13 @@ onMounted(fetchQuiz);
                       {{ i + 1 }}
                     </div>
                     <div>
-                      <div class="font-medium">{{ q.text || '(no text)' }}</div>
+                      <div class="font-medium">{{ q.text || t('libraryDetail.noText') }}</div>
                       <div class="text-xs text-muted-foreground">{{ getTypeLabel(q.type) }} · {{ q.timeLimit }}s</div>
                     </div>
                   </div>
 
                   <div v-if="quiz.questions.length > 5" class="text-center text-sm text-muted-foreground py-3">
-                    + {{ quiz.questions.length - 5 }} more questions
+                    {{ t('libraryDetail.moreQuestions', { count: quiz.questions.length - 5 }) }}
                   </div>
                 </div>
               </PixelCard>
@@ -267,10 +270,10 @@ onMounted(fetchQuiz);
                   <svg class="inline mr-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
-                  {{ starting ? 'Starting...' : 'Start Quiz' }}
+                  {{ starting ? t('libraryDetail.starting') : t('libraryDetail.startQuiz') }}
                 </PixelButton>
 
-                <p v-if="quiz.questionCount === 0" class="text-sm text-muted-foreground">This quiz has no questions yet.</p>
+                <p v-if="quiz.questionCount === 0" class="text-sm text-muted-foreground">{{ t('libraryDetail.noQuestionsYet') }}</p>
                 <p v-if="startError" class="text-sm text-destructive">{{ startError }}</p>
 
                 <div class="pt-4 border-t-2 border-border space-y-3">
@@ -282,7 +285,7 @@ onMounted(fetchQuiz);
                     <svg width="18" height="18" viewBox="0 0 24 24" :fill="isFavorited ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" :class="isFavorited ? 'text-accent' : ''">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                     </svg>
-                    {{ favoriteLoading ? 'Loading...' : (isFavorited ? 'Saved to Favorites' : 'Save to Favorites') }}
+                    {{ favoriteLoading ? t('common.loading') : (isFavorited ? t('libraryDetail.savedToFavorites') : t('libraryDetail.saveToFavorites')) }}
                   </button>
 
                   <button
@@ -293,15 +296,15 @@ onMounted(fetchQuiz);
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                     </svg>
-                    {{ duplicating ? 'Duplicating...' : 'Duplicate & Edit' }}
+                    {{ duplicating ? t('libraryDetail.duplicating') : t('libraryDetail.duplicateAndEdit') }}
                   </button>
 
                   <p v-if="duplicateError" class="text-sm text-destructive">{{ duplicateError }}</p>
 
                   <!-- Auth prompt for non-authenticated users -->
                   <div v-if="showAuthPrompt" class="p-3 bg-primary/10 border-2 border-primary text-sm">
-                    <p class="text-foreground mb-2">Create an account to save favorite quizzes and create your own!</p>
-                    <router-link to="/register" class="text-primary font-medium hover:underline">Sign up free &rarr;</router-link>
+                    <p class="text-foreground mb-2">{{ t('libraryDetail.authPrompt') }}</p>
+                    <router-link to="/register" class="text-primary font-medium hover:underline">{{ t('libraryDetail.signUpFree') }} &rarr;</router-link>
                   </div>
 
                   <!-- Feedback for authenticated users -->

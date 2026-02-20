@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
@@ -9,6 +10,8 @@ import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const game = useGameStore();
@@ -223,7 +226,7 @@ onUnmounted(cleanup);
         {{ timeRemaining }}s
       </div>
       <PixelBadge v-else-if="questionEnded" variant="accent">
-        Time's up
+        {{ t('playerGame.timesUp') }}
       </PixelBadge>
     </header>
 
@@ -232,7 +235,7 @@ onUnmounted(cleanup);
       <div class="flex-1 flex flex-col items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
         <div class="text-center space-y-6">
           <PixelBadge variant="primary" class="text-2xl px-6 py-3">
-            Question {{ question?.questionNumber || '?' }}
+            {{ t('playerGame.question') }} {{ question?.questionNumber || '?' }}
           </PixelBadge>
 
           <div
@@ -242,7 +245,7 @@ onUnmounted(cleanup);
             {{ introCountdown > 0 ? introCountdown : 'GO!' }}
           </div>
 
-          <p class="text-xl text-muted-foreground">Get ready to answer!</p>
+          <p class="text-xl text-muted-foreground">{{ t('playerGame.getReadyToAnswer') }}</p>
         </div>
       </div>
     </template>
@@ -283,7 +286,7 @@ onUnmounted(cleanup);
           class="fixed bottom-4 left-1/2 -translate-x-1/2 z-10"
         >
           <PixelBadge :variant="submitted ? 'success' : 'destructive'" class="text-lg px-6 py-3">
-            {{ submitted ? 'Answer submitted!' : "Time's up!" }}
+            {{ submitted ? t('playerGame.answerSubmitted') : t('playerGame.timesUp') }}
           </PixelBadge>
         </div>
       </template>
@@ -294,15 +297,15 @@ onUnmounted(cleanup);
           <!-- Question -->
           <PixelCard class="mb-6">
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
-              {{ question?.text || 'Waiting for question...' }}
+              {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">
-            <p class="text-xl font-bold text-destructive">Time's up!</p>
+            <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
           </div>
           <div v-else-if="submitted" class="mb-6 text-center">
-            <p class="text-success font-bold text-lg">Answer submitted!</p>
+            <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}</p>
           </div>
 
           <!-- Answer buttons -->
@@ -332,7 +335,7 @@ onUnmounted(cleanup);
           <!-- Footer -->
           <div class="mt-6 text-center">
             <div class="text-sm text-muted-foreground">
-              Playing as <span class="font-bold text-primary">{{ game.playerName || 'Player' }}</span>
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
             </div>
           </div>
         </div>
@@ -349,8 +352,8 @@ onUnmounted(cleanup);
               <div class="inline-flex items-center justify-center w-24 h-24 bg-success border-[3px] border-black pixel-shadow-lg animate-bounce mb-4">
                 <PixelCheck class="text-white" :size="48" />
               </div>
-              <h2 class="text-4xl font-bold text-success mb-2">Correct!</h2>
-              <p class="text-xl text-muted-foreground">Nice work!</p>
+              <h2 class="text-4xl font-bold text-success mb-2">{{ t('playerGame.correct') }}</h2>
+              <p class="text-xl text-muted-foreground">{{ t('playerGame.niceWork') }}</p>
             </div>
             <div v-else-if="submitted && wasCorrect === false">
               <div class="inline-flex items-center justify-center w-16 h-16 bg-destructive border-[3px] border-black pixel-shadow mb-4">
@@ -358,8 +361,8 @@ onUnmounted(cleanup);
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </div>
-              <h2 class="text-4xl font-bold text-destructive mb-2">Wrong!</h2>
-              <p class="text-xl text-muted-foreground">Better luck next time</p>
+              <h2 class="text-4xl font-bold text-destructive mb-2">{{ t('playerGame.wrong') }}</h2>
+              <p class="text-xl text-muted-foreground">{{ t('playerGame.betterLuckNextTime') }}</p>
             </div>
             <div v-else>
               <div class="inline-flex items-center justify-center w-16 h-16 bg-muted border-[3px] border-black pixel-shadow mb-4">
@@ -367,7 +370,7 @@ onUnmounted(cleanup);
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
               </div>
-              <h2 class="text-3xl font-bold text-muted-foreground mb-2">No answer</h2>
+              <h2 class="text-3xl font-bold text-muted-foreground mb-2">{{ t('playerGame.noAnswer') }}</h2>
               <p class="text-lg text-muted-foreground/60">+0 pts</p>
             </div>
           </div>
@@ -376,19 +379,19 @@ onUnmounted(cleanup);
           <PixelCard v-if="submitted && myEntry" class="!p-4">
             <div class="flex items-center justify-between gap-4">
               <div class="text-center flex-1">
-                <div class="text-xs text-foreground/60 mb-1">Points</div>
+                <div class="text-xs text-foreground/60 mb-1">{{ t('playerGame.points') }}</div>
                 <div class="text-2xl font-bold" :class="wasCorrect ? 'text-success' : 'text-muted-foreground'">
                   +{{ pointsEarned ?? 0 }}
                 </div>
               </div>
               <div class="w-px h-12 bg-border"></div>
               <div class="text-center flex-1">
-                <div class="text-xs text-foreground/60 mb-1">Total</div>
+                <div class="text-xs text-foreground/60 mb-1">{{ t('playerGame.total') }}</div>
                 <div class="text-2xl font-bold text-foreground">{{ myEntry.score?.toLocaleString() }}</div>
               </div>
               <div class="w-px h-12 bg-border"></div>
               <div class="text-center flex-1">
-                <div class="text-xs text-foreground/60 mb-1">Rank</div>
+                <div class="text-xs text-foreground/60 mb-1">{{ t('playerGame.rank') }}</div>
                 <div class="text-2xl font-bold" :class="wasCorrect ? 'text-warning' : 'text-foreground'">#{{ myEntry.position }}</div>
               </div>
             </div>
@@ -417,7 +420,7 @@ onUnmounted(cleanup);
 
           <!-- Top 5 leaderboard -->
           <PixelCard v-if="top5.length > 0" class="w-full !p-3">
-            <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 text-center">Top Players</h3>
+            <h3 class="text-xs font-bold text-muted-foreground uppercase tracking-wide mb-2 text-center">{{ t('playerGame.topPlayers') }}</h3>
             <div class="space-y-1">
               <div
                 v-for="entry in top5"
@@ -431,7 +434,7 @@ onUnmounted(cleanup);
                 </span>
                 <span class="flex-1 text-sm font-medium truncate"
                       :class="entry.playerId === game.playerId ? 'text-primary' : 'text-foreground'">
-                  {{ entry.playerId === game.playerId ? 'You' : entry.nickname }}
+                  {{ entry.playerId === game.playerId ? t('game.you') : entry.nickname }}
                 </span>
                 <span class="text-xs font-mono text-muted-foreground">{{ entry.score }}</span>
               </div>
@@ -440,7 +443,7 @@ onUnmounted(cleanup);
 
           <div class="text-center">
             <span class="inline-block px-4 py-2 bg-card/90 backdrop-blur-sm border-2 border-border text-foreground text-sm font-medium animate-pulse">
-              Waiting for next question...
+              {{ t('playerGame.waitingForNextQuestion') }}
             </span>
           </div>
         </div>

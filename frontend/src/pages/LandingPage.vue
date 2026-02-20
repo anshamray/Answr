@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { useShakeAnimation } from '../composables/useShakeAnimation.js';
@@ -15,7 +16,9 @@ import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
 import PixelPlay from '../components/icons/PixelPlay.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const game = useGameStore();
 const auth = useAuthStore();
@@ -62,23 +65,24 @@ function handlePinSubmit() {
           </div>
 
           <div class="hidden md:flex items-center gap-6">
-            <a href="#features" class="font-medium text-foreground hover:text-primary transition-colors">Features</a>
-            <a href="#how-it-works" class="font-medium text-foreground hover:text-primary transition-colors">How It Works</a>
-            <router-link to="/library" class="font-medium text-foreground hover:text-primary transition-colors">Library</router-link>
+            <a href="#features" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.features') }}</a>
+            <a href="#how-it-works" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.howItWorks') }}</a>
+            <router-link to="/library" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.library') }}</router-link>
           </div>
 
           <div class="flex items-center gap-3">
+            <LanguageSwitcher />
             <template v-if="auth.isAuthenticated">
               <router-link to="/dashboard">
-                <PixelButton variant="primary" size="sm">Dashboard</PixelButton>
+                <PixelButton variant="primary" size="sm">{{ t('nav.dashboard') }}</PixelButton>
               </router-link>
             </template>
             <template v-else>
               <router-link to="/login" class="hidden sm:inline-flex">
-                <PixelButton variant="outline" size="sm">Login</PixelButton>
+                <PixelButton variant="outline" size="sm">{{ t('nav.login') }}</PixelButton>
               </router-link>
               <router-link to="/login">
-                <PixelButton variant="primary" size="sm">Host Quiz</PixelButton>
+                <PixelButton variant="primary" size="sm">{{ t('nav.hostQuiz') }}</PixelButton>
               </router-link>
             </template>
           </div>
@@ -93,21 +97,20 @@ function handlePinSubmit() {
           <!-- Left — Text + Join Form -->
           <div class="space-y-8">
             <div class="inline-flex items-center gap-2">
-              <PixelBadge variant="accent">Open Source</PixelBadge>
-              <PixelBadge variant="secondary">v1.0</PixelBadge>
+              <PixelBadge variant="accent">{{ t('landing.heroTagline') }}</PixelBadge>
+              <PixelBadge variant="secondary">{{ t('landing.heroVersion') }}</PixelBadge>
             </div>
 
             <h1 class="text-5xl lg:text-7xl font-bold leading-tight">
-              Live Quizzes,
+              {{ t('landing.heroTitle1') }}
               <br />
-              <span class="text-primary">Level Up</span> the
+              <span class="text-primary">{{ t('landing.heroTitle2') }}</span> {{ t('landing.heroTitle3') }}
               <br />
-              <span class="text-secondary">Energy</span>
+              <span class="text-secondary">{{ t('landing.heroTitle4') }}</span>
             </h1>
 
             <p class="text-xl text-muted-foreground max-w-lg">
-              Real-time multiplayer quiz platform for classrooms, teams, and communities.
-              Create, host, and play engaging quizzes that feel like a game.
+              {{ t('landing.heroSubtitle') }}
             </p>
 
             <!-- Join Form (inline in hero) -->
@@ -120,7 +123,7 @@ function handlePinSubmit() {
                 type="text"
                 inputmode="numeric"
                 maxlength="6"
-                placeholder="Enter 6-digit PIN"
+                :placeholder="t('landing.pinPlaceholder')"
                 class="w-full text-center text-2xl tracking-widest border-[3px] border-black px-4 py-3 focus:outline-none focus:ring-4 focus:ring-primary/30"
                 :class="{ 'border-destructive': error }"
                 @keyup.enter="handlePinSubmit"
@@ -134,7 +137,7 @@ function handlePinSubmit() {
                 :disabled="loading"
                 @click="handlePinSubmit"
               >
-                {{ loading ? 'Checking...' : 'Join Game' }}
+                {{ loading ? t('landing.checking') : t('landing.joinGame') }}
               </PixelButton>
             </div>
 
@@ -142,15 +145,15 @@ function handlePinSubmit() {
             <template>
               <div class="flex items-center gap-4 max-w-sm">
                 <hr class="flex-1 border-border" />
-                <span class="text-muted-foreground text-sm">or</span>
+                <span class="text-muted-foreground text-sm">{{ t('common.or') }}</span>
                 <hr class="flex-1 border-border" />
               </div>
               <div class="flex flex-col sm:flex-row gap-3 max-w-sm">
                 <router-link to="/library" class="flex-1">
-                  <PixelButton variant="primary" class="w-full">Browse Library</PixelButton>
+                  <PixelButton variant="primary" class="w-full">{{ t('landing.browseLibrary') }}</PixelButton>
                 </router-link>
                 <router-link to="/login" class="flex-1">
-                  <PixelButton variant="outline" class="w-full">Host a Quiz</PixelButton>
+                  <PixelButton variant="outline" class="w-full">{{ t('landing.hostAQuiz') }}</PixelButton>
                 </router-link>
               </div>
             </template>
@@ -161,10 +164,10 @@ function handlePinSubmit() {
             <PixelCard variant="primary" class="transform rotate-2 hover:rotate-0 transition-transform duration-300">
               <div class="space-y-4">
                 <div class="flex items-center justify-between">
-                  <span class="pixel-font text-sm text-primary">QUESTION 5/10</span>
+                  <span class="pixel-font text-sm text-primary">{{ t('landing.questionCounter', { current: 5, total: 10 }) }}</span>
                   <PixelClock class="text-accent" :size="24" />
                 </div>
-                <h3 class="text-2xl font-bold">What's the capital of France?</h3>
+                <h3 class="text-2xl font-bold">{{ t('landing.questionExample') }}</h3>
                 <div class="grid grid-cols-2 gap-3">
                   <div class="p-4 bg-primary/20 border-2 border-primary font-medium cursor-pointer hover:bg-primary/30 transition-colors">
                     Paris
@@ -182,9 +185,9 @@ function handlePinSubmit() {
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center gap-2">
                     <PixelUsers :size="20" />
-                    <span class="font-medium">48 players</span>
+                    <span class="font-medium">48 {{ t('common.players', 48) }}</span>
                   </div>
-                  <div class="text-muted-foreground">15s remaining</div>
+                  <div class="text-muted-foreground">{{ t('landing.remaining', { seconds: 15 }) }}</div>
                 </div>
               </div>
             </PixelCard>
@@ -208,12 +211,12 @@ function handlePinSubmit() {
     <section id="features" class="py-20 lg:py-32 border-b-[3px] border-black">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <PixelBadge variant="primary" class="mb-4">Features</PixelBadge>
+          <PixelBadge variant="primary" class="mb-4">{{ t('nav.features') }}</PixelBadge>
           <h2 class="text-4xl lg:text-5xl font-bold mb-4">
-            Everything You Need to <span class="text-primary">Engage</span>
+            {{ t('landing.featuresTitle', { highlight: '' }) }} <span class="text-primary">{{ t('landing.featuresHighlight') }}</span>
           </h2>
           <p class="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Built for educators, trainers, and teams who want to make learning interactive and fun
+            {{ t('landing.featuresSubtitle') }}
           </p>
         </div>
 
@@ -222,9 +225,9 @@ function handlePinSubmit() {
             <div class="w-12 h-12 bg-primary/20 flex items-center justify-center">
               <PixelPlay class="text-primary" :size="32" />
             </div>
-            <h3 class="text-xl font-bold">Real-Time Play</h3>
+            <h3 class="text-xl font-bold">{{ t('landing.featureRealTime') }}</h3>
             <p class="text-muted-foreground">
-              Lightning-fast responses with WebSocket technology. Everyone plays together, in perfect sync.
+              {{ t('landing.featureRealTimeDesc') }}
             </p>
           </PixelCard>
 
@@ -232,9 +235,9 @@ function handlePinSubmit() {
             <div class="w-12 h-12 bg-secondary/20 flex items-center justify-center">
               <PixelUsers class="text-secondary" :size="32" />
             </div>
-            <h3 class="text-xl font-bold">Unlimited Players</h3>
+            <h3 class="text-xl font-bold">{{ t('landing.featureUnlimitedPlayers') }}</h3>
             <p class="text-muted-foreground">
-              Scale from 5 to 5,000 players. Perfect for classrooms, conferences, or company-wide events.
+              {{ t('landing.featureUnlimitedPlayersDesc') }}
             </p>
           </PixelCard>
 
@@ -242,9 +245,9 @@ function handlePinSubmit() {
             <div class="w-12 h-12 bg-accent/20 flex items-center justify-center">
               <PixelStar class="text-accent" :size="32" />
             </div>
-            <h3 class="text-xl font-bold">14 Question Types</h3>
+            <h3 class="text-xl font-bold">{{ t('landing.featureQuestionTypes') }}</h3>
             <p class="text-muted-foreground">
-              Multiple choice, true/false, slider, sort, and many more. Flexibility for every learning style.
+              {{ t('landing.featureQuestionTypesDesc') }}
             </p>
           </PixelCard>
 
@@ -252,9 +255,9 @@ function handlePinSubmit() {
             <div class="w-12 h-12 bg-success/20 flex items-center justify-center">
               <PixelCheck class="text-success" :size="32" />
             </div>
-            <h3 class="text-xl font-bold">Live Leaderboard</h3>
+            <h3 class="text-xl font-bold">{{ t('landing.featureLiveLeaderboard') }}</h3>
             <p class="text-muted-foreground">
-              Dynamic scoring based on speed and accuracy. Watch the competition heat up in real-time.
+              {{ t('landing.featureLiveLeaderboardDesc') }}
             </p>
           </PixelCard>
 
@@ -262,9 +265,9 @@ function handlePinSubmit() {
             <div class="w-12 h-12 bg-warning/20 flex items-center justify-center">
               <PixelClock class="text-warning" :size="32" />
             </div>
-            <h3 class="text-xl font-bold">Server Timer</h3>
+            <h3 class="text-xl font-bold">{{ t('landing.featureServerTimer') }}</h3>
             <p class="text-muted-foreground">
-              Authoritative server-side countdown. No cheating, perfectly synchronized across all devices.
+              {{ t('landing.featureServerTimerDesc') }}
             </p>
           </PixelCard>
 
@@ -272,9 +275,9 @@ function handlePinSubmit() {
             <div class="w-12 h-12 bg-primary/20 flex items-center justify-center">
               <PixelCheck class="text-primary" :size="32" />
             </div>
-            <h3 class="text-xl font-bold">Privacy First</h3>
+            <h3 class="text-xl font-bold">{{ t('landing.featurePrivacy') }}</h3>
             <p class="text-muted-foreground">
-              Open-source and self-hostable. Your data, your rules. No tracking, no ads, fully transparent.
+              {{ t('landing.featurePrivacyDesc') }}
             </p>
           </PixelCard>
         </div>
@@ -285,9 +288,9 @@ function handlePinSubmit() {
     <section id="how-it-works" class="py-20 lg:py-32 bg-gradient-to-br from-secondary/5 to-primary/5">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-16">
-          <PixelBadge variant="secondary" class="mb-4">How It Works</PixelBadge>
+          <PixelBadge variant="secondary" class="mb-4">{{ t('nav.howItWorks') }}</PixelBadge>
           <h2 class="text-4xl lg:text-5xl font-bold mb-4">
-            Three Steps to <span class="text-secondary">Epic Quizzes</span>
+            {{ t('landing.howItWorksTitle', { highlight: '' }) }} <span class="text-secondary">{{ t('landing.howItWorksHighlight') }}</span>
           </h2>
         </div>
 
@@ -296,9 +299,9 @@ function handlePinSubmit() {
             <div class="inline-flex items-center justify-center w-16 h-16 bg-primary text-white text-2xl font-bold border-[3px] border-black pixel-shadow">
               1
             </div>
-            <h3 class="text-2xl font-bold">Create Your Quiz</h3>
+            <h3 class="text-2xl font-bold">{{ t('landing.step1Title') }}</h3>
             <p class="text-muted-foreground">
-              Build your quiz in minutes with our intuitive editor. Add questions, set timers, customize scoring.
+              {{ t('landing.step1Desc') }}
             </p>
           </div>
 
@@ -306,9 +309,9 @@ function handlePinSubmit() {
             <div class="inline-flex items-center justify-center w-16 h-16 bg-secondary text-white text-2xl font-bold border-[3px] border-black pixel-shadow">
               2
             </div>
-            <h3 class="text-2xl font-bold">Share the PIN</h3>
+            <h3 class="text-2xl font-bold">{{ t('landing.step2Title') }}</h3>
             <p class="text-muted-foreground">
-              Get a unique 6-digit PIN. Players join from any device in seconds. No accounts required.
+              {{ t('landing.step2Desc') }}
             </p>
           </div>
 
@@ -316,16 +319,16 @@ function handlePinSubmit() {
             <div class="inline-flex items-center justify-center w-16 h-16 bg-accent text-white text-2xl font-bold border-[3px] border-black pixel-shadow">
               3
             </div>
-            <h3 class="text-2xl font-bold">Play & Compete</h3>
+            <h3 class="text-2xl font-bold">{{ t('landing.step3Title') }}</h3>
             <p class="text-muted-foreground">
-              Launch the game and watch the excitement unfold. Real-time answers, instant feedback, live leaderboard.
+              {{ t('landing.step3Desc') }}
             </p>
           </div>
         </div>
 
         <div class="text-center mt-12">
           <router-link to="/login">
-            <PixelButton variant="primary" size="lg">Start Creating</PixelButton>
+            <PixelButton variant="primary" size="lg">{{ t('landing.startCreating') }}</PixelButton>
           </router-link>
         </div>
       </div>
@@ -337,18 +340,17 @@ function handlePinSubmit() {
         <PixelCard variant="primary" class="space-y-6">
           <PixelStar class="text-primary mx-auto" :size="64" />
           <h2 class="text-4xl lg:text-5xl font-bold">
-            Ready to Transform Your Quizzes?
+            {{ t('landing.ctaTitle') }}
           </h2>
           <p class="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Join educators and teams using Answr to make learning engaging,
-            collaborative, and fun.
+            {{ t('landing.ctaSubtitle') }}
           </p>
           <div class="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <router-link to="/register">
-              <PixelButton variant="primary" size="lg">Get Started Free</PixelButton>
+              <PixelButton variant="primary" size="lg">{{ t('landing.getStartedFree') }}</PixelButton>
             </router-link>
             <a href="https://github.com" target="_blank" rel="noopener">
-              <PixelButton variant="outline" size="lg">View on GitHub</PixelButton>
+              <PixelButton variant="outline" size="lg">{{ t('landing.viewOnGitHub') }}</PixelButton>
             </a>
           </div>
         </PixelCard>
@@ -364,40 +366,40 @@ function handlePinSubmit() {
               <span class="text-xl font-bold pixel-font text-primary">Answr</span>
             </div>
             <p class="text-sm text-muted-foreground">
-              Open-source quiz platform for modern teams and classrooms.
+              {{ t('landing.footerTagline') }}
             </p>
           </div>
 
           <div>
-            <h4 class="font-bold mb-3">Product</h4>
+            <h4 class="font-bold mb-3">{{ t('landing.footerProduct') }}</h4>
             <div class="space-y-2 text-sm text-muted-foreground">
-              <a href="#features" class="block hover:text-primary cursor-pointer">Features</a>
-              <router-link to="/library" class="block hover:text-primary">Library</router-link>
-              <a href="#how-it-works" class="block hover:text-primary cursor-pointer">How It Works</a>
+              <a href="#features" class="block hover:text-primary cursor-pointer">{{ t('nav.features') }}</a>
+              <router-link to="/library" class="block hover:text-primary">{{ t('nav.library') }}</router-link>
+              <a href="#how-it-works" class="block hover:text-primary cursor-pointer">{{ t('nav.howItWorks') }}</a>
             </div>
           </div>
 
           <div>
-            <h4 class="font-bold mb-3">Resources</h4>
+            <h4 class="font-bold mb-3">{{ t('landing.footerResources') }}</h4>
             <div class="space-y-2 text-sm text-muted-foreground">
-              <div class="hover:text-primary cursor-pointer">Documentation</div>
-              <div class="hover:text-primary cursor-pointer">API Reference</div>
+              <div class="hover:text-primary cursor-pointer">{{ t('landing.footerDocumentation') }}</div>
+              <div class="hover:text-primary cursor-pointer">{{ t('landing.footerApiReference') }}</div>
               <div class="hover:text-primary cursor-pointer">GitHub</div>
             </div>
           </div>
 
           <div>
-            <h4 class="font-bold mb-3">Get Started</h4>
+            <h4 class="font-bold mb-3">{{ t('landing.footerGetStarted') }}</h4>
             <div class="space-y-2 text-sm text-muted-foreground">
-              <router-link to="/register" class="block hover:text-primary">Create Account</router-link>
-              <router-link to="/login" class="block hover:text-primary">Login</router-link>
-              <router-link to="/library" class="block hover:text-primary">Browse Quizzes</router-link>
+              <router-link to="/register" class="block hover:text-primary">{{ t('landing.footerCreateAccount') }}</router-link>
+              <router-link to="/login" class="block hover:text-primary">{{ t('nav.login') }}</router-link>
+              <router-link to="/library" class="block hover:text-primary">{{ t('landing.footerBrowseQuizzes') }}</router-link>
             </div>
           </div>
         </div>
 
         <div class="border-t-2 border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; 2026 Answr. Open source under MIT License.</p>
+          <p>{{ t('landing.footerCopyright') }}</p>
         </div>
       </div>
     </footer>

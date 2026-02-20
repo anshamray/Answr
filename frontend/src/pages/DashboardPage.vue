@@ -1,13 +1,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -29,7 +32,7 @@ async function fetchQuizzes() {
     const res = await fetch(apiUrl('/api/quizzes'), {
       headers: { Authorization: `Bearer ${auth.token}` }
     });
-    if (!res.ok) throw new Error('Failed to load quizzes');
+    if (!res.ok) throw new Error(t('errors.failedToLoadQuizzes'));
     const json = await res.json();
     quizzes.value = json.data?.quizzes ?? json.data ?? [];
   } catch (err) {
@@ -45,7 +48,7 @@ async function fetchFavorites() {
     const res = await fetch(apiUrl('/api/favorites'), {
       headers: { Authorization: `Bearer ${auth.token}` }
     });
-    if (!res.ok) throw new Error('Failed to load favorites');
+    if (!res.ok) throw new Error(t('errors.failedToLoadFavorites'));
     const json = await res.json();
     favoriteQuizzes.value = json.data?.quizzes ?? [];
   } catch (err) {
@@ -77,7 +80,7 @@ async function startSession(quizId) {
       },
       body: JSON.stringify({ quizId })
     });
-    if (!res.ok) throw new Error('Failed to start session');
+    if (!res.ok) throw new Error(t('errors.failedToStartSession'));
     const json = await res.json();
     const session = json.data?.session;
     router.push(`/session/${session._id || session.id}/lobby`);
@@ -95,7 +98,7 @@ function openPublishDialog(quizId) {
   const quiz = quizzes.value.find(q => (q._id || q.id) === quizId);
   const qCount = quiz?.questionCount ?? quiz?.questions?.length ?? 0;
   if (qCount < 1) {
-    actionError.value = 'Quiz must have at least 1 question to publish';
+    actionError.value = t('dashboard.needOneQuestion');
     return;
   }
   publishDialogQuiz.value = quiz;
@@ -122,7 +125,7 @@ async function confirmPublish() {
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
-      throw new Error(json.message || 'Failed to publish');
+      throw new Error(json.message || t('errors.failedToPublish'));
     }
     const q = quizzes.value.find(q => (q._id || q.id) === quizId);
     if (q) q.isPublished = true;
@@ -152,7 +155,7 @@ async function confirmUnpublish() {
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
-      throw new Error(json.message || 'Failed to unpublish');
+      throw new Error(json.message || t('errors.failedToUnpublish'));
     }
     const q = quizzes.value.find(q => (q._id || q.id) === quizId);
     if (q) q.isPublished = false;
@@ -163,14 +166,14 @@ async function confirmUnpublish() {
 }
 
 async function deleteQuiz(quizId) {
-  if (!confirm('Are you sure you want to delete this quiz?')) return;
+  if (!confirm(t('dashboard.deleteConfirm'))) return;
   actionError.value = '';
   try {
     const res = await fetch(apiUrl(`/api/quizzes/${quizId}`), {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${auth.token}` }
     });
-    if (!res.ok) throw new Error('Failed to delete quiz');
+    if (!res.ok) throw new Error(t('errors.failedToDelete'));
     quizzes.value = quizzes.value.filter(q => (q._id || q.id) !== quizId);
   } catch (err) {
     actionError.value = err.message;
@@ -223,13 +226,14 @@ onMounted(fetchQuizzes);
           </router-link>
         </div>
         <div class="flex items-center gap-4">
-          <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition">Library</router-link>
+          <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.library') }}</router-link>
+          <LanguageSwitcher />
           <span class="text-muted-foreground text-sm">{{ auth.user?.name || auth.user?.email }}</span>
           <button
             class="text-sm text-muted-foreground hover:text-destructive transition"
             @click="handleLogout"
           >
-            Logout
+            {{ t('nav.logout') }}
           </button>
         </div>
       </div>
@@ -244,37 +248,37 @@ onMounted(fetchQuizzes);
       >
         <div class="flex-1">
           <p class="font-medium text-warning-foreground">
-            Please verify your email address
+            {{ t('verification.pleaseVerify') }}
           </p>
           <p class="text-sm text-muted-foreground">
-            Check your inbox for a verification link. Verify to enable password recovery.
+            {{ t('verification.checkInbox') }}
           </p>
           <p v-if="verificationError" class="text-sm text-destructive mt-1">{{ verificationError }}</p>
-          <p v-if="verificationSent" class="text-sm text-success mt-1">Verification email sent!</p>
+          <p v-if="verificationSent" class="text-sm text-success mt-1">{{ t('verification.emailSent') }}</p>
         </div>
         <button
           class="px-4 py-2 bg-warning text-warning-foreground font-medium border-2 border-black hover:opacity-90 transition disabled:opacity-50"
           :disabled="verificationSending || verificationSent"
           @click="resendVerification"
         >
-          <template v-if="verificationSending">Sending...</template>
-          <template v-else-if="verificationSent">Sent</template>
-          <template v-else>Resend Email</template>
+          <template v-if="verificationSending">{{ t('verification.sending') }}</template>
+          <template v-else-if="verificationSent">{{ t('verification.sent') }}</template>
+          <template v-else>{{ t('verification.resendEmail') }}</template>
         </button>
       </div>
 
       <!-- Header -->
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 class="text-4xl font-bold mb-2">My Quizzes</h1>
-          <p class="text-muted-foreground">Create and manage your quiz collection</p>
+          <h1 class="text-4xl font-bold mb-2">{{ t('dashboard.title') }}</h1>
+          <p class="text-muted-foreground">{{ t('dashboard.subtitle') }}</p>
         </div>
 
         <PixelButton variant="primary" class="text-lg" @click="createNewQuiz">
           <svg class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
-          Create New Quiz
+          {{ t('dashboard.createNewQuiz') }}
         </PixelButton>
       </div>
 
@@ -282,23 +286,23 @@ onMounted(fetchQuizzes);
       <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <PixelCard variant="primary" class="text-center">
           <div class="text-4xl font-bold text-primary">{{ quizzes.length }}</div>
-          <div class="text-sm text-muted-foreground">Total Quizzes</div>
+          <div class="text-sm text-muted-foreground">{{ t('dashboard.totalQuizzes') }}</div>
         </PixelCard>
         <PixelCard variant="secondary" class="text-center">
           <div class="text-4xl font-bold text-secondary">{{ totalPlays }}</div>
-          <div class="text-sm text-muted-foreground">Total Plays</div>
+          <div class="text-sm text-muted-foreground">{{ t('dashboard.totalPlays') }}</div>
         </PixelCard>
         <PixelCard variant="accent" class="text-center">
           <div class="text-4xl font-bold text-accent">{{ quizzes.reduce((s, q) => s + (q.questionCount || q.questions?.length || 0), 0) }}</div>
-          <div class="text-sm text-muted-foreground">Total Questions</div>
+          <div class="text-sm text-muted-foreground">{{ t('dashboard.totalQuestions') }}</div>
         </PixelCard>
         <PixelCard class="text-center">
           <div class="text-4xl font-bold text-success">{{ quizzes.filter(q => q.isPublished).length }}</div>
-          <div class="text-sm text-muted-foreground">Published</div>
+          <div class="text-sm text-muted-foreground">{{ t('dashboard.published') }}</div>
         </PixelCard>
         <PixelCard class="text-center cursor-pointer hover:border-accent transition-colors" @click="handleFilterChange('favorites')">
           <div class="text-4xl font-bold text-accent">{{ favoritesCount }}</div>
-          <div class="text-sm text-muted-foreground">Favorites</div>
+          <div class="text-sm text-muted-foreground">{{ t('dashboard.favorites') }}</div>
         </PixelCard>
       </div>
 
@@ -310,21 +314,21 @@ onMounted(fetchQuizzes);
             :class="filter === 'all' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
             @click="handleFilterChange('all')"
           >
-            All
+            {{ t('dashboard.filterAll') }}
           </button>
           <button
             class="px-4 py-2 border-2 font-medium transition-colors"
             :class="filter === 'published' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
             @click="handleFilterChange('published')"
           >
-            Published
+            {{ t('dashboard.filterPublished') }}
           </button>
           <button
             class="px-4 py-2 border-2 font-medium transition-colors"
             :class="filter === 'draft' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
             @click="handleFilterChange('draft')"
           >
-            Private
+            {{ t('dashboard.filterPrivate') }}
           </button>
           <button
             class="px-4 py-2 border-2 font-medium transition-colors flex items-center gap-2"
@@ -334,7 +338,7 @@ onMounted(fetchQuizzes);
             <svg width="16" height="16" viewBox="0 0 24 24" :fill="filter === 'favorites' ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
-            Favorites
+            {{ t('dashboard.favorites') }}
           </button>
         </div>
 
@@ -377,14 +381,14 @@ onMounted(fetchQuizzes);
       </div>
 
       <!-- Loading -->
-      <div v-if="loading && filter !== 'favorites'" class="text-center py-20 text-muted-foreground text-lg">Loading...</div>
+      <div v-if="loading && filter !== 'favorites'" class="text-center py-20 text-muted-foreground text-lg">{{ t('common.loading') }}</div>
 
       <!-- Error -->
       <div v-else-if="error && filter !== 'favorites'" class="text-center py-20 text-destructive">{{ error }}</div>
 
       <!-- Favorites Section -->
       <div v-else-if="filter === 'favorites'">
-        <div v-if="favoritesLoading" class="text-center py-20 text-muted-foreground text-lg">Loading favorites...</div>
+        <div v-if="favoritesLoading" class="text-center py-20 text-muted-foreground text-lg">{{ t('dashboard.loadingFavorites') }}</div>
 
         <div v-else-if="favoriteQuizzes.length === 0">
           <PixelCard class="text-center py-16 space-y-6">
@@ -394,14 +398,14 @@ onMounted(fetchQuizzes);
               </svg>
             </div>
             <div>
-              <h3 class="text-2xl font-bold mb-2">No favorites yet</h3>
+              <h3 class="text-2xl font-bold mb-2">{{ t('dashboard.noFavoritesTitle') }}</h3>
               <p class="text-muted-foreground max-w-md mx-auto">
-                Browse the library and save quizzes you want to play later
+                {{ t('dashboard.noFavoritesSubtitle') }}
               </p>
             </div>
             <router-link to="/library">
               <PixelButton variant="primary" class="text-lg">
-                Browse Library
+                {{ t('landing.browseLibrary') }}
               </PixelButton>
             </router-link>
           </PixelCard>
@@ -419,11 +423,11 @@ onMounted(fetchQuizzes);
                 <h3 class="text-xl font-bold mb-2 group-hover:text-accent transition-colors">
                   {{ quiz.title }}
                 </h3>
-                <p class="text-sm text-muted-foreground line-clamp-2 mb-2">{{ quiz.description || 'No description' }}</p>
+                <p class="text-sm text-muted-foreground line-clamp-2 mb-2">{{ quiz.description || t('common.noDescription') }}</p>
                 <div class="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>by {{ quiz.author }}</span>
+                  <span>{{ t('common.by') }} {{ quiz.author }}</span>
                   <span>·</span>
-                  <span>{{ quiz.playCount || 0 }} plays</span>
+                  <span>{{ quiz.playCount || 0 }} {{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
               <svg class="text-accent shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -445,7 +449,7 @@ onMounted(fetchQuizzes);
                 <svg class="inline mr-1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
-                Play
+                {{ t('common.play') }}
               </PixelButton>
             </div>
           </PixelCard>
@@ -461,16 +465,16 @@ onMounted(fetchQuizzes);
             </svg>
           </div>
           <div>
-            <h3 class="text-2xl font-bold mb-2">No quizzes yet</h3>
+            <h3 class="text-2xl font-bold mb-2">{{ t('dashboard.noQuizzesTitle') }}</h3>
             <p class="text-muted-foreground max-w-md mx-auto">
-              Create your first quiz and start engaging your audience with interactive questions
+              {{ t('dashboard.noQuizzesSubtitle') }}
             </p>
           </div>
           <PixelButton variant="primary" class="text-lg" @click="createNewQuiz">
             <svg class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            Create Your First Quiz
+            {{ t('dashboard.createFirstQuiz') }}
           </PixelButton>
         </PixelCard>
       </div>
@@ -488,13 +492,13 @@ onMounted(fetchQuizzes);
                   {{ quiz.title }}
                 </h3>
                 <div class="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>{{ quiz.questionCount || quiz.questions?.length || 0 }} questions</span>
+                  <span>{{ quiz.questionCount || quiz.questions?.length || 0 }} {{ t('common.questions', quiz.questionCount || quiz.questions?.length || 0) }}</span>
                   <span>·</span>
-                  <span>{{ quiz.playCount || 0 }} plays</span>
+                  <span>{{ quiz.playCount || 0 }} {{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
               <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
-                {{ quiz.isPublished ? 'Published' : 'Private' }}
+                {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
               </PixelBadge>
             </div>
 
@@ -503,7 +507,7 @@ onMounted(fetchQuizzes);
                 <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
-                Start
+                {{ t('common.start') }}
               </PixelButton>
               <button
                 class="p-2 border-2 border-border hover:border-secondary hover:bg-secondary/10 transition-colors"
@@ -532,9 +536,9 @@ onMounted(fetchQuizzes);
                 size="sm"
                 class="w-full"
                 @click="openPublishDialog(quiz._id || quiz.id)"
-                title="Publish to library (visible to everyone)"
+                :title="t('dashboard.publishToLibrary')"
               >
-                Publish
+                {{ t('dashboard.publish') }}
               </PixelButton>
               <PixelButton
                 v-else
@@ -542,9 +546,8 @@ onMounted(fetchQuizzes);
                 size="sm"
                 class="w-full"
                 @click="openUnpublishDialog(quiz._id || quiz.id)"
-                title="Remove from library"
               >
-                Unpublish
+                {{ t('dashboard.unpublish') }}
               </PixelButton>
             </div>
           </PixelCard>
@@ -559,9 +562,9 @@ onMounted(fetchQuizzes);
       @click.self="closePublishDialog"
     >
       <div class="bg-white border-[3px] border-black pixel-shadow max-w-lg w-full p-6 space-y-4">
-        <h3 class="text-xl font-bold">Publish to Library</h3>
+        <h3 class="text-xl font-bold">{{ t('dashboard.publishToLibrary') }}</h3>
         <p class="text-muted-foreground">
-          Everyone will be able to see this quiz in the library.
+          {{ t('dashboard.publishDescription') }}
         </p>
         <div
           v-if="!publishDialogQuiz.description?.trim() || !publishDialogQuiz.tags?.length"
@@ -569,27 +572,27 @@ onMounted(fetchQuizzes);
         >
           <p class="text-sm font-medium">
             <template v-if="!publishDialogQuiz.description?.trim() && !publishDialogQuiz.tags?.length">
-              Description and tags are empty. It would be better to add them so others can find and understand your quiz.
+              {{ t('dashboard.needDescriptionAndTags') }}
             </template>
             <template v-else-if="!publishDialogQuiz.description?.trim()">
-              Description is empty. It would be better to add one so others can understand what your quiz is about.
+              {{ t('dashboard.needDescription') }}
             </template>
             <template v-else>
-              Tags are empty. It would be better to add tags so others can find your quiz in the library.
+              {{ t('dashboard.needTags') }}
             </template>
           </p>
         </div>
         <div class="space-y-3 border-2 border-border p-4 bg-muted/30">
           <div>
-            <span class="text-xs font-medium text-muted-foreground">Title</span>
-            <p class="font-medium">{{ publishDialogQuiz.title || 'Untitled Quiz' }}</p>
+            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.title') }}</span>
+            <p class="font-medium">{{ publishDialogQuiz.title || t('dashboard.untitledQuiz') }}</p>
           </div>
           <div v-if="publishDialogQuiz.description">
-            <span class="text-xs font-medium text-muted-foreground">Description</span>
+            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.description') }}</span>
             <p class="text-sm">{{ publishDialogQuiz.description }}</p>
           </div>
           <div v-if="publishDialogQuiz.tags?.length">
-            <span class="text-xs font-medium text-muted-foreground">Tags</span>
+            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.tags') }}</span>
             <p class="text-sm">
               <span
                 v-for="tag in publishDialogQuiz.tags"
@@ -603,13 +606,13 @@ onMounted(fetchQuizzes);
         </div>
         <div class="flex gap-2 flex-wrap">
           <PixelButton variant="outline" size="sm" @click="editQuiz(publishDialogQuiz._id || publishDialogQuiz.id); closePublishDialog()">
-            Edit
+            {{ t('common.edit') }}
           </PixelButton>
           <PixelButton variant="primary" size="sm" @click="confirmPublish">
-            Publish
+            {{ t('dashboard.publish') }}
           </PixelButton>
           <PixelButton variant="outline" size="sm" @click="closePublishDialog">
-            Cancel
+            {{ t('common.cancel') }}
           </PixelButton>
         </div>
       </div>
@@ -622,17 +625,17 @@ onMounted(fetchQuizzes);
       @click.self="closeUnpublishDialog"
     >
       <div class="bg-white border-[3px] border-black pixel-shadow max-w-lg w-full p-6 space-y-4">
-        <h3 class="text-xl font-bold">Unpublish Quiz</h3>
+        <h3 class="text-xl font-bold">{{ t('dashboard.unpublishTitle') }}</h3>
         <p class="text-muted-foreground">
-          This quiz will no longer be available in the library. Other users will not be able to find or play it.
+          {{ t('dashboard.unpublishDescription') }}
         </p>
-        <p class="font-medium">{{ unpublishDialogQuiz.title || 'Untitled Quiz' }}</p>
+        <p class="font-medium">{{ unpublishDialogQuiz.title || t('dashboard.untitledQuiz') }}</p>
         <div class="flex gap-2">
           <PixelButton variant="outline" size="sm" @click="confirmUnpublish">
-            Unpublish
+            {{ t('dashboard.unpublish') }}
           </PixelButton>
           <PixelButton variant="primary" size="sm" @click="closeUnpublishDialog">
-            Cancel
+            {{ t('common.cancel') }}
           </PixelButton>
         </div>
       </div>

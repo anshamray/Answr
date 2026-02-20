@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
@@ -11,6 +12,8 @@ import PixelCard from '../components/PixelCard.vue';
 import QRCode from '../components/QRCode.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -162,13 +165,13 @@ function getAvatar(index) {
   <div class="min-h-screen bg-gradient-to-br from-primary/5 via-secondary/5 to-accent/5">
     <!-- Loading -->
     <div v-if="status === 'loading'" class="h-full flex items-center justify-center">
-      <p class="text-muted-foreground text-lg">Loading session...</p>
+      <p class="text-muted-foreground text-lg">{{ t('sessionLobby.loadingSession') }}</p>
     </div>
 
     <!-- Error -->
     <div v-else-if="status === 'error'" class="h-full flex flex-col items-center justify-center">
       <p class="text-destructive text-lg mb-4">{{ error }}</p>
-      <router-link to="/" class="text-primary hover:underline">Back to Home</router-link>
+      <router-link to="/" class="text-primary hover:underline">{{ t('common.backToHome') }}</router-link>
     </div>
 
     <!-- Lobby -->
@@ -183,7 +186,7 @@ function getAvatar(index) {
 
             <div class="grid md:grid-cols-[1fr,auto] gap-4 items-center py-4 bg-white border-[3px] border-black">
               <div class="text-center">
-                <div class="text-base font-medium text-muted-foreground mb-2">Join at answr.ing</div>
+                <div class="text-base font-medium text-muted-foreground mb-2">{{ t('sessionLobby.joinAt') }}</div>
                 <div class="text-5xl lg:text-6xl font-bold text-primary leading-none mb-3 pixel-font" style="letter-spacing: 0.2em;">
                   {{ pin }}
                 </div>
@@ -195,13 +198,13 @@ function getAvatar(index) {
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
                   <PixelCheck v-else :size="16" class="text-primary" />
-                  {{ copied ? 'Copied!' : 'Copy PIN' }}
+                  {{ copied ? t('sessionLobby.copied') : t('sessionLobby.copyPin') }}
                 </button>
               </div>
 
               <!-- QR Code -->
               <div class="flex flex-col items-center gap-2 px-6 border-l-2 border-border">
-                <div class="text-xs font-medium text-muted-foreground">Scan to Join</div>
+                <div class="text-xs font-medium text-muted-foreground">{{ t('sessionLobby.scanToJoin') }}</div>
                 <QRCode :data="joinUrl" :size="128" />
               </div>
             </div>
@@ -210,12 +213,12 @@ function getAvatar(index) {
               <div class="flex items-center gap-2">
                 <PixelUsers class="text-primary" :size="24" />
                 <span class="font-bold">{{ playerCount }}</span>
-                <span class="text-muted-foreground">Players</span>
+                <span class="text-muted-foreground">{{ t('sessionLobby.players') }}</span>
               </div>
               <div class="w-px h-8 bg-border"></div>
               <div class="flex items-center gap-2">
                 <span class="font-bold text-secondary">{{ questionCount }}</span>
-                <span class="text-muted-foreground">Questions</span>
+                <span class="text-muted-foreground">{{ t('libraryDetail.questions') }}</span>
               </div>
             </div>
           </PixelCard>
@@ -232,11 +235,11 @@ function getAvatar(index) {
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
-                Players in Lobby
+                {{ t('sessionLobby.playersInLobby') }}
               </h2>
 
               <div v-if="playerCount === 0" class="text-center text-muted-foreground/50 py-6">
-                Waiting for players to join...
+                {{ t('sessionLobby.waitingForPlayers') }}
               </div>
 
               <div v-else class="grid sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[280px] overflow-y-auto">
@@ -266,18 +269,18 @@ function getAvatar(index) {
               <svg class="inline mr-2" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              {{ starting ? 'Starting...' : 'Start Game' }}
+              {{ starting ? t('libraryDetail.starting') : t('sessionLobby.startGame') }}
             </PixelButton>
 
             <PixelCard class="space-y-2">
-              <h3 class="font-bold text-sm">Quick Settings</h3>
+              <h3 class="font-bold text-sm">{{ t('sessionLobby.quickSettings') }}</h3>
               <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   v-model="showLeaderboard"
                   type="checkbox"
                   class="w-4 h-4 accent-primary"
                 />
-                <span class="text-sm">Show leaderboard</span>
+                <span class="text-sm">{{ t('sessionLobby.showLeaderboard') }}</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -285,7 +288,7 @@ function getAvatar(index) {
                   type="checkbox"
                   class="w-4 h-4 accent-primary"
                 />
-                <span class="text-sm">Music &amp; sounds</span>
+                <span class="text-sm">{{ t('sessionLobby.musicAndSounds') }}</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer select-none">
                 <input
@@ -293,7 +296,7 @@ function getAvatar(index) {
                   type="checkbox"
                   class="w-4 h-4 accent-primary"
                 />
-                <span class="text-sm">Allow late joins</span>
+                <span class="text-sm">{{ t('sessionLobby.allowLateJoins') }}</span>
               </label>
             </PixelCard>
 
@@ -301,12 +304,12 @@ function getAvatar(index) {
               class="w-full text-xs text-destructive hover:underline"
               @click="endSession"
             >
-              Cancel Session
+              {{ t('sessionLobby.cancelSession') }}
             </button>
           </div>
         </div>
 
-        <p v-if="isGuest" class="text-muted-foreground/50 text-xs mt-3 text-center">Guest session — no login required</p>
+        <p v-if="isGuest" class="text-muted-foreground/50 text-xs mt-3 text-center">{{ t('sessionLobby.guestSession') }}</p>
       </div>
     </div>
   </div>

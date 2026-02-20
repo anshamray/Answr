@@ -1,10 +1,14 @@
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { apiUrl } from '../lib/api.js';
 
 import PixelCard from '../components/PixelCard.vue';
 import PixelButton from '../components/PixelButton.vue';
 import PixelInput from '../components/PixelInput.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+
+const { t } = useI18n();
 
 const email = ref('');
 const status = ref('form'); // 'form', 'loading', 'sent', 'error'
@@ -12,7 +16,7 @@ const errorMessage = ref('');
 
 async function handleSubmit() {
   if (!email.value) {
-    errorMessage.value = 'Please enter your email address';
+    errorMessage.value = t('validation.enterEmail');
     status.value = 'error';
     return;
   }
@@ -31,14 +35,14 @@ async function handleSubmit() {
 
     if (!res.ok) {
       status.value = 'error';
-      errorMessage.value = data.error || 'Failed to send reset email';
+      errorMessage.value = data.error || t('errors.somethingWentWrong');
       return;
     }
 
     status.value = 'sent';
   } catch (err) {
     status.value = 'error';
-    errorMessage.value = 'An error occurred. Please try again.';
+    errorMessage.value = t('errors.somethingWentWrong');
   }
 }
 
@@ -52,6 +56,9 @@ function resetForm() {
 <template>
   <div class="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 to-secondary/10">
     <div class="w-full max-w-md">
+      <div class="flex justify-end mb-3">
+        <LanguageSwitcher />
+      </div>
       <div class="text-center mb-6">
         <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
       </div>
@@ -60,9 +67,9 @@ function resetForm() {
         <!-- Form -->
         <div v-if="status === 'form' || status === 'loading' || status === 'error'" class="space-y-4">
           <div class="text-center">
-            <h2 class="text-xl font-bold mb-2">Reset your password</h2>
+            <h2 class="text-xl font-bold mb-2">{{ t('forgotPassword.title') }}</h2>
             <p class="text-sm text-muted-foreground">
-              Enter your email address and we'll send you a link to reset your password.
+              {{ t('forgotPassword.subtitle') }}
             </p>
           </div>
 
@@ -70,8 +77,8 @@ function resetForm() {
             <PixelInput
               v-model="email"
               type="email"
-              label="Email"
-              placeholder="you@example.com"
+              :label="t('auth.email')"
+              :placeholder="t('auth.emailPlaceholder')"
               required
               :error="status === 'error'"
               :disabled="status === 'loading'"
@@ -85,14 +92,14 @@ function resetForm() {
               class="w-full"
               :disabled="status === 'loading'"
             >
-              <template v-if="status === 'loading'">Sending...</template>
-              <template v-else>Send Reset Link</template>
+              <template v-if="status === 'loading'">{{ t('forgotPassword.sending') }}</template>
+              <template v-else>{{ t('forgotPassword.sendResetLink') }}</template>
             </PixelButton>
           </form>
 
           <div class="text-center">
             <router-link to="/login" class="text-sm text-primary hover:underline">
-              Back to Sign In
+              {{ t('forgotPassword.backToLogin') }}
             </router-link>
           </div>
         </div>
@@ -105,17 +112,17 @@ function resetForm() {
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
             </svg>
           </div>
-          <h2 class="text-xl font-bold">Check your email</h2>
+          <h2 class="text-xl font-bold">{{ t('forgotPassword.checkEmail') }}</h2>
           <p class="text-muted-foreground">
-            If an account exists with <strong>{{ email }}</strong>, you will receive a password reset link shortly.
+            {{ t('forgotPassword.resetLinkSent') }}
           </p>
           <div class="flex gap-2 justify-center pt-2">
             <PixelButton variant="outline" @click="resetForm">
-              Try another email
+              {{ t('auth.email') }}
             </PixelButton>
             <router-link to="/login">
               <PixelButton variant="primary">
-                Back to Sign In
+                {{ t('forgotPassword.backToLogin') }}
               </PixelButton>
             </router-link>
           </div>
@@ -123,7 +130,7 @@ function resetForm() {
       </PixelCard>
 
       <p class="mt-4 text-center">
-        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; Back to Home</router-link>
+        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; {{ t('common.backToHome') }}</router-link>
       </p>
     </div>
   </div>

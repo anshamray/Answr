@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { connectSocket, getSocket } from '../lib/socket.js';
 import { useShakeAnimation } from '../composables/useShakeAnimation.js';
@@ -9,7 +10,9 @@ import { TIMING, AVATARS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const game = useGameStore();
 
@@ -38,13 +41,13 @@ function handleJoin() {
   error.value = '';
 
   if (nickname.value.trim().length < 2) {
-    error.value = 'Name must be at least 2 characters';
+    error.value = t('game.nameMinLength');
     triggerShake();
     return;
   }
 
   if (!selectedEmoji.value) {
-    error.value = 'Please select an emoji';
+    error.value = t('game.selectEmojiError');
     triggerShake();
     return;
   }
@@ -55,7 +58,7 @@ function handleJoin() {
 
   const timeout = setTimeout(() => {
     loading.value = false;
-    error.value = 'Could not reach the server. Try again.';
+    error.value = t('game.serverError');
     triggerShake();
     cleanupSocket();
   }, TIMING.SOCKET_CONNECTION_TIMEOUT);
@@ -73,7 +76,7 @@ function handleJoin() {
   socket.on('player:error', (data) => {
     clearTimeout(timeout);
     loading.value = false;
-    error.value = data?.message || 'Failed to join. Please try again.';
+    error.value = data?.message || t('errors.somethingWentWrong');
     triggerShake();
     cleanupSocket();
   });
@@ -102,11 +105,14 @@ function goBack() {
 <template>
   <div class="min-h-screen flex items-center justify-center px-4 py-4 bg-gradient-to-br from-primary/10 to-accent/10">
     <div class="w-full max-w-lg" :class="{ 'animate-shake': shake }">
+      <div class="flex justify-end mb-3">
+        <LanguageSwitcher />
+      </div>
       <PixelCard class="space-y-6">
         <div class="text-center">
           <!-- PIN display -->
           <p class="text-sm text-muted-foreground mb-4">
-            Joining game with PIN: <span class="font-mono font-bold text-foreground">{{ game.pin }}</span>
+            {{ t('game.joiningWithPin') }} <span class="font-mono font-bold text-foreground">{{ game.pin }}</span>
           </p>
           <div class="inline-flex items-center justify-center w-20 h-20 bg-primary/20 border-2 border-primary mb-4">
             <span v-if="selectedEmoji" class="text-5xl">{{ selectedEmoji }}</span>
@@ -117,27 +123,27 @@ function goBack() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
           </div>
-          <h2 class="text-3xl font-bold mb-2">Create Your Profile</h2>
-          <p class="text-muted-foreground">Choose how you'll appear in the game</p>
+          <h2 class="text-3xl font-bold mb-2">{{ t('game.createProfile') }}</h2>
+          <p class="text-muted-foreground">{{ t('game.chooseAppearance') }}</p>
         </div>
 
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-foreground">Your Nickname</label>
+          <label class="block text-sm font-medium text-foreground">{{ t('game.yourNickname') }}</label>
           <input
             v-model="nickname"
             type="text"
             maxlength="20"
-            placeholder="Enter your name..."
+            :placeholder="t('game.enterYourName')"
             class="w-full px-6 py-4 text-center text-2xl font-medium border-[3px] border-black focus:outline-none focus:ring-4 focus:ring-primary/30 transition-all bg-white"
             autofocus
           />
           <p class="text-xs text-muted-foreground text-center">
-            {{ nickname.length }}/20 characters
+            {{ t('game.charactersCount', { count: nickname.length }) }}
           </p>
         </div>
 
         <div class="space-y-3">
-          <label class="block text-sm font-medium text-foreground">Choose Your Emoji</label>
+          <label class="block text-sm font-medium text-foreground">{{ t('game.chooseEmoji') }}</label>
           <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-64 overflow-y-auto p-2 bg-muted border-2 border-border">
             <button
               v-for="emoji in emojiOptions"
@@ -152,13 +158,13 @@ function goBack() {
             </button>
           </div>
           <p v-if="!selectedEmoji" class="text-xs text-muted-foreground text-center">
-            Select an emoji to represent you
+            {{ t('game.selectEmoji') }}
           </p>
         </div>
 
         <!-- Display Settings -->
         <div class="space-y-2 pt-4 border-t-2 border-border">
-          <label class="text-sm font-medium text-foreground">Display Settings</label>
+          <label class="text-sm font-medium text-foreground">{{ t('game.displaySettings') }}</label>
           <label class="flex items-center gap-3 cursor-pointer select-none p-3 bg-muted border-2 border-border">
             <input
               v-model="showAnswerText"
@@ -166,15 +172,15 @@ function goBack() {
               class="w-5 h-5 accent-primary"
             />
             <div>
-              <span class="text-sm font-medium">Show answer text on my screen</span>
-              <p class="text-xs text-muted-foreground">Turn off to see only A, B, C, D buttons (read answers from host screen)</p>
+              <span class="text-sm font-medium">{{ t('game.showAnswerText') }}</span>
+              <p class="text-xs text-muted-foreground">{{ t('game.showAnswerTextHint') }}</p>
             </div>
           </label>
         </div>
 
         <!-- Preview -->
         <PixelCard v-if="selectedEmoji && nickname.trim()" variant="primary" class="text-center">
-          <div class="text-sm text-muted-foreground mb-2">Preview</div>
+          <div class="text-sm text-muted-foreground mb-2">{{ t('game.preview') }}</div>
           <div class="flex items-center justify-center gap-3">
             <span class="text-5xl">{{ selectedEmoji }}</span>
             <span class="text-2xl font-bold">{{ nickname }}</span>
@@ -195,7 +201,7 @@ function goBack() {
           <svg v-if="!loading" class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
-          {{ loading ? 'Joining...' : 'Join Game' }}
+          {{ loading ? t('game.joining') : t('landing.joinGame') }}
         </PixelButton>
 
         <button
@@ -203,7 +209,7 @@ function goBack() {
           :disabled="loading"
           @click="goBack"
         >
-          &larr; Change PIN
+          &larr; {{ t('game.changePin') }}
         </button>
       </PixelCard>
     </div>

@@ -1,12 +1,15 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelInput from '../components/PixelInput.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -38,36 +41,36 @@ function validateForm() {
   let isValid = true;
 
   if (!name.value.trim()) {
-    errors.value.name = 'Please enter your name';
+    errors.value.name = t('validation.enterName');
     isValid = false;
   }
 
   if (!email.value.trim()) {
-    errors.value.email = 'Please enter your email';
+    errors.value.email = t('validation.enterEmail');
     isValid = false;
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    errors.value.email = 'Please enter a valid email address';
+    errors.value.email = t('validation.validEmail');
     isValid = false;
   }
 
   if (!password.value) {
-    errors.value.password = 'Please enter a password';
+    errors.value.password = t('validation.enterAPassword');
     isValid = false;
   } else if (password.value.length < 6) {
-    errors.value.password = 'Password must be at least 6 characters';
+    errors.value.password = t('validation.passwordMinLength');
     isValid = false;
   }
 
   if (!confirmPassword.value) {
-    errors.value.confirmPassword = 'Please confirm your password';
+    errors.value.confirmPassword = t('validation.confirmPassword');
     isValid = false;
   } else if (password.value !== confirmPassword.value) {
-    errors.value.confirmPassword = 'Passwords do not match';
+    errors.value.confirmPassword = t('validation.passwordsNoMatch');
     isValid = false;
   }
 
   if (!agreedToTerms.value) {
-    errors.value.terms = 'You must agree to the Terms and Privacy Policy';
+    errors.value.terms = t('validation.agreeToTerms');
     isValid = false;
   }
 
@@ -97,9 +100,12 @@ function signUpWithGitHub() {
 <template>
   <div class="min-h-screen flex items-center justify-center px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-y-auto">
     <div class="w-full max-w-md flex flex-col">
+      <div class="flex justify-end mb-3">
+        <LanguageSwitcher />
+      </div>
       <div class="text-center mb-3">
         <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
-        <p class="text-muted-foreground text-sm">Host quizzes, engage your audience</p>
+        <p class="text-muted-foreground text-sm">{{ t('auth.tagline') }}</p>
       </div>
 
       <PixelCard class="space-y-3 !p-4">
@@ -109,12 +115,12 @@ function signUpWithGitHub() {
             to="/login"
             class="py-2 text-sm font-medium text-center hover:bg-white transition-all"
           >
-            Sign In
+            {{ t('auth.signIn') }}
           </router-link>
           <div
             class="py-2 text-sm font-medium text-center bg-primary text-white border-2 border-black cursor-default"
           >
-            Sign Up
+            {{ t('auth.signUp') }}
           </div>
         </div>
 
@@ -123,8 +129,8 @@ function signUpWithGitHub() {
             <PixelInput
               v-model="name"
               type="text"
-              label="Full Name"
-              placeholder="John Doe"
+              :label="t('auth.fullName')"
+              :placeholder="t('auth.fullNamePlaceholder')"
               :error="!!errors.name"
               class="[&_input]:py-2"
             />
@@ -134,8 +140,8 @@ function signUpWithGitHub() {
             <PixelInput
               v-model="email"
               type="email"
-              label="Email"
-              placeholder="you@example.com"
+              :label="t('auth.email')"
+              :placeholder="t('auth.emailPlaceholder')"
               :error="!!errors.email"
               class="[&_input]:py-2"
             />
@@ -146,8 +152,8 @@ function signUpWithGitHub() {
               <PixelInput
                 v-model="password"
                 type="password"
-                label="Password"
-                placeholder="••••••••"
+                :label="t('auth.password')"
+                :placeholder="t('auth.passwordPlaceholder')"
                 :error="!!errors.password"
                 class="[&_input]:py-2"
               />
@@ -157,8 +163,8 @@ function signUpWithGitHub() {
               <PixelInput
                 v-model="confirmPassword"
                 type="password"
-                label="Confirm"
-                placeholder="••••••••"
+                :label="t('auth.confirmPassword')"
+                :placeholder="t('auth.passwordPlaceholder')"
                 :error="!!errors.confirmPassword"
                 class="[&_input]:py-2"
               />
@@ -175,7 +181,7 @@ function signUpWithGitHub() {
                 :class="{ 'outline outline-2 outline-destructive': errors.terms }"
               />
               <span class="text-sm text-muted-foreground">
-                I agree to the <router-link to="/terms" target="_blank" class="text-primary hover:underline">Terms of Service</router-link> and <router-link to="/privacy" target="_blank" class="text-primary hover:underline">Privacy Policy</router-link>
+                {{ t('auth.termsAgree') }} <router-link to="/terms" target="_blank" class="text-primary hover:underline">{{ t('auth.termsOfService') }}</router-link> {{ t('auth.and') }} <router-link to="/privacy" target="_blank" class="text-primary hover:underline">{{ t('auth.privacyPolicy') }}</router-link>
               </span>
             </label>
             <p v-if="errors.terms" class="text-destructive text-xs mt-1 ml-8">{{ errors.terms }}</p>
@@ -184,7 +190,7 @@ function signUpWithGitHub() {
           <p v-if="errors.general" class="text-destructive text-sm font-medium">{{ errors.general }}</p>
 
           <PixelButton type="submit" variant="primary" class="w-full py-3">
-            Create Account
+            {{ t('auth.createAccount') }}
           </PixelButton>
         </form>
 
@@ -194,7 +200,7 @@ function signUpWithGitHub() {
             <div class="w-full border-t-2 border-border"></div>
           </div>
           <div class="relative flex justify-center text-xs">
-            <span class="px-3 bg-card text-muted-foreground">Or continue with</span>
+            <span class="px-3 bg-card text-muted-foreground">{{ t('auth.orContinueWith') }}</span>
           </div>
         </div>
 
@@ -227,7 +233,7 @@ function signUpWithGitHub() {
       </PixelCard>
 
       <p class="mt-3 text-center">
-        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; Back to Home</router-link>
+        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; {{ t('common.backToHome') }}</router-link>
       </p>
     </div>
   </div>

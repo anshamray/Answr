@@ -1,12 +1,15 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelInput from '../components/PixelInput.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -33,15 +36,15 @@ function validateForm() {
   let isValid = true;
 
   if (!email.value.trim()) {
-    errors.value.email = 'Please enter your email';
+    errors.value.email = t('validation.enterEmail');
     isValid = false;
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
-    errors.value.email = 'Please enter a valid email address';
+    errors.value.email = t('validation.validEmail');
     isValid = false;
   }
 
   if (!password.value) {
-    errors.value.password = 'Please enter your password';
+    errors.value.password = t('validation.enterPassword');
     isValid = false;
   }
 
@@ -71,9 +74,12 @@ function loginWithGitHub() {
 <template>
   <div class="min-h-screen flex items-center justify-center px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-y-auto">
     <div class="w-full max-w-md flex flex-col">
+      <div class="flex justify-end mb-3">
+        <LanguageSwitcher />
+      </div>
       <div class="text-center mb-3">
         <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
-        <p class="text-muted-foreground text-sm">Host quizzes, engage your audience</p>
+        <p class="text-muted-foreground text-sm">{{ t('auth.tagline') }}</p>
       </div>
 
       <PixelCard class="space-y-4 !p-4">
@@ -82,13 +88,13 @@ function loginWithGitHub() {
           <div
             class="py-2 text-sm font-medium text-center bg-primary text-white border-2 border-black cursor-default"
           >
-            Sign In
+            {{ t('auth.signIn') }}
           </div>
           <router-link
             to="/register"
             class="py-2 text-sm font-medium text-center hover:bg-white transition-all"
           >
-            Sign Up
+            {{ t('auth.signUp') }}
           </router-link>
         </div>
 
@@ -97,8 +103,8 @@ function loginWithGitHub() {
             <PixelInput
               v-model="email"
               type="email"
-              label="Email"
-              placeholder="you@example.com"
+              :label="t('auth.email')"
+              :placeholder="t('auth.emailPlaceholder')"
               :error="!!errors.email"
               class="[&_input]:py-2"
             />
@@ -108,8 +114,8 @@ function loginWithGitHub() {
             <PixelInput
               v-model="password"
               type="password"
-              label="Password"
-              placeholder="••••••••"
+              :label="t('auth.password')"
+              :placeholder="t('auth.passwordPlaceholder')"
               :error="!!errors.password"
               class="[&_input]:py-2"
             />
@@ -119,17 +125,17 @@ function loginWithGitHub() {
           <div class="flex items-center justify-between text-sm">
             <label class="flex items-center gap-2 cursor-pointer text-muted-foreground">
               <input v-model="rememberMe" type="checkbox" class="w-4 h-4 accent-primary" />
-              <span>Remember me</span>
+              <span>{{ t('auth.rememberMe') }}</span>
             </label>
             <router-link to="/forgot-password" class="text-primary hover:underline">
-              Forgot password?
+              {{ t('auth.forgotPassword') }}
             </router-link>
           </div>
 
           <p v-if="errors.general" class="text-destructive text-sm font-medium">{{ errors.general }}</p>
 
           <PixelButton type="submit" variant="primary" class="w-full py-3">
-            Sign In
+            {{ t('auth.signIn') }}
           </PixelButton>
         </form>
 
@@ -139,7 +145,7 @@ function loginWithGitHub() {
             <div class="w-full border-t-2 border-border"></div>
           </div>
           <div class="relative flex justify-center text-xs">
-            <span class="px-3 bg-card text-muted-foreground">Or continue with</span>
+            <span class="px-3 bg-card text-muted-foreground">{{ t('auth.orContinueWith') }}</span>
           </div>
         </div>
 
@@ -172,7 +178,7 @@ function loginWithGitHub() {
       </PixelCard>
 
       <p class="mt-3 text-center">
-        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; Back to Home</router-link>
+        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; {{ t('common.backToHome') }}</router-link>
       </p>
     </div>
   </div>

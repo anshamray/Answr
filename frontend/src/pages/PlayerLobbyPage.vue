@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
 import { TIMING } from '../constants/index.js';
@@ -9,7 +10,9 @@ import PixelCard from '../components/PixelCard.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelStar from '../components/icons/PixelStar.vue';
+import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const game = useGameStore();
 
@@ -92,6 +95,9 @@ onUnmounted(cleanup);
     </div>
 
     <div class="w-full max-w-sm relative z-10">
+      <div class="flex justify-end mb-3">
+        <LanguageSwitcher />
+      </div>
       <PixelCard class="space-y-8 text-center">
         <div class="space-y-4">
           <div class="inline-flex items-center justify-center w-20 h-20 bg-success border-[3px] border-black pixel-shadow animate-bounce">
@@ -99,16 +105,16 @@ onUnmounted(cleanup);
           </div>
 
           <div>
-            <h1 class="text-4xl font-bold mb-2">You're In!</h1>
-            <p class="text-muted-foreground">Get ready to play</p>
+            <h1 class="text-4xl font-bold mb-2">{{ t('game.youreIn') }}</h1>
+            <p class="text-muted-foreground">{{ t('game.getReady') }}</p>
           </div>
         </div>
 
         <div class="py-6 px-8 bg-primary/10 border-2 border-primary">
-          <div class="text-sm text-muted-foreground mb-2">Playing as</div>
+          <div class="text-sm text-muted-foreground mb-2">{{ t('game.playingAs') }}</div>
           <div class="flex items-center justify-center gap-3">
             <span v-if="game.playerEmoji" class="text-4xl">{{ game.playerEmoji }}</span>
-            <span class="text-3xl font-bold text-primary">{{ game.playerName || 'Player' }}</span>
+            <span class="text-3xl font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
           </div>
         </div>
 
@@ -117,18 +123,18 @@ onUnmounted(cleanup);
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
-            <span class="font-medium">Waiting for host to start{{ dots }}</span>
+            <span class="font-medium">{{ t('game.waitingForHostToStart') }}{{ dots }}</span>
           </div>
 
           <div v-if="playerCount > 0" class="flex items-center justify-center gap-4 py-4 border-t-2 border-b-2 border-dashed border-border">
             <PixelUsers class="text-primary" :size="24" />
             <span class="text-2xl font-bold">{{ playerCount }}</span>
-            <span class="text-muted-foreground">players joined</span>
+            <span class="text-muted-foreground">{{ t('game.playersJoinedCount') }}</span>
           </div>
         </div>
 
         <div class="text-xs text-muted-foreground pt-4 border-t-2 border-border">
-          Game PIN: <span class="font-bold text-foreground">{{ game.pin }}</span>
+          {{ t('session.pin') }}: <span class="font-bold text-foreground">{{ game.pin }}</span>
         </div>
       </PixelCard>
 
@@ -137,7 +143,7 @@ onUnmounted(cleanup);
           class="text-sm text-muted-foreground hover:text-destructive transition-colors py-3 px-4 min-h-[44px]"
           @click="leaveGame"
         >
-          Leave Game
+          {{ t('game.leaveGame') }}
         </button>
       </div>
     </div>

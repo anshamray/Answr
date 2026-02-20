@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
@@ -12,6 +13,8 @@ import PixelBadge from '../components/PixelBadge.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
+
+const { t } = useI18n();
 
 const route = useRoute();
 const router = useRouter();
@@ -352,19 +355,19 @@ onUnmounted(cleanup);
 
     <!-- Loading -->
     <div v-if="status === 'loading'" class="flex-1 flex items-center justify-center">
-      <p class="text-muted-foreground text-lg">Loading questions...</p>
+      <p class="text-muted-foreground text-lg">{{ t('gameControl.loadingQuestions') }}</p>
     </div>
 
     <!-- Error -->
     <div v-else-if="status === 'error'" class="flex-1 flex flex-col items-center justify-center">
       <p class="text-destructive text-lg mb-4">{{ error }}</p>
-      <router-link to="/" class="text-primary hover:underline">Back to Home</router-link>
+      <router-link to="/" class="text-primary hover:underline">{{ t('common.backToHome') }}</router-link>
     </div>
 
     <!-- Game ended -->
     <div v-else-if="status === 'ended'" class="flex-1 flex flex-col items-center justify-center">
-      <h2 class="text-4xl font-bold mb-3 text-primary pixel-font">GAME OVER!</h2>
-      <p class="text-muted-foreground">Redirecting...</p>
+      <h2 class="text-4xl font-bold mb-3 text-primary pixel-font">{{ t('gameControl.gameOver') }}</h2>
+      <p class="text-muted-foreground">{{ t('gameControl.redirecting') }}</p>
     </div>
 
     <!-- ── Question phase ─────────────────────────────────────────── -->
@@ -374,7 +377,7 @@ onUnmounted(cleanup);
         <main class="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/20 to-secondary/20">
           <div class="max-w-4xl w-full text-center space-y-8">
             <PixelBadge variant="primary" class="text-xl px-6 py-3">
-              Question {{ questionNumber }} of {{ totalQuestions }}
+              {{ t('gameControl.questionOf', { current: questionNumber, total: totalQuestions }) }}
             </PixelBadge>
 
             <PixelCard class="!p-8 lg:!p-12">
@@ -384,13 +387,13 @@ onUnmounted(cleanup);
             </PixelCard>
 
             <div class="text-2xl text-muted-foreground animate-pulse">
-              Get ready...
+              {{ t('gameControl.getReady') }}
             </div>
           </div>
         </main>
 
         <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
-          <PixelButton variant="outline" @click="endGame">End Game</PixelButton>
+          <PixelButton variant="outline" @click="endGame">{{ t('gameControl.endGame') }}</PixelButton>
         </footer>
       </template>
 
@@ -401,7 +404,7 @@ onUnmounted(cleanup);
             <!-- Question Header -->
             <div class="flex items-center justify-between">
               <PixelBadge variant="primary" class="text-base px-4 py-2">
-                Question {{ questionNumber }} of {{ totalQuestions }}
+                {{ t('gameControl.questionOf', { current: questionNumber, total: totalQuestions }) }}
               </PixelBadge>
 
               <div class="flex items-center gap-4">
@@ -417,7 +420,7 @@ onUnmounted(cleanup);
 
                 <div class="text-right">
                   <div class="text-xl lg:text-2xl font-bold">{{ answersReceived }}/{{ playerCount }}</div>
-                  <div class="text-xs text-muted-foreground">Answered</div>
+                  <div class="text-xs text-muted-foreground">{{ t('gameControl.answered') }}</div>
                 </div>
               </div>
             </div>
@@ -452,8 +455,8 @@ onUnmounted(cleanup);
 
         <!-- Controls -->
         <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
-          <PixelButton variant="primary" @click="revealAnswer">Reveal Answer</PixelButton>
-          <PixelButton variant="outline" @click="endGame">End Game</PixelButton>
+          <PixelButton variant="primary" @click="revealAnswer">{{ t('gameControl.revealAnswer') }}</PixelButton>
+          <PixelButton variant="outline" @click="endGame">{{ t('gameControl.endGame') }}</PixelButton>
         </footer>
       </template>
     </template>
@@ -466,7 +469,7 @@ onUnmounted(cleanup);
           <div class="flex items-center justify-between flex-wrap gap-3">
             <PixelBadge variant="success" class="text-base px-4 py-2">
               <PixelCheck class="inline mr-2" :size="16" />
-              Correct Answer: {{ barLabels[currentQuestion.answers.findIndex(a => a.isCorrect)] || '?' }}
+              {{ t('gameControl.correctAnswer') }}: {{ barLabels[currentQuestion.answers.findIndex(a => a.isCorrect)] || '?' }}
             </PixelBadge>
 
             <PixelButton
@@ -475,7 +478,7 @@ onUnmounted(cleanup);
               class="text-lg px-6 py-3"
               @click="sendNextQuestion"
             >
-              Next Question
+              {{ t('gameControl.nextQuestion') }}
               <svg class="inline ml-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6" />
               </svg>
@@ -486,7 +489,7 @@ onUnmounted(cleanup);
             <!-- Answer Distribution -->
             <div class="space-y-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:col-span-2' : ''">
               <PixelCard class="space-y-3 !p-4">
-                <h2 class="text-xl lg:text-2xl font-bold">How Players Answered</h2>
+                <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
 
                 <div class="space-y-2">
                   <div v-for="(answer, i) in currentQuestion.answers" :key="answer._id" class="space-y-1">
@@ -501,7 +504,7 @@ onUnmounted(cleanup);
                         <span class="text-base font-bold">{{ answer.text }}</span>
                         <PixelBadge v-if="answer.isCorrect" variant="success" class="ml-1 text-xs">
                           <PixelCheck class="inline mr-1" :size="10" />
-                          Correct
+                          {{ t('session.correct') }}
                         </PixelBadge>
                       </div>
                       <div class="text-right">
@@ -524,17 +527,17 @@ onUnmounted(cleanup);
               <div class="grid grid-cols-3 gap-3">
                 <PixelCard class="text-center !p-3">
                   <div class="text-2xl font-bold text-success">{{ getCorrectCount() }}</div>
-                  <div class="text-xs text-muted-foreground">Got it right</div>
+                  <div class="text-xs text-muted-foreground">{{ t('gameControl.gotItRight') }}</div>
                 </PixelCard>
                 <PixelCard class="text-center !p-3">
                   <div class="text-2xl font-bold text-primary">{{ answersReceived }}</div>
-                  <div class="text-xs text-muted-foreground">Answered</div>
+                  <div class="text-xs text-muted-foreground">{{ t('gameControl.answered') }}</div>
                 </PixelCard>
                 <PixelCard class="text-center !p-3">
                   <div class="text-2xl font-bold text-accent">
                     {{ totalDistributionAnswers > 0 ? Math.round((getCorrectCount() / totalDistributionAnswers) * 100) : 0 }}%
                   </div>
-                  <div class="text-xs text-muted-foreground">Accuracy</div>
+                  <div class="text-xs text-muted-foreground">{{ t('gameControl.accuracy') }}</div>
                 </PixelCard>
               </div>
             </div>
@@ -549,7 +552,7 @@ onUnmounted(cleanup);
                     <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
                     <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
                   </svg>
-                  <h3 class="text-xl font-bold">Top 5</h3>
+                  <h3 class="text-xl font-bold">{{ t('gameControl.top5') }}</h3>
                 </div>
 
                 <div class="space-y-2">
@@ -596,13 +599,13 @@ onUnmounted(cleanup);
           variant="primary"
           @click="sendNextQuestion"
         >
-          Next Question
+          {{ t('gameControl.nextQuestion') }}
         </PixelButton>
         <PixelButton
           variant="outline"
           @click="endGame"
         >
-          {{ isLastQuestion ? 'Finish Game' : 'End Game' }}
+          {{ isLastQuestion ? t('gameControl.finishGame') : t('gameControl.endGame') }}
         </PixelButton>
       </footer>
     </template>
