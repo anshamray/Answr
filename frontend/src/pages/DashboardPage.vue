@@ -9,6 +9,7 @@ import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
 import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+import UserDropdown from '../components/UserDropdown.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -227,14 +228,9 @@ onMounted(fetchQuizzes);
         </div>
         <div class="flex items-center gap-4">
           <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.library') }}</router-link>
+          <router-link to="/dashboard" class="text-sm text-primary font-medium">{{ t('nav.dashboard') }}</router-link>
           <LanguageSwitcher />
-          <span class="text-muted-foreground text-sm">{{ auth.user?.name || auth.user?.email }}</span>
-          <button
-            class="text-sm text-muted-foreground hover:text-destructive transition"
-            @click="handleLogout"
-          >
-            {{ t('nav.logout') }}
-          </button>
+          <UserDropdown />
         </div>
       </div>
     </header>
@@ -584,15 +580,15 @@ onMounted(fetchQuizzes);
         </div>
         <div class="space-y-3 border-2 border-border p-4 bg-muted/30">
           <div>
-            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.title') }}</span>
+            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.titleLabel') }}</span>
             <p class="font-medium">{{ publishDialogQuiz.title || t('dashboard.untitledQuiz') }}</p>
           </div>
           <div v-if="publishDialogQuiz.description">
-            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.description') }}</span>
+            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.descriptionLabel') }}</span>
             <p class="text-sm">{{ publishDialogQuiz.description }}</p>
           </div>
           <div v-if="publishDialogQuiz.tags?.length">
-            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.tags') }}</span>
+            <span class="text-xs font-medium text-muted-foreground">{{ t('dashboard.tagsLabel') }}</span>
             <p class="text-sm">
               <span
                 v-for="tag in publishDialogQuiz.tags"

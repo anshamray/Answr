@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { register, login, getMe } from '../controllers/authController.js';
+import { register, login, getMe, updateName, updateEmail, updatePassword } from '../controllers/authController.js';
 import {
   verifyEmail,
   resendVerification,
@@ -21,6 +21,11 @@ router.post('/login', login);
 
 // GET /api/auth/me - Get current user (protected)
 router.get('/me', authenticate, getMe);
+
+// Profile update endpoints (protected)
+router.put('/update-name', authenticate, updateName);
+router.put('/update-email', authenticate, updateEmail);
+router.put('/update-password', authenticate, updatePassword);
 
 // Email verification endpoints
 router.post('/verify-email', verifyEmail);

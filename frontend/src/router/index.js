@@ -11,6 +11,7 @@ import ResetPasswordPage from '../pages/ResetPasswordPage.vue';
 import TermsPage from '../pages/TermsPage.vue';
 import PrivacyPage from '../pages/PrivacyPage.vue';
 import DashboardPage from '../pages/DashboardPage.vue';
+import AccountPage from '../pages/AccountPage.vue';
 import QuizEditPage from '../pages/QuizEditPage.vue';
 import LibraryPage from '../pages/LibraryPage.vue';
 import LibraryDetailPage from '../pages/LibraryDetailPage.vue';
@@ -41,6 +42,7 @@ const routes = [
 
   // Moderator (auth required — or guest token for sessions started from library)
   { path: '/dashboard', component: DashboardPage, meta: { requiresAuth: true } },
+  { path: '/account', component: AccountPage, meta: { requiresAuth: true } },
   { path: '/quiz/:id/edit', component: QuizEditPage, meta: { requiresAuth: true } },
   { path: '/session/:id/lobby', component: SessionLobbyPage, meta: { requiresGuestOrAuth: true } },
   { path: '/session/:id/control', component: GameControlPage, meta: { requiresGuestOrAuth: true } },

@@ -118,6 +118,71 @@ export const useAuthStore = defineStore('auth', () => {
     return true;
   }
 
+  async function updateName(name) {
+    if (!token.value) throw new Error('Not authenticated');
+
+    const res = await fetch(apiUrl('/api/auth/update-name'), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token.value}`
+      },
+      body: JSON.stringify({ name })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update name');
+    }
+
+    user.value = data.data.user;
+    return data.data.user;
+  }
+
+  async function updateEmail(email, password) {
+    if (!token.value) throw new Error('Not authenticated');
+
+    const res = await fetch(apiUrl('/api/auth/update-email'), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token.value}`
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update email');
+    }
+
+    user.value = data.data.user;
+    return data.data.user;
+  }
+
+  async function updatePassword(currentPassword, newPassword) {
+    if (!token.value) throw new Error('Not authenticated');
+
+    const res = await fetch(apiUrl('/api/auth/update-password'), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token.value}`
+      },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to update password');
+    }
+
+    return true;
+  }
+
   async function fetchFavorites() {
     if (!token.value) return;
 
@@ -188,6 +253,9 @@ export const useAuthStore = defineStore('auth', () => {
     fetchMe,
     logout,
     resendVerification,
+    updateName,
+    updateEmail,
+    updatePassword,
     fetchFavorites,
     addFavorite,
     removeFavorite,

@@ -134,3 +134,146 @@ export async function getMe(req, res) {
     sendServerError(res, 'Failed to get user');
   }
 }
+
+/**
+ * Update user display name
+ * PUT /api/auth/update-name
+ */
+export async function updateName(req, res) {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return sendBadRequest(res, 'Name is required');
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    user.name = name.trim();
+    await user.save();
+
+    sendSuccess(res, { message: 'Name updated successfully', data: { user } });
+  } catch (error) {
+    console.error('Update name error:', error);
+    sendServerError(res, 'Failed to update name');
+  }
+}
+
+/**
+ * Update user email (requires password confirmation)
+ * PUT /api/auth/update-email
+ */
+export async function updateEmail(req, res) {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !email.trim()) {
+      return sendBadRequest(res, 'Email is required');
+    }
+
+    if (!password) {
+      return sendBadRequest(res, 'Password is required to change email');
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    // OAuth users cannot change email this way
+    if (user.provider !== 'local') {
+      return sendBadRequest(res, 'Email changes are managed through your OAuth provider');
+    }
+
+    // Verify password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return sendUnauthorized(res, 'Invalid password');
+    }
+
+    // Check if new email is already taken
+    const existingUser = await User.findOne({ email: email.toLowerCase(), _id: { $ne: user._id } });
+    if (existingUser) {
+      return sendConflict(res, 'Email already in use');
+    }
+
+    // Update email and reset verification status
+    user.email = email.toLowerCase().trim();
+    user.emailVerified = false;
+    await user.save();
+
+    // Send verification email to new address
+    try {
+      const plainToken = await createVerificationToken(user);
+      const verificationUrl = `${FRONTEND_URL}/verify-email?token=${plainToken}`;
+      const { subject, html, text } = verifyEmailTemplate({
+        name: user.name,
+        verificationUrl
+      });
+
+      await sendEmail({
+        to: user.email,
+        subject,
+        html,
+        text
+      });
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+    }
+
+    sendSuccess(res, { message: 'Email updated. Please verify your new email address.', data: { user } });
+  } catch (error) {
+    console.error('Update email error:', error);
+    sendServerError(res, 'Failed to update email');
+  }
+}
+
+/**
+ * Update user password
+ * PUT /api/auth/update-password
+ */
+export async function updatePassword(req, res) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword) {
+      return sendBadRequest(res, 'Current password is required');
+    }
+
+    if (!newPassword) {
+      return sendBadRequest(res, 'New password is required');
+    }
+
+    if (newPassword.length < 6) {
+      return sendBadRequest(res, 'Password must be at least 6 characters');
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    // OAuth users cannot change password
+    if (user.provider !== 'local') {
+      return sendBadRequest(res, 'Password changes are managed through your OAuth provider');
+    }
+
+    // Verify current password
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return sendUnauthorized(res, 'Current password is incorrect');
+    }
+
+    // Update password (will be hashed by pre-save hook)
+    user.password = newPassword;
+    await user.save();
+
+    sendSuccess(res, { message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Update password error:', error);
+    sendServerError(res, 'Failed to update password');
+  }
+}
