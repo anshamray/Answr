@@ -474,11 +474,11 @@ onMounted(fetchQuizzes);
       </div>
 
       <!-- Quiz Grid - Detailed View -->
-      <div v-else-if="filter !== 'favorites' && view === 'detailed'" class="space-y-4">
+      <div v-else-if="filter !== 'favorites' && view === 'detailed'" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <template v-for="quiz in quizzes" :key="quiz._id || quiz.id">
           <PixelCard
             v-if="filter === 'all' || (filter === 'published' && quiz.isPublished) || (filter === 'draft' && !quiz.isPublished)"
-            class="transition-all group"
+            class="transition-all group flex flex-col"
           >
             <!-- Header -->
             <div class="flex items-start justify-between">
@@ -501,9 +501,9 @@ onMounted(fetchQuizzes);
             </div>
 
             <!-- Details section -->
-            <div class="mt-4 pt-4 border-t-2 border-border space-y-4">
+            <div class="mt-4 pt-4 border-t-2 border-border space-y-4 flex-1 flex flex-col">
               <!-- Description -->
-              <div v-if="quiz.description" class="text-sm text-muted-foreground">
+              <div v-if="quiz.description" class="text-sm text-muted-foreground line-clamp-2">
                 {{ quiz.description }}
               </div>
               <div v-else class="text-sm text-muted-foreground italic">
