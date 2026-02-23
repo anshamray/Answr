@@ -74,7 +74,6 @@ function handlePinSubmit() {
           <div class="flex items-center gap-4">
             <template v-if="auth.isAuthenticated">
               <router-link to="/dashboard" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.dashboard') }}</router-link>
-              <LanguageSwitcher />
               <UserDropdown />
             </template>
             <template v-else>

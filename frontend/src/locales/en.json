@@ -28,7 +28,8 @@
     "login": "Login",
     "logout": "Logout",
     "hostQuiz": "Host Quiz",
-    "accountSettings": "Account Settings"
+    "accountSettings": "Account Settings",
+    "language": "Language"
   },
   "landing": {
     "heroTagline": "Open Source",

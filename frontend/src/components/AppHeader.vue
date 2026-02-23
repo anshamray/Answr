@@ -53,12 +53,11 @@ const isActive = (path) => route.path === path;
           </router-link>
         </template>
 
-        <LanguageSwitcher />
-
         <template v-if="auth.isAuthenticated">
           <UserDropdown />
         </template>
         <template v-else>
+          <LanguageSwitcher />
           <router-link to="/auth">
             <PixelButton variant="primary" size="sm">
               {{ t('nav.login') }}

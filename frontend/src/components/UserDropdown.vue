@@ -3,8 +3,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
+import { setLocale, availableLocales } from '../i18n.js';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 const auth = useAuthStore();
 
@@ -21,6 +22,14 @@ const initials = computed(() => {
   }
   return name.substring(0, 2).toUpperCase();
 });
+
+const currentLocale = computed(() => {
+  return availableLocales.find(l => l.code === locale.value) || availableLocales[0];
+});
+
+function selectLocale(code) {
+  setLocale(code);
+}
 
 function toggle() {
   isOpen.value = !isOpen.value;
@@ -152,6 +161,31 @@ onUnmounted(() => {
             </svg>
             {{ t('nav.accountSettings') }}
           </button>
+
+          <!-- Language Selector -->
+          <div class="px-4 py-2">
+            <div class="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="2" y1="12" x2="22" y2="12" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+              </svg>
+              {{ t('nav.language') }}
+            </div>
+            <div class="flex gap-1">
+              <button
+                v-for="loc in availableLocales"
+                :key="loc.code"
+                type="button"
+                class="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm border-2 transition-colors"
+                :class="loc.code === locale ? 'border-primary bg-primary/10 font-medium' : 'border-border hover:border-primary'"
+                @click="selectLocale(loc.code)"
+              >
+                <span>{{ loc.flag }}</span>
+                <span>{{ loc.code.toUpperCase() }}</span>
+              </button>
+            </div>
+          </div>
 
           <div class="border-t border-border my-1"></div>
 

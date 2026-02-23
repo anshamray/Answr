@@ -28,7 +28,8 @@
     "login": "Anmelden",
     "logout": "Abmelden",
     "hostQuiz": "Quiz erstellen",
-    "accountSettings": "Kontoeinstellungen"
+    "accountSettings": "Kontoeinstellungen",
+    "language": "Sprache"
   },
   "landing": {
     "heroTagline": "Open Source",
