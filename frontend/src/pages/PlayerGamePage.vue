@@ -262,10 +262,10 @@ onUnmounted(cleanup);
           <PixelClock :size="16" />
           {{ timeRemaining }}s
         </div>
+        <PixelBadge v-if="questionEnded" variant="accent">
+          {{ t('playerGame.timesUp') }}
+        </PixelBadge>
       </div>
-      <PixelBadge v-else-if="questionEnded" variant="accent">
-        {{ t('playerGame.timesUp') }}
-      </PixelBadge>
     </header>
 
     <!-- ── Intro Phase: Question X + Countdown ────────────────────── -->
