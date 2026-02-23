@@ -10,6 +10,10 @@ function getTransporter() {
 
   const provider = process.env.EMAIL_PROVIDER || 'smtp';
 
+  console.log('[Email] Initializing transporter...');
+  console.log('[Email] EMAIL_PROVIDER:', provider);
+  console.log('[Email] EMAIL_FROM:', process.env.EMAIL_FROM);
+
   const timeoutOptions = {
     connectionTimeout: 10000, // 10 seconds to connect
     greetingTimeout: 10000,   // 10 seconds for greeting
@@ -17,7 +21,10 @@ function getTransporter() {
   };
 
   if (provider === 'sendgrid') {
-    if (!process.env.SENDGRID_API_KEY) {
+    const apiKey = process.env.SENDGRID_API_KEY;
+    console.log('[Email] SENDGRID_API_KEY exists:', !!apiKey);
+    console.log('[Email] SENDGRID_API_KEY prefix:', apiKey ? apiKey.substring(0, 5) + '...' : 'N/A');
+    if (!apiKey) {
       throw new Error('SENDGRID_API_KEY is required when EMAIL_PROVIDER=sendgrid. Add it to .env');
     }
     transporter = nodemailer.createTransport({
@@ -25,12 +32,16 @@ function getTransporter() {
       port: 587,
       auth: {
         user: 'apikey',
-        pass: process.env.SENDGRID_API_KEY
+        pass: apiKey
       },
       ...timeoutOptions
     });
+    console.log('[Email] SendGrid transporter created');
   } else if (provider === 'resend') {
-    if (!process.env.RESEND_API_KEY) {
+    const apiKey = process.env.RESEND_API_KEY;
+    console.log('[Email] RESEND_API_KEY exists:', !!apiKey);
+    console.log('[Email] RESEND_API_KEY prefix:', apiKey ? apiKey.substring(0, 8) + '...' : 'N/A');
+    if (!apiKey) {
       throw new Error('RESEND_API_KEY is required when EMAIL_PROVIDER=resend. Add it to .env');
     }
     transporter = nodemailer.createTransport({
@@ -39,12 +50,16 @@ function getTransporter() {
       secure: true,
       auth: {
         user: 'resend',
-        pass: process.env.RESEND_API_KEY
+        pass: apiKey
       },
-      ...timeoutOptions
+      ...timeoutOptions,
+      debug: true, // Enable debug output
+      logger: true  // Log to console
     });
+    console.log('[Email] Resend transporter created (host: smtp.resend.com, port: 465)');
   } else if (process.env.SMTP_HOST) {
     // Custom SMTP - only if SMTP_HOST is explicitly set
+    console.log('[Email] Using custom SMTP:', process.env.SMTP_HOST);
     transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587', 10),
@@ -57,8 +72,10 @@ function getTransporter() {
         : undefined,
       ...timeoutOptions
     });
+    console.log('[Email] Custom SMTP transporter created');
   } else {
     // No email provider configured - return null
+    console.log('[Email] No email provider configured');
     return null;
   }
 
@@ -117,10 +134,16 @@ export async function sendEmail({ to, subject, html, text }) {
     console.log('Email sent successfully:', result.messageId);
     return result;
   } catch (err) {
-    // Log full error for debugging (SMTP/Resend often put details in response or message)
-    console.error('Email send failed:', err.message);
-    if (err.response) console.error('SMTP/API response:', err.response);
-    if (err.responseCode) console.error('Response code:', err.responseCode);
+    // Log full error for debugging
+    console.error('[Email] ========== EMAIL ERROR ==========');
+    console.error('[Email] Error name:', err.name);
+    console.error('[Email] Error message:', err.message);
+    console.error('[Email] Error code:', err.code);
+    console.error('[Email] Response code:', err.responseCode);
+    console.error('[Email] Response:', err.response);
+    console.error('[Email] Command:', err.command);
+    console.error('[Email] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    console.error('[Email] ===================================');
     throw err;
   }
 }

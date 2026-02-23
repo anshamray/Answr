@@ -20,18 +20,27 @@ const RESET_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
  * @param {string} plainToken - Unhashed token to include in email
  */
 async function sendVerificationEmail(user, plainToken) {
+  console.log('[sendVerificationEmail] Starting...');
+  console.log('[sendVerificationEmail] FRONTEND_URL:', FRONTEND_URL);
+
   const verificationUrl = `${FRONTEND_URL}/verify-email?token=${plainToken}`;
+  console.log('[sendVerificationEmail] Verification URL:', verificationUrl);
+
   const { subject, html, text } = verifyEmailTemplate({
     name: user.name,
     verificationUrl
   });
+  console.log('[sendVerificationEmail] Template generated, subject:', subject);
 
-  await sendEmail({
+  console.log('[sendVerificationEmail] Calling sendEmail...');
+  const result = await sendEmail({
     to: user.email,
     subject,
     html,
     text
   });
+  console.log('[sendVerificationEmail] sendEmail returned:', result);
+  return result;
 }
 
 /**
@@ -98,36 +107,44 @@ export async function verifyEmail(req, res) {
  * Requires authentication
  */
 export async function resendVerification(req, res) {
+  console.log('[ResendVerification] Starting...');
+  console.log('[ResendVerification] User ID from token:', req.user?.userId);
+
   try {
     const user = await User.findById(req.user.userId);
+    console.log('[ResendVerification] User found:', !!user);
 
     if (!user) {
+      console.log('[ResendVerification] User not found');
       return sendNotFound(res, 'User not found');
     }
 
+    console.log('[ResendVerification] User email:', user.email);
+    console.log('[ResendVerification] Email verified:', user.emailVerified);
+
     if (user.emailVerified) {
+      console.log('[ResendVerification] Email already verified');
       return sendBadRequest(res, 'Email is already verified');
     }
 
     // Generate new token (invalidates old one)
+    console.log('[ResendVerification] Creating verification token...');
     const plainToken = await createVerificationToken(user);
+    console.log('[ResendVerification] Token created, sending email...');
+
     await sendVerificationEmail(user, plainToken);
+    console.log('[ResendVerification] Email sent successfully!');
 
     sendSuccess(res, { message: 'Verification email sent' });
   } catch (error) {
-    console.error('Resend verification error:', error.message || error);
-    if (error.response) console.error('SMTP/API response:', error.response);
-    if (error.responseCode) console.error('Response code:', error.responseCode);
+    console.error('[ResendVerification] ========== ERROR ==========');
+    console.error('[ResendVerification] Error name:', error.name);
+    console.error('[ResendVerification] Error message:', error.message);
+    console.error('[ResendVerification] Error stack:', error.stack);
+    console.error('[ResendVerification] ============================');
 
-    // Include sanitized error info to help debugging
-    let message = 'Failed to send verification email';
-    if (error.message) {
-      // Include common Resend/SMTP errors that help debugging
-      const safeErrors = ['Invalid API Key', 'domain', 'not verified', 'authentication', 'timeout', 'ECONNREFUSED'];
-      if (safeErrors.some(e => error.message.toLowerCase().includes(e.toLowerCase()))) {
-        message += `: ${error.message}`;
-      }
-    }
+    // Return the actual error message for debugging
+    const message = `Failed to send verification email: ${error.message || 'Unknown error'}`;
     sendServerError(res, message);
   }
 }
