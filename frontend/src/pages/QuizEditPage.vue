@@ -24,8 +24,11 @@ const quiz = ref({
   title: '',
   description: '',
   category: '',
+  language: 'en',
+  tags: [],
   isPublished: false
 });
+const newTag = ref('');
 const questions = ref([]);
 const selectedQuestionId = ref(null);
 const showTypeSelector = ref(false);
@@ -47,6 +50,65 @@ const selectedQuestion = computed(() =>
 
 // Question type icons and info - use shared definitions
 const questionTypeInfo = QUESTION_TYPES;
+
+// Category options
+const categoryOptions = [
+  { value: '', labelKey: 'quizEditor.selectCategory' },
+  { value: 'General', labelKey: 'quizEditor.categoryGeneral' },
+  { value: 'Science', labelKey: 'quizEditor.categoryScience' },
+  { value: 'History', labelKey: 'quizEditor.categoryHistory' },
+  { value: 'Geography', labelKey: 'quizEditor.categoryGeography' },
+  { value: 'Art', labelKey: 'quizEditor.categoryArt' },
+  { value: 'Music', labelKey: 'quizEditor.categoryMusic' },
+  { value: 'Sports', labelKey: 'quizEditor.categorySports' },
+  { value: 'Technology', labelKey: 'quizEditor.categoryTechnology' },
+  { value: 'Literature', labelKey: 'quizEditor.categoryLiterature' },
+  { value: 'Movies', labelKey: 'quizEditor.categoryMovies' },
+  { value: 'TV Shows', labelKey: 'quizEditor.categoryTVShows' },
+  { value: 'Food', labelKey: 'quizEditor.categoryFood' },
+  { value: 'Nature', labelKey: 'quizEditor.categoryNature' },
+  { value: 'Math', labelKey: 'quizEditor.categoryMath' },
+  { value: 'Language', labelKey: 'quizEditor.categoryLanguage' },
+  { value: 'Other', labelKey: 'quizEditor.categoryOther' }
+];
+
+// Language options with flags
+const languageOptions = [
+  { value: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
+  { value: 'de', label: 'Deutsch', flag: '\u{1F1E9}\u{1F1EA}' },
+  { value: 'es', label: 'Espa\u00F1ol', flag: '\u{1F1EA}\u{1F1F8}' },
+  { value: 'fr', label: 'Fran\u00E7ais', flag: '\u{1F1EB}\u{1F1F7}' },
+  { value: 'it', label: 'Italiano', flag: '\u{1F1EE}\u{1F1F9}' },
+  { value: 'pt', label: 'Portugu\u00EAs', flag: '\u{1F1F5}\u{1F1F9}' },
+  { value: 'nl', label: 'Nederlands', flag: '\u{1F1F3}\u{1F1F1}' },
+  { value: 'pl', label: 'Polski', flag: '\u{1F1F5}\u{1F1F1}' },
+  { value: 'ru', label: '\u0420\u0443\u0441\u0441\u043A\u0438\u0439', flag: '\u{1F1F7}\u{1F1FA}' },
+  { value: 'ja', label: '\u65E5\u672C\u8A9E', flag: '\u{1F1EF}\u{1F1F5}' },
+  { value: 'zh', label: '\u4E2D\u6587', flag: '\u{1F1E8}\u{1F1F3}' },
+  { value: 'ko', label: '\uD55C\uAD6D\uC5B4', flag: '\u{1F1F0}\u{1F1F7}' }
+];
+
+// Tag management functions
+function addTag() {
+  const tag = newTag.value.trim().toLowerCase();
+  if (tag && !quiz.value.tags.includes(tag) && quiz.value.tags.length < 10) {
+    quiz.value.tags.push(tag);
+    newTag.value = '';
+    hasUnsavedChanges.value = true;
+  }
+}
+
+function removeTag(tagToRemove) {
+  quiz.value.tags = quiz.value.tags.filter(tag => tag !== tagToRemove);
+  hasUnsavedChanges.value = true;
+}
+
+function handleTagKeydown(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    addTag();
+  }
+}
 
 // Helper to check if ID is temporary (local-only)
 function isTemporaryId(id) {
@@ -87,7 +149,13 @@ async function fetchQuiz() {
 
   try {
     const data = await apiFetch(`/api/quizzes/${route.params.id}`);
-    quiz.value = data.data.quiz;
+    const loadedQuiz = data.data.quiz;
+    // Ensure tags and language have default values for older quizzes
+    quiz.value = {
+      ...loadedQuiz,
+      tags: loadedQuiz.tags || [],
+      language: loadedQuiz.language || 'en'
+    };
     questions.value = quiz.value.questions || [];
 
     // Select first question if available
@@ -293,7 +361,9 @@ async function saveAll() {
         body: JSON.stringify({
           title: quiz.value.title || 'Untitled Quiz',
           description: quiz.value.description,
-          category: quiz.value.category
+          category: quiz.value.category,
+          language: quiz.value.language,
+          tags: quiz.value.tags
         })
       });
       // Sync local quiz state with server response (includes generated title)
@@ -304,7 +374,9 @@ async function saveAll() {
       // Update quiz metadata
       const updatePayload = {
         description: quiz.value.description,
-        category: quiz.value.category
+        category: quiz.value.category,
+        language: quiz.value.language,
+        tags: quiz.value.tags
       };
 
       // Only send title if it's non-empty to avoid validation errors
@@ -570,6 +642,7 @@ onMounted(() => {
               </svg>
             </summary>
             <div class="p-4 pt-0 space-y-4">
+              <!-- Description -->
               <div>
                 <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.description') }}</label>
                 <textarea
@@ -580,15 +653,78 @@ onMounted(() => {
                   @input="hasUnsavedChanges = true"
                 ></textarea>
               </div>
+
+              <!-- Category Dropdown -->
               <div>
                 <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.category') }}</label>
-                <input
+                <select
                   v-model="quiz.category"
-                  type="text"
-                  :placeholder="t('quizEditor.categoryPlaceholder')"
-                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
-                  @input="hasUnsavedChanges = true"
-                />
+                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
+                  @change="hasUnsavedChanges = true"
+                >
+                  <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                    {{ t(option.labelKey) }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Language Dropdown -->
+              <div>
+                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.language') }}</label>
+                <select
+                  v-model="quiz.language"
+                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
+                  @change="hasUnsavedChanges = true"
+                >
+                  <option v-for="lang in languageOptions" :key="lang.value" :value="lang.value">
+                    {{ lang.flag }} {{ lang.label }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Tags Input -->
+              <div>
+                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.tags') }}</label>
+                <div class="flex gap-2">
+                  <input
+                    v-model="newTag"
+                    type="text"
+                    :placeholder="t('quizEditor.addTag')"
+                    class="flex-1 px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
+                    :disabled="quiz.tags.length >= 10"
+                    @keydown="handleTagKeydown"
+                  />
+                  <button
+                    type="button"
+                    class="px-3 py-2 text-sm border-2 border-border bg-white hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!newTag.trim() || quiz.tags.length >= 10"
+                    @click="addTag"
+                  >
+                    {{ t('quizEditor.addTagButton') }}
+                  </button>
+                </div>
+                <!-- Tags display -->
+                <div v-if="quiz.tags.length > 0" class="flex flex-wrap gap-2 mt-2">
+                  <span
+                    v-for="tag in quiz.tags"
+                    :key="tag"
+                    class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary/10 border border-primary/30 text-primary"
+                  >
+                    {{ tag }}
+                    <button
+                      type="button"
+                      class="hover:text-destructive transition-colors"
+                      @click="removeTag(tag)"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+                <p v-if="quiz.tags.length >= 10" class="text-xs text-muted-foreground mt-1">
+                  {{ t('quizEditor.maxTags') }}
+                </p>
               </div>
             </div>
           </details>

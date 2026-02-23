@@ -63,7 +63,7 @@ export async function getQuiz(req, res) {
  */
 export async function createQuiz(req, res) {
   try {
-    const { title, description, category } = req.body;
+    const { title, description, category, tags, language } = req.body;
 
     if (!title) {
       return sendBadRequest(res, 'Title is required');
@@ -73,7 +73,9 @@ export async function createQuiz(req, res) {
       moderatorId: req.user.userId,
       title,
       description: description || '',
-      category: category || ''
+      category: category || '',
+      tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
+      language: language || 'en'
     });
 
     await quiz.save();
@@ -91,7 +93,7 @@ export async function createQuiz(req, res) {
  */
 export async function updateQuiz(req, res) {
   try {
-    const { title, description, category } = req.body;
+    const { title, description, category, tags, language } = req.body;
 
     const quiz = await Quiz.findOne({
       _id: req.params.id,
@@ -106,6 +108,8 @@ export async function updateQuiz(req, res) {
     if (title !== undefined) quiz.title = title;
     if (description !== undefined) quiz.description = description;
     if (category !== undefined) quiz.category = category;
+    if (tags !== undefined) quiz.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
+    if (language !== undefined) quiz.language = language;
 
     await quiz.save();
 

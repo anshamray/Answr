@@ -20,27 +20,18 @@ const RESET_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
  * @param {string} plainToken - Unhashed token to include in email
  */
 async function sendVerificationEmail(user, plainToken) {
-  console.log('[sendVerificationEmail] Starting...');
-  console.log('[sendVerificationEmail] FRONTEND_URL:', FRONTEND_URL);
-
   const verificationUrl = `${FRONTEND_URL}/verify-email?token=${plainToken}`;
-  console.log('[sendVerificationEmail] Verification URL:', verificationUrl);
-
   const { subject, html, text } = verifyEmailTemplate({
     name: user.name,
     verificationUrl
   });
-  console.log('[sendVerificationEmail] Template generated, subject:', subject);
 
-  console.log('[sendVerificationEmail] Calling sendEmail...');
-  const result = await sendEmail({
+  return sendEmail({
     to: user.email,
     subject,
     html,
     text
   });
-  console.log('[sendVerificationEmail] sendEmail returned:', result);
-  return result;
 }
 
 /**
@@ -107,45 +98,25 @@ export async function verifyEmail(req, res) {
  * Requires authentication
  */
 export async function resendVerification(req, res) {
-  console.log('[ResendVerification] Starting...');
-  console.log('[ResendVerification] User ID from token:', req.user?.userId);
-
   try {
     const user = await User.findById(req.user.userId);
-    console.log('[ResendVerification] User found:', !!user);
 
     if (!user) {
-      console.log('[ResendVerification] User not found');
       return sendNotFound(res, 'User not found');
     }
 
-    console.log('[ResendVerification] User email:', user.email);
-    console.log('[ResendVerification] Email verified:', user.emailVerified);
-
     if (user.emailVerified) {
-      console.log('[ResendVerification] Email already verified');
       return sendBadRequest(res, 'Email is already verified');
     }
 
     // Generate new token (invalidates old one)
-    console.log('[ResendVerification] Creating verification token...');
     const plainToken = await createVerificationToken(user);
-    console.log('[ResendVerification] Token created, sending email...');
-
     await sendVerificationEmail(user, plainToken);
-    console.log('[ResendVerification] Email sent successfully!');
 
     sendSuccess(res, { message: 'Verification email sent' });
   } catch (error) {
-    console.error('[ResendVerification] ========== ERROR ==========');
-    console.error('[ResendVerification] Error name:', error.name);
-    console.error('[ResendVerification] Error message:', error.message);
-    console.error('[ResendVerification] Error stack:', error.stack);
-    console.error('[ResendVerification] ============================');
-
-    // Return the actual error message for debugging
-    const message = `Failed to send verification email: ${error.message || 'Unknown error'}`;
-    sendServerError(res, message);
+    console.error('Resend verification error:', error.message);
+    sendServerError(res, 'Failed to send verification email');
   }
 }
 
@@ -291,61 +262,4 @@ export async function resetPassword(req, res) {
     console.error('Reset password error:', error);
     sendServerError(res, 'Failed to reset password');
   }
-}
-
-/**
- * Test email configuration (temporary endpoint for debugging)
- * GET /api/auth/test-email-config
- */
-export async function testEmailConfig(req, res) {
-  console.log('[TestEmailConfig] ========== START ==========');
-
-  const config = {
-    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || 'not set',
-    EMAIL_FROM: process.env.EMAIL_FROM || 'not set',
-    RESEND_API_KEY_EXISTS: !!process.env.RESEND_API_KEY,
-    RESEND_API_KEY_PREFIX: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 8) + '...' : 'N/A',
-    SENDGRID_API_KEY_EXISTS: !!process.env.SENDGRID_API_KEY,
-    SMTP_HOST: process.env.SMTP_HOST || 'not set',
-    NODE_ENV: process.env.NODE_ENV || 'not set'
-  };
-
-  console.log('[TestEmailConfig] Config:', JSON.stringify(config, null, 2));
-
-  // Try to send a test email if email query param is provided
-  const testEmail = req.query.email;
-  if (testEmail) {
-    console.log('[TestEmailConfig] Attempting to send test email to:', testEmail);
-    try {
-      const result = await sendEmail({
-        to: testEmail,
-        subject: 'Answr Email Test',
-        html: '<h1>Test Email</h1><p>If you receive this, email is working!</p>',
-        text: 'Test Email - If you receive this, email is working!'
-      });
-      console.log('[TestEmailConfig] Email sent! Result:', result);
-      return res.json({
-        success: true,
-        config,
-        emailResult: { messageId: result.messageId }
-      });
-    } catch (error) {
-      console.error('[TestEmailConfig] Email failed:', error.message);
-      console.error('[TestEmailConfig] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-      return res.json({
-        success: false,
-        config,
-        error: error.message,
-        errorDetails: {
-          name: error.name,
-          code: error.code,
-          responseCode: error.responseCode,
-          response: error.response
-        }
-      });
-    }
-  }
-
-  console.log('[TestEmailConfig] ========== END ==========');
-  res.json({ success: true, config, note: 'Add ?email=your@email.com to send a test email' });
 }

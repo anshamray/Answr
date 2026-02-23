@@ -49,6 +49,11 @@ const quizSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   }],
+  language: {
+    type: String,
+    default: 'en',
+    enum: ['en', 'de', 'es', 'fr', 'it', 'pt', 'nl', 'pl', 'ru', 'ja', 'zh', 'ko']
+  },
   // Original quiz this was cloned from (null if original)
   clonedFrom: {
     type: mongoose.Schema.Types.ObjectId,
