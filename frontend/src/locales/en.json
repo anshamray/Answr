@@ -88,7 +88,7 @@
     "signIn": "Sign In",
     "signUp": "Sign Up",
     "email": "Email",
-    "emailPlaceholder": "you@example.com",
+    "emailPlaceholder": "you{'@'}example.com",
     "password": "Password",
     "passwordPlaceholder": "••••••••",
     "confirmPassword": "Confirm",
