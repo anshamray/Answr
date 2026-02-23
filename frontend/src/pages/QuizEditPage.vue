@@ -517,27 +517,6 @@ onMounted(() => {
               {{ questionCount }} {{ questionCount === 1 ? t('quizEditor.question') : t('quizEditor.questions') }}
             </PixelBadge>
 
-            <!-- Settings toggle button -->
-            <button
-              class="p-2 border-2 transition-colors"
-              :class="showSettings ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary hover:bg-primary/5'"
-              :title="t('quizEditor.quizSettings')"
-              @click="showSettings = !showSettings"
-            >
-              <svg class="w-5 h-5" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="6" y="0" width="4" height="2" />
-                <rect x="6" y="14" width="4" height="2" />
-                <rect x="0" y="6" width="2" height="4" />
-                <rect x="14" y="6" width="2" height="4" />
-                <rect x="2" y="2" width="2" height="2" />
-                <rect x="12" y="2" width="2" height="2" />
-                <rect x="2" y="12" width="2" height="2" />
-                <rect x="12" y="12" width="2" height="2" />
-                <rect x="4" y="4" width="8" height="8" />
-                <rect x="6" y="6" width="4" height="4" fill="white" />
-              </svg>
-            </button>
-
             <PixelButton
               variant="primary"
               size="sm"
@@ -690,24 +669,33 @@ onMounted(() => {
       </main>
 
       <!-- Right Sidebar: Quiz Settings -->
+      <!-- Collapsed state - just the gear icon -->
       <aside
-        v-if="showSettings"
+        v-if="!showSettings"
+        class="shrink-0 border-l-[3px] border-black bg-white"
+      >
+        <button
+          class="p-4 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+          :title="t('quizEditor.quizSettings')"
+          @click="showSettings = true"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+      </aside>
+
+      <!-- Expanded state - full settings panel -->
+      <aside
+        v-else
         class="w-80 shrink-0 border-l-[3px] border-black bg-white flex flex-col overflow-y-auto"
       >
         <div class="p-4 border-b-[3px] border-border flex items-center justify-between">
           <span class="flex items-center gap-2 font-bold text-sm">
-            <svg class="w-5 h-5 text-primary" viewBox="0 0 16 16" fill="currentColor">
-              <!-- Pixel gear icon -->
-              <rect x="6" y="0" width="4" height="2" />
-              <rect x="6" y="14" width="4" height="2" />
-              <rect x="0" y="6" width="2" height="4" />
-              <rect x="14" y="6" width="2" height="4" />
-              <rect x="2" y="2" width="2" height="2" />
-              <rect x="12" y="2" width="2" height="2" />
-              <rect x="2" y="12" width="2" height="2" />
-              <rect x="12" y="12" width="2" height="2" />
-              <rect x="4" y="4" width="8" height="8" />
-              <rect x="6" y="6" width="4" height="4" fill="white" />
+            <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
             {{ t('quizEditor.quizSettings') }}
           </span>
