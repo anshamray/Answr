@@ -100,6 +100,12 @@ export async function sendEmail({ to, subject, html, text }) {
   }
 
   try {
+    console.log('--- Sending email ---');
+    console.log('Provider:', process.env.EMAIL_PROVIDER);
+    console.log('From:', from);
+    console.log('To:', to);
+    console.log('Subject:', subject);
+
     // Add timeout to prevent hanging forever
     const timeoutMs = 30000; // 30 seconds
     const sendPromise = transport.sendMail(mailOptions);
@@ -107,7 +113,9 @@ export async function sendEmail({ to, subject, html, text }) {
       setTimeout(() => reject(new Error('Email send timeout')), timeoutMs)
     );
 
-    return await Promise.race([sendPromise, timeoutPromise]);
+    const result = await Promise.race([sendPromise, timeoutPromise]);
+    console.log('Email sent successfully:', result.messageId);
+    return result;
   } catch (err) {
     // Log full error for debugging (SMTP/Resend often put details in response or message)
     console.error('Email send failed:', err.message);

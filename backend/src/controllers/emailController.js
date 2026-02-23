@@ -117,11 +117,17 @@ export async function resendVerification(req, res) {
   } catch (error) {
     console.error('Resend verification error:', error.message || error);
     if (error.response) console.error('SMTP/API response:', error.response);
-    // In development, return the actual error so you can see e.g. "domain not verified" or "Invalid login"
-    const message =
-      process.env.NODE_ENV === 'production'
-        ? 'Failed to send verification email'
-        : (error.message || 'Failed to send verification email');
+    if (error.responseCode) console.error('Response code:', error.responseCode);
+
+    // Include sanitized error info to help debugging
+    let message = 'Failed to send verification email';
+    if (error.message) {
+      // Include common Resend/SMTP errors that help debugging
+      const safeErrors = ['Invalid API Key', 'domain', 'not verified', 'authentication', 'timeout', 'ECONNREFUSED'];
+      if (safeErrors.some(e => error.message.toLowerCase().includes(e.toLowerCase()))) {
+        message += `: ${error.message}`;
+      }
+    }
     sendServerError(res, message);
   }
 }
