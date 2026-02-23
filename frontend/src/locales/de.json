@@ -16,7 +16,9 @@
     "confirm": "Bestätigen",
     "noDescription": "Keine Beschreibung",
     "questions": "{count} Frage | {count} Fragen",
+    "questionsShort": "Fragen",
     "plays": "{count} Spiel | {count} Spiele",
+    "playsShort": "Spiele",
     "players": "{count} Spieler | {count} Spieler",
     "by": "von"
   },

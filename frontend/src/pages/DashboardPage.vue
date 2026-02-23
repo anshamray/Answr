@@ -327,34 +327,42 @@ onMounted(fetchQuizzes);
         </div>
 
         <div class="flex gap-2">
-          <!-- Detailed view -->
+          <!-- Detailed view - card with content lines -->
           <button
-            class="p-2 border-2"
+            class="p-2 border-2 relative group"
             :class="view === 'detailed' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'"
-            :title="t('dashboard.viewDetailed')"
             @click="view = 'detailed'"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <line x1="3" y1="9" x2="21" y2="9" />
-              <line x1="9" y1="21" x2="9" y2="9" />
+              <!-- Card outline -->
+              <rect x="3" y="3" width="18" height="18" rx="1" />
+              <!-- Title line -->
+              <line x1="6" y1="7" x2="18" y2="7" />
+              <!-- Content lines -->
+              <line x1="6" y1="11" x2="14" y2="11" />
+              <line x1="6" y1="15" x2="16" y2="15" />
             </svg>
+            <!-- Tooltip -->
+            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-foreground text-background text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              {{ t('dashboard.viewDetailed') }}
+            </span>
           </button>
-          <!-- Compact view -->
+          <!-- Compact view - minimal card -->
           <button
-            class="p-2 border-2"
+            class="p-2 border-2 relative group"
             :class="view === 'compact' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'"
-            :title="t('dashboard.viewCompact')"
             @click="view = 'compact'"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
+              <!-- Card outline -->
+              <rect x="3" y="3" width="18" height="18" rx="1" />
+              <!-- Single title line only -->
+              <line x1="6" y1="12" x2="18" y2="12" />
             </svg>
+            <!-- Tooltip -->
+            <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-foreground text-background text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              {{ t('dashboard.viewCompact') }}
+            </span>
           </button>
         </div>
       </div>
@@ -595,64 +603,60 @@ onMounted(fetchQuizzes);
       </div>
 
       <!-- Quiz Grid - Compact View -->
-      <div v-else-if="filter !== 'favorites' && view === 'compact'" class="space-y-2">
+      <div v-else-if="filter !== 'favorites' && view === 'compact'" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <template v-for="quiz in quizzes" :key="quiz._id || quiz.id">
           <PixelCard
             v-if="filter === 'all' || (filter === 'published' && quiz.isPublished) || (filter === 'draft' && !quiz.isPublished)"
-            class="transition-all group !p-3"
+            class="transition-all group !p-4"
           >
-            <div class="flex items-center gap-4">
-              <!-- Title - clickable -->
+            <!-- Header with title and badge -->
+            <div class="flex items-start justify-between gap-2 mb-3">
               <h3
-                class="flex-1 font-bold hover:text-primary transition-colors cursor-pointer truncate"
+                class="flex-1 font-bold hover:text-primary transition-colors cursor-pointer line-clamp-1"
                 @click="previewQuiz(quiz._id || quiz.id)"
               >
                 {{ quiz.title }}
               </h3>
-
-              <!-- Quick stats -->
-              <div class="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
-                <span>{{ quiz.questionCount || quiz.questions?.length || 0 }} Q</span>
-                <span>{{ quiz.playCount || 0 }} plays</span>
-              </div>
-
-              <!-- Status badge -->
               <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'" class="shrink-0">
                 {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
               </PixelBadge>
+            </div>
 
-              <!-- Action buttons -->
-              <div class="flex items-center gap-1 shrink-0">
-                <button
-                  class="p-2 hover:bg-primary/10 hover:text-primary transition-colors rounded"
-                  @click="startSession(quiz._id || quiz.id)"
-                  :title="t('common.start')"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                </button>
-                <button
-                  class="p-2 hover:bg-secondary/10 hover:text-secondary transition-colors rounded"
-                  @click="editQuiz(quiz._id || quiz.id)"
-                  :title="t('common.edit')"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-                <button
-                  class="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded"
-                  @click="deleteQuiz(quiz._id || quiz.id)"
-                  :title="t('common.delete')"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
-              </div>
+            <!-- Quick stats -->
+            <div class="flex items-center gap-3 text-sm text-muted-foreground mb-3">
+              <span>{{ quiz.questionCount || quiz.questions?.length || 0 }} {{ t('common.questionsShort') }}</span>
+              <span>·</span>
+              <span>{{ quiz.playCount || 0 }} {{ t('common.playsShort') }}</span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center gap-2">
+              <PixelButton variant="primary" size="sm" class="flex-1" @click="startSession(quiz._id || quiz.id)">
+                <svg class="inline mr-1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+                {{ t('common.start') }}
+              </PixelButton>
+              <button
+                class="p-2 border-2 border-black bg-white hover:bg-secondary/10 transition-colors"
+                @click="editQuiz(quiz._id || quiz.id)"
+                :title="t('common.edit')"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button
+                class="p-2 border-2 border-black bg-white hover:bg-destructive/10 transition-colors"
+                @click="deleteQuiz(quiz._id || quiz.id)"
+                :title="t('common.delete')"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6" />
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+              </button>
             </div>
           </PixelCard>
         </template>

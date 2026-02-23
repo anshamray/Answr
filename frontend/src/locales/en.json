@@ -16,7 +16,9 @@
     "confirm": "Confirm",
     "noDescription": "No description",
     "questions": "{count} question | {count} questions",
+    "questionsShort": "questions",
     "plays": "{count} play | {count} plays",
+    "playsShort": "plays",
     "players": "{count} player | {count} players",
     "by": "by"
   },
