@@ -21,7 +21,7 @@ const isActive = (path) => route.path === path;
       <!-- Logo -->
       <div class="flex items-center gap-3">
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-          <span class="text-xl font-bold text-primary pixel-font">Answr</span>
+          <span class="text-2xl font-bold text-primary pixel-font">Answr</span>
         </router-link>
       </div>
 

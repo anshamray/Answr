@@ -62,7 +62,7 @@ function handlePinSubmit() {
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <div class="flex items-center gap-3">
-            <span class="text-xl font-bold text-primary pixel-font">Answr</span>
+            <span class="text-2xl font-bold text-primary pixel-font">Answr</span>
           </div>
 
           <div class="hidden md:flex items-center gap-6">
@@ -364,7 +364,7 @@ function handlePinSubmit() {
         <div class="grid md:grid-cols-4 gap-8 mb-8">
           <div class="space-y-4">
             <div class="flex items-center gap-2">
-              <span class="text-xl font-bold pixel-font text-primary">Answr</span>
+              <span class="text-2xl font-bold pixel-font text-primary">Answr</span>
             </div>
             <p class="text-sm text-muted-foreground">
               {{ t('landing.footerTagline') }}
