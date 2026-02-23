@@ -12,6 +12,7 @@ import PixelBadge from '../components/PixelBadge.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelStar from '../components/icons/PixelStar.vue';
 import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+import UserDropdown from '../components/UserDropdown.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -92,14 +93,15 @@ onMounted(fetchLibrary);
         <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
           <span class="text-xl font-bold text-primary pixel-font">Answr</span>
         </router-link>
-        <div class="flex items-center gap-3">
-          <LanguageSwitcher />
+        <div class="flex items-center gap-4">
+          <router-link to="/library" class="text-sm text-primary font-medium">{{ t('nav.library') }}</router-link>
           <template v-if="auth.isAuthenticated">
-            <router-link to="/dashboard">
-              <PixelButton variant="primary" size="sm">{{ t('nav.dashboard') }}</PixelButton>
-            </router-link>
+            <router-link to="/dashboard" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.dashboard') }}</router-link>
+            <LanguageSwitcher />
+            <UserDropdown />
           </template>
           <template v-else>
+            <LanguageSwitcher />
             <router-link to="/login">
               <PixelButton variant="outline" size="sm">{{ t('auth.signIn') }}</PixelButton>
             </router-link>

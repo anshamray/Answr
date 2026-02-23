@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
@@ -10,6 +10,17 @@ const auth = useAuthStore();
 
 const isOpen = ref(false);
 const dropdownRef = ref(null);
+
+const initials = computed(() => {
+  const name = auth.user?.name || auth.user?.email || '';
+  if (!name) return '?';
+
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+});
 
 function toggle() {
   isOpen.value = !isOpen.value;
@@ -49,11 +60,15 @@ onUnmounted(() => {
   <div ref="dropdownRef" class="relative">
     <button
       @click="toggle"
-      class="flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors rounded-sm"
+      class="flex items-center gap-2 hover:opacity-80 transition-opacity"
+      :title="auth.user?.name || auth.user?.email"
     >
-      <span class="max-w-[150px] truncate">{{ auth.user?.name || auth.user?.email }}</span>
+      <!-- Avatar with initials -->
+      <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold border-2 border-black">
+        {{ initials }}
+      </div>
       <svg
-        :class="['w-4 h-4 transition-transform', isOpen ? 'rotate-180' : '']"
+        :class="['w-4 h-4 text-muted-foreground transition-transform', isOpen ? 'rotate-180' : '']"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -75,22 +90,29 @@ onUnmounted(() => {
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 mt-2 w-56 bg-white border-2 border-black shadow-lg z-50"
+        class="absolute right-0 mt-2 w-60 bg-white border-2 border-black shadow-lg z-50"
       >
         <!-- User Info -->
-        <div class="px-4 py-3 border-b-2 border-border">
-          <p class="text-sm font-medium truncate">{{ auth.user?.name }}</p>
-          <p class="text-xs text-muted-foreground truncate">{{ auth.user?.email }}</p>
+        <div class="px-4 py-3 border-b-2 border-border bg-muted/30">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold border-2 border-black shrink-0">
+              {{ initials }}
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-medium truncate">{{ auth.user?.name }}</p>
+              <p class="text-xs text-muted-foreground truncate">{{ auth.user?.email }}</p>
+            </div>
+          </div>
         </div>
 
         <!-- Menu Items -->
         <div class="py-1">
           <button
             @click="goToAccount"
-            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-muted/50 transition-colors"
+            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-muted/50 transition-colors"
           >
             <svg
-              class="w-4 h-4"
+              class="w-4 h-4 text-muted-foreground"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -98,15 +120,17 @@ onUnmounted(() => {
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
             </svg>
             {{ t('nav.accountSettings') }}
           </button>
 
+          <div class="border-t border-border my-1"></div>
+
           <button
             @click="handleLogout"
-            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
+            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left text-destructive hover:bg-destructive/10 transition-colors"
           >
             <svg
               class="w-4 h-4"

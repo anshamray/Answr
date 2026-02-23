@@ -17,6 +17,7 @@ import PixelCheck from '../components/icons/PixelCheck.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
 import PixelPlay from '../components/icons/PixelPlay.vue';
 import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+import UserDropdown from '../components/UserDropdown.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -70,14 +71,14 @@ function handlePinSubmit() {
             <router-link to="/library" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.library') }}</router-link>
           </div>
 
-          <div class="flex items-center gap-3">
-            <LanguageSwitcher />
+          <div class="flex items-center gap-4">
             <template v-if="auth.isAuthenticated">
-              <router-link to="/dashboard">
-                <PixelButton variant="primary" size="sm">{{ t('nav.dashboard') }}</PixelButton>
-              </router-link>
+              <router-link to="/dashboard" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.dashboard') }}</router-link>
+              <LanguageSwitcher />
+              <UserDropdown />
             </template>
             <template v-else>
+              <LanguageSwitcher />
               <router-link to="/login" class="hidden sm:inline-flex">
                 <PixelButton variant="outline" size="sm">{{ t('nav.login') }}</PixelButton>
               </router-link>
