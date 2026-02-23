@@ -214,7 +214,7 @@ onMounted(fetchLibrary);
                       <PixelUsers :size="16" />
                       {{ quiz.playCount?.toLocaleString() || 0 }}
                     </span>
-                    <span>{{ quiz.questionCount || 0 }} {{ t('common.questions', quiz.questionCount || 0) }}</span>
+                    <span>{{ t('common.questions', quiz.questionCount || 0) }}</span>
                   </div>
                   <PixelButton variant="primary" size="sm">{{ t('common.play') }}</PixelButton>
                 </div>

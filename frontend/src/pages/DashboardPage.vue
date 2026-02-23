@@ -423,7 +423,7 @@ onMounted(fetchQuizzes);
                 <div class="flex items-center gap-3 text-sm text-muted-foreground">
                   <span>{{ t('common.by') }} {{ quiz.author }}</span>
                   <span>·</span>
-                  <span>{{ quiz.playCount || 0 }} {{ t('common.plays', quiz.playCount || 0) }}</span>
+                  <span>{{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
               <svg class="text-accent shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -488,9 +488,9 @@ onMounted(fetchQuizzes);
                   {{ quiz.title }}
                 </h3>
                 <div class="flex items-center gap-3 text-sm text-muted-foreground">
-                  <span>{{ quiz.questionCount || quiz.questions?.length || 0 }} {{ t('common.questions', quiz.questionCount || quiz.questions?.length || 0) }}</span>
+                  <span>{{ t('common.questions', quiz.questionCount || quiz.questions?.length || 0) }}</span>
                   <span>·</span>
-                  <span>{{ quiz.playCount || 0 }} {{ t('common.plays', quiz.playCount || 0) }}</span>
+                  <span>{{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
               <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
