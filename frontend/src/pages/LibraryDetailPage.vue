@@ -10,6 +10,7 @@ import { STORAGE_KEYS } from '../constants/index.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
+import AppHeader from '../components/AppHeader.vue';
 
 const { t } = useI18n();
 
@@ -159,17 +160,7 @@ onMounted(fetchQuiz);
 
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-        <router-link to="/library" class="text-sm font-medium text-muted-foreground hover:text-primary transition flex items-center gap-1">
-          <span class="text-base">←</span> {{ t('libraryDetail.backToLibrary') }}
-        </router-link>
-        <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-          <span class="text-xl font-bold text-primary pixel-font">Answr</span>
-        </router-link>
-      </div>
-    </header>
+    <AppHeader />
 
     <main class="max-w-5xl mx-auto px-4 py-8">
       <!-- Loading -->

@@ -8,8 +8,7 @@ import { apiUrl } from '../lib/api.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import LanguageSwitcher from '../components/LanguageSwitcher.vue';
-import UserDropdown from '../components/UserDropdown.vue';
+import AppHeader from '../components/AppHeader.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -103,31 +102,15 @@ onMounted(fetchSessions);
 
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <div class="flex items-center gap-3">
-          <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-            <span class="text-xl font-bold text-primary pixel-font">Answr</span>
-          </router-link>
-        </div>
-        <div class="flex items-center gap-4">
-          <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.library') }}</router-link>
-          <router-link to="/dashboard" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.dashboard') }}</router-link>
-          <router-link to="/analytics" class="text-sm text-primary font-medium">Analytics</router-link>
-          <LanguageSwitcher />
-          <UserDropdown />
-        </div>
-      </div>
-    </header>
+    <AppHeader />
 
     <!-- Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <!-- Page Header -->
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
-          <h1 class="text-4xl font-bold mb-2">Session Analytics</h1>
-          <p class="text-muted-foreground">Review performance data from your quiz sessions</p>
+          <h1 class="text-4xl font-bold mb-2">{{ t('analytics.title') }}</h1>
+          <p class="text-muted-foreground">{{ t('analytics.subtitle') }}</p>
         </div>
       </div>
 
@@ -138,21 +121,21 @@ onMounted(fetchSessions);
           :class="filter === 'all' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary'"
           @click="handleFilterChange('all')"
         >
-          All Sessions
+          {{ t('analytics.allSessions') }}
         </button>
         <button
           class="px-4 py-2 border-2 font-medium transition-colors"
           :class="filter === 'finished' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary'"
           @click="handleFilterChange('finished')"
         >
-          Completed
+          {{ t('analytics.completed') }}
         </button>
         <button
           class="px-4 py-2 border-2 font-medium transition-colors"
           :class="filter === 'lobby' ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary'"
           @click="handleFilterChange('lobby')"
         >
-          In Lobby
+          {{ t('analytics.inLobby') }}
         </button>
       </div>
 
@@ -173,13 +156,13 @@ onMounted(fetchSessions);
             </svg>
           </div>
           <div>
-            <h3 class="text-2xl font-bold mb-2">No sessions yet</h3>
+            <h3 class="text-2xl font-bold mb-2">{{ t('analytics.noSessionsTitle') }}</h3>
             <p class="text-muted-foreground max-w-md mx-auto">
-              Run a quiz session to see analytics data here
+              {{ t('analytics.noSessionsSubtitle') }}
             </p>
           </div>
           <router-link to="/dashboard">
-            <PixelButton variant="primary">Go to Dashboard</PixelButton>
+            <PixelButton variant="primary">{{ t('analytics.goToDashboard') }}</PixelButton>
           </router-link>
         </PixelCard>
       </div>
@@ -202,13 +185,13 @@ onMounted(fetchSessions);
               </div>
               <div class="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>PIN: {{ session.pin }}</span>
-                <span>{{ session.participantCount }} players</span>
+                <span>{{ session.participantCount }} {{ t('analytics.players') }}</span>
                 <span>{{ formatDate(session.createdAt) }}</span>
-                <span v-if="session.finishedAt">Duration: {{ formatDuration(session.startedAt, session.finishedAt) }}</span>
+                <span v-if="session.finishedAt">{{ t('analytics.duration') }}: {{ formatDuration(session.startedAt, session.finishedAt) }}</span>
               </div>
             </div>
             <PixelButton v-if="session.status === 'finished'" variant="outline" size="sm">
-              View Details
+              {{ t('analytics.viewDetails') }}
             </PixelButton>
           </div>
         </PixelCard>
@@ -219,7 +202,7 @@ onMounted(fetchSessions);
             {{ t('common.prev') }}
           </PixelButton>
           <span class="text-sm text-muted-foreground">
-            Page {{ page }} of {{ pagination.pages }}
+            {{ t('analytics.pageOf', { current: page, total: pagination.pages }) }}
           </span>
           <PixelButton variant="outline" size="sm" :disabled="page >= pagination.pages" @click="nextPage">
             {{ t('common.next') }}

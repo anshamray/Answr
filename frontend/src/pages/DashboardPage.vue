@@ -8,8 +8,7 @@ import { apiUrl } from '../lib/api.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import LanguageSwitcher from '../components/LanguageSwitcher.vue';
-import UserDropdown from '../components/UserDropdown.vue';
+import AppHeader from '../components/AppHeader.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -218,22 +217,7 @@ onMounted(fetchQuizzes);
 
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <div class="flex items-center gap-3">
-          <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-            <span class="text-xl font-bold text-primary pixel-font">Answr</span>
-          </router-link>
-        </div>
-        <div class="flex items-center gap-4">
-          <router-link to="/library" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.library') }}</router-link>
-          <router-link to="/dashboard" class="text-sm text-primary font-medium">{{ t('nav.dashboard') }}</router-link>
-          <LanguageSwitcher />
-          <UserDropdown />
-        </div>
-      </div>
-    </header>
+    <AppHeader />
 
     <!-- Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

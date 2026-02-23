@@ -11,8 +11,7 @@ import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelStar from '../components/icons/PixelStar.vue';
-import LanguageSwitcher from '../components/LanguageSwitcher.vue';
-import UserDropdown from '../components/UserDropdown.vue';
+import AppHeader from '../components/AppHeader.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -87,28 +86,7 @@ onMounted(fetchLibrary);
 
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-          <span class="text-xl font-bold text-primary pixel-font">Answr</span>
-        </router-link>
-        <div class="flex items-center gap-4">
-          <router-link to="/library" class="text-sm text-primary font-medium">{{ t('nav.library') }}</router-link>
-          <template v-if="auth.isAuthenticated">
-            <router-link to="/dashboard" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.dashboard') }}</router-link>
-            <LanguageSwitcher />
-            <UserDropdown />
-          </template>
-          <template v-else>
-            <LanguageSwitcher />
-            <router-link to="/login">
-              <PixelButton variant="outline" size="sm">{{ t('auth.signIn') }}</PixelButton>
-            </router-link>
-          </template>
-        </div>
-      </div>
-    </header>
+    <AppHeader />
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <!-- Header -->

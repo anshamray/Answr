@@ -10,6 +10,12 @@ function getTransporter() {
 
   const provider = process.env.EMAIL_PROVIDER || 'smtp';
 
+  const timeoutOptions = {
+    connectionTimeout: 10000, // 10 seconds to connect
+    greetingTimeout: 10000,   // 10 seconds for greeting
+    socketTimeout: 30000      // 30 seconds for socket
+  };
+
   if (provider === 'sendgrid') {
     if (!process.env.SENDGRID_API_KEY) {
       throw new Error('SENDGRID_API_KEY is required when EMAIL_PROVIDER=sendgrid. Add it to .env');
@@ -20,7 +26,8 @@ function getTransporter() {
       auth: {
         user: 'apikey',
         pass: process.env.SENDGRID_API_KEY
-      }
+      },
+      ...timeoutOptions
     });
   } else if (provider === 'resend') {
     if (!process.env.RESEND_API_KEY) {
@@ -33,12 +40,13 @@ function getTransporter() {
       auth: {
         user: 'resend',
         pass: process.env.RESEND_API_KEY
-      }
+      },
+      ...timeoutOptions
     });
-  } else {
-    // Default SMTP
+  } else if (process.env.SMTP_HOST) {
+    // Custom SMTP - only if SMTP_HOST is explicitly set
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'localhost',
+      host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT || '587', 10),
       secure: process.env.SMTP_SECURE === 'true',
       auth: process.env.SMTP_USER
@@ -46,8 +54,12 @@ function getTransporter() {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS
           }
-        : undefined
+        : undefined,
+      ...timeoutOptions
     });
+  } else {
+    // No email provider configured - return null
+    return null;
   }
 
   return transporter;
@@ -74,23 +86,28 @@ export async function sendEmail({ to, subject, html, text }) {
     text
   };
 
-  // In development, log instead of sending if no email config
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    !process.env.SMTP_HOST &&
-    !process.env.SENDGRID_API_KEY &&
-    !process.env.RESEND_API_KEY
-  ) {
-    console.log('--- Email (dev mode, not sent) ---');
+  // Skip sending if no email provider is configured
+  const hasEmailConfig = process.env.SMTP_HOST || process.env.SENDGRID_API_KEY || process.env.RESEND_API_KEY;
+
+  if (!hasEmailConfig) {
+    console.log('--- Email (not configured, skipped) ---');
     console.log('To:', to);
     console.log('Subject:', subject);
-    console.log('Text:', text);
-    console.log('----------------------------------');
-    return { messageId: 'dev-mode-no-send' };
+    console.log('Text:', text?.substring(0, 200) + '...');
+    console.log('Configure EMAIL_PROVIDER and credentials to enable email sending.');
+    console.log('----------------------------------------');
+    return { messageId: 'email-not-configured' };
   }
 
   try {
-    return await transport.sendMail(mailOptions);
+    // Add timeout to prevent hanging forever
+    const timeoutMs = 30000; // 30 seconds
+    const sendPromise = transport.sendMail(mailOptions);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Email send timeout')), timeoutMs)
+    );
+
+    return await Promise.race([sendPromise, timeoutPromise]);
   } catch (err) {
     // Log full error for debugging (SMTP/Resend often put details in response or message)
     console.error('Email send failed:', err.message);

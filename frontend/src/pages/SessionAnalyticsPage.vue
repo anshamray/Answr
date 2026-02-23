@@ -8,8 +8,7 @@ import { apiUrl } from '../lib/api.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
-import LanguageSwitcher from '../components/LanguageSwitcher.vue';
-import UserDropdown from '../components/UserDropdown.vue';
+import AppHeader from '../components/AppHeader.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -93,26 +92,7 @@ onMounted(fetchAnalytics);
 
 <template>
   <div class="min-h-screen bg-background">
-    <!-- Header -->
-    <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <div class="flex items-center gap-3">
-          <router-link to="/" class="flex items-center gap-2 hover:opacity-80 transition">
-            <span class="text-xl font-bold text-primary pixel-font">Answr</span>
-          </router-link>
-        </div>
-        <div class="flex items-center gap-4">
-          <router-link to="/analytics" class="text-sm text-muted-foreground hover:text-primary transition">
-            <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
-            </svg>
-            Back to Analytics
-          </router-link>
-          <LanguageSwitcher />
-          <UserDropdown />
-        </div>
-      </div>
-    </header>
+    <AppHeader />
 
     <!-- Content -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -135,14 +115,14 @@ onMounted(fetchAnalytics);
               <span>|</span>
               <span>{{ formatDate(sessionData.startedAt) }}</span>
               <span>|</span>
-              <span>Duration: {{ formatDuration(sessionData.duration) }}</span>
+              <span>{{ t('analytics.duration') }}: {{ formatDuration(sessionData.duration) }}</span>
             </div>
           </div>
           <PixelButton variant="secondary" @click="downloadCSV">
             <svg class="inline mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Export CSV
+            {{ t('analytics.exportCsv') }}
           </PixelButton>
         </div>
 
@@ -150,21 +130,21 @@ onMounted(fetchAnalytics);
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <PixelCard variant="primary" class="text-center">
             <div class="text-4xl font-bold text-primary">{{ summary?.totalParticipants || 0 }}</div>
-            <div class="text-sm text-muted-foreground">Players</div>
+            <div class="text-sm text-muted-foreground">{{ t('analytics.totalParticipants') }}</div>
           </PixelCard>
           <PixelCard variant="secondary" class="text-center">
             <div class="text-4xl font-bold text-secondary">{{ summary?.avgScore || 0 }}</div>
-            <div class="text-sm text-muted-foreground">Avg Score</div>
+            <div class="text-sm text-muted-foreground">{{ t('analytics.averageScore') }}</div>
           </PixelCard>
           <PixelCard variant="accent" class="text-center">
             <div class="text-4xl font-bold" :class="getAccuracyColor(summary?.avgAccuracy || 0)">
               {{ summary?.avgAccuracy || 0 }}%
             </div>
-            <div class="text-sm text-muted-foreground">Avg Accuracy</div>
+            <div class="text-sm text-muted-foreground">{{ t('analytics.averageAccuracy') }}</div>
           </PixelCard>
           <PixelCard class="text-center">
             <div class="text-4xl font-bold text-foreground">{{ summary?.totalQuestions || 0 }}</div>
-            <div class="text-sm text-muted-foreground">Questions</div>
+            <div class="text-sm text-muted-foreground">{{ t('analytics.questions') }}</div>
           </PixelCard>
         </div>
 
@@ -175,21 +155,21 @@ onMounted(fetchAnalytics);
             :class="activeTab === 'overview' ? 'border-primary text-primary' : 'border-transparent hover:text-primary'"
             @click="activeTab = 'overview'"
           >
-            Overview
+            {{ t('analytics.overview') }}
           </button>
           <button
             class="px-4 py-2 font-medium transition-colors border-b-2 -mb-[2px]"
             :class="activeTab === 'participants' ? 'border-primary text-primary' : 'border-transparent hover:text-primary'"
             @click="activeTab = 'participants'"
           >
-            Players ({{ participants.length }})
+            {{ t('analytics.participants') }} ({{ participants.length }})
           </button>
           <button
             class="px-4 py-2 font-medium transition-colors border-b-2 -mb-[2px]"
             :class="activeTab === 'questions' ? 'border-primary text-primary' : 'border-transparent hover:text-primary'"
             @click="activeTab = 'questions'"
           >
-            Questions ({{ questions.length }})
+            {{ t('analytics.questions') }} ({{ questions.length }})
           </button>
         </div>
 
@@ -204,7 +184,7 @@ onMounted(fetchAnalytics);
                 <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
                 <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
               </svg>
-              Top Players
+              {{ t('gameControl.top5') }}
             </h3>
             <div class="space-y-2">
               <div
@@ -218,7 +198,7 @@ onMounted(fetchAnalytics);
                 </div>
                 <div class="flex-1">
                   <div class="font-medium">{{ player.name }}</div>
-                  <div class="text-xs text-muted-foreground">{{ player.accuracy }}% accuracy</div>
+                  <div class="text-xs text-muted-foreground">{{ player.accuracy }}% {{ t('analytics.accuracy') }}</div>
                 </div>
                 <div class="text-lg font-bold">{{ player.score }}</div>
               </div>
@@ -231,7 +211,7 @@ onMounted(fetchAnalytics);
               <svg class="text-secondary" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
               </svg>
-              Question Performance
+              {{ t('analytics.questionAccuracy') }}
             </h3>
             <div class="space-y-3">
               <div
@@ -262,11 +242,11 @@ onMounted(fetchAnalytics);
               <table class="w-full">
                 <thead>
                   <tr class="border-b-2 border-border">
-                    <th class="text-left p-3 font-bold">Rank</th>
-                    <th class="text-left p-3 font-bold">Player</th>
-                    <th class="text-right p-3 font-bold">Score</th>
-                    <th class="text-right p-3 font-bold">Correct</th>
-                    <th class="text-right p-3 font-bold">Accuracy</th>
+                    <th class="text-left p-3 font-bold">{{ t('analytics.rank') }}</th>
+                    <th class="text-left p-3 font-bold">{{ t('analytics.player') }}</th>
+                    <th class="text-right p-3 font-bold">{{ t('analytics.score') }}</th>
+                    <th class="text-right p-3 font-bold">{{ t('analytics.correct') }}</th>
+                    <th class="text-right p-3 font-bold">{{ t('analytics.accuracy') }}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -319,21 +299,21 @@ onMounted(fetchAnalytics);
                 <div class="text-2xl font-bold" :class="getAccuracyColor(q.accuracy)">
                   {{ q.accuracy }}%
                 </div>
-                <div class="text-xs text-muted-foreground">accuracy</div>
+                <div class="text-xs text-muted-foreground">{{ t('analytics.accuracy') }}</div>
               </div>
             </div>
             <div class="grid grid-cols-3 gap-4 text-center">
               <div class="p-3 bg-muted/30 border-2 border-border">
                 <div class="text-xl font-bold">{{ q.totalAnswers }}</div>
-                <div class="text-xs text-muted-foreground">Answers</div>
+                <div class="text-xs text-muted-foreground">{{ t('session.answers') }}</div>
               </div>
               <div class="p-3 bg-success/10 border-2 border-success">
                 <div class="text-xl font-bold text-success">{{ q.correctCount }}</div>
-                <div class="text-xs text-muted-foreground">Correct</div>
+                <div class="text-xs text-muted-foreground">{{ t('analytics.correct') }}</div>
               </div>
               <div class="p-3 bg-muted/30 border-2 border-border">
                 <div class="text-xl font-bold">{{ Math.round(q.avgTime / 1000) }}s</div>
-                <div class="text-xs text-muted-foreground">Avg Time</div>
+                <div class="text-xs text-muted-foreground">{{ t('analytics.avgResponseTime') }}</div>
               </div>
             </div>
           </PixelCard>
