@@ -11,6 +11,9 @@ function getTransporter() {
   const provider = process.env.EMAIL_PROVIDER || 'smtp';
 
   if (provider === 'sendgrid') {
+    if (!process.env.SENDGRID_API_KEY) {
+      throw new Error('SENDGRID_API_KEY is required when EMAIL_PROVIDER=sendgrid. Add it to .env');
+    }
     transporter = nodemailer.createTransport({
       host: 'smtp.sendgrid.net',
       port: 587,
@@ -20,6 +23,9 @@ function getTransporter() {
       }
     });
   } else if (provider === 'resend') {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is required when EMAIL_PROVIDER=resend. Add it to .env');
+    }
     transporter = nodemailer.createTransport({
       host: 'smtp.resend.com',
       port: 465,
@@ -83,7 +89,15 @@ export async function sendEmail({ to, subject, html, text }) {
     return { messageId: 'dev-mode-no-send' };
   }
 
-  return transport.sendMail(mailOptions);
+  try {
+    return await transport.sendMail(mailOptions);
+  } catch (err) {
+    // Log full error for debugging (SMTP/Resend often put details in response or message)
+    console.error('Email send failed:', err.message);
+    if (err.response) console.error('SMTP/API response:', err.response);
+    if (err.responseCode) console.error('Response code:', err.responseCode);
+    throw err;
+  }
 }
 
 /**

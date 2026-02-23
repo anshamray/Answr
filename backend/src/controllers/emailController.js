@@ -115,8 +115,14 @@ export async function resendVerification(req, res) {
 
     sendSuccess(res, { message: 'Verification email sent' });
   } catch (error) {
-    console.error('Resend verification error:', error);
-    sendServerError(res, 'Failed to send verification email');
+    console.error('Resend verification error:', error.message || error);
+    if (error.response) console.error('SMTP/API response:', error.response);
+    // In development, return the actual error so you can see e.g. "domain not verified" or "Invalid login"
+    const message =
+      process.env.NODE_ENV === 'production'
+        ? 'Failed to send verification email'
+        : (error.message || 'Failed to send verification email');
+    sendServerError(res, message);
   }
 }
 
