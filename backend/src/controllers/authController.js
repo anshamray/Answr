@@ -1,4 +1,7 @@
 import User from '../models/User.js';
+import Quiz from '../models/Quiz.js';
+import Question from '../models/Question.js';
+import Session from '../models/Session.js';
 import { generateToken } from '../middleware/auth.js';
 import { createVerificationToken } from './emailController.js';
 import { sendEmail } from '../services/emailService.js';
@@ -12,6 +15,11 @@ import {
   sendConflict,
   sendServerError
 } from '../utils/responseHelper.js';
+import {
+  getUserStats as getStats,
+  getUserBadges as getBadges,
+  getAllBadgesWithProgress
+} from '../services/badgeService.js';
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
@@ -275,5 +283,106 @@ export async function updatePassword(req, res) {
   } catch (error) {
     console.error('Update password error:', error);
     sendServerError(res, 'Failed to update password');
+  }
+}
+
+/**
+ * Delete user account and all associated data
+ * DELETE /api/auth/delete-account
+ */
+export async function deleteAccount(req, res) {
+  try {
+    const { confirmText, password } = req.body;
+
+    // Require confirmation text "DELETE"
+    if (confirmText !== 'DELETE') {
+      return sendBadRequest(res, 'Please type DELETE to confirm account deletion');
+    }
+
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    // For local users, require password confirmation
+    if (user.provider === 'local') {
+      if (!password) {
+        return sendBadRequest(res, 'Password is required to delete account');
+      }
+
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return sendUnauthorized(res, 'Invalid password');
+      }
+    }
+
+    // Get all quizzes owned by the user
+    const userQuizzes = await Quiz.find({ moderatorId: user._id });
+    const quizIds = userQuizzes.map(q => q._id);
+
+    // Delete all questions from user's quizzes
+    if (quizIds.length > 0) {
+      await Question.deleteMany({ quizId: { $in: quizIds } });
+    }
+
+    // Delete all user's quizzes
+    await Quiz.deleteMany({ moderatorId: user._id });
+
+    // Delete all sessions created by the user
+    await Session.deleteMany({ moderatorId: user._id });
+
+    // Remove user from other users' favorites (user's quizzes were in their favorites)
+    await User.updateMany(
+      { favorites: { $in: quizIds } },
+      { $pull: { favorites: { $in: quizIds } } }
+    );
+
+    // Delete the user
+    await User.findByIdAndDelete(user._id);
+
+    sendSuccess(res, { message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    sendServerError(res, 'Failed to delete account');
+  }
+}
+
+/**
+ * Get user stats
+ * GET /api/auth/me/stats
+ */
+export async function getUserStats(req, res) {
+  try {
+    const stats = await getStats(req.user.userId);
+
+    if (!stats) {
+      return sendNotFound(res, 'User not found');
+    }
+
+    sendSuccess(res, {
+      message: 'User stats retrieved',
+      data: { stats }
+    });
+  } catch (error) {
+    console.error('Get user stats error:', error);
+    sendServerError(res, 'Failed to get user stats');
+  }
+}
+
+/**
+ * Get user badges
+ * GET /api/auth/me/badges
+ */
+export async function getUserBadges(req, res) {
+  try {
+    const badges = await getAllBadgesWithProgress(req.user.userId);
+
+    sendSuccess(res, {
+      message: 'User badges retrieved',
+      data: { badges }
+    });
+  } catch (error) {
+    console.error('Get user badges error:', error);
+    sendServerError(res, 'Failed to get user badges');
   }
 }

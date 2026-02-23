@@ -32,6 +32,10 @@ const sessionSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  startedAt: {
+    type: Date,
+    default: null
+  },
   participants: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Participant'

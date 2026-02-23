@@ -28,6 +28,16 @@ const submissionSchema = new mongoose.Schema({
     ref: 'Question',
     required: true
   },
+  sessionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Session',
+    required: true,
+    index: true
+  },
+  isCorrect: {
+    type: Boolean,
+    default: null
+  },
   questionType: {
     type: String,
     required: true,

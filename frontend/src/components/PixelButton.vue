@@ -3,7 +3,7 @@ defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (v) => ['primary', 'secondary', 'accent', 'success', 'outline'].includes(v)
+    validator: (v) => ['primary', 'secondary', 'accent', 'success', 'destructive', 'outline'].includes(v)
   },
   size: {
     type: String,
@@ -24,6 +24,7 @@ defineProps({
         'bg-secondary text-secondary-foreground hover:bg-secondary-dark pixel-shadow': variant === 'secondary',
         'bg-accent text-accent-foreground hover:bg-accent-dark pixel-shadow': variant === 'accent',
         'bg-success text-success-foreground hover:brightness-110 pixel-shadow': variant === 'success',
+        'bg-destructive text-destructive-foreground hover:brightness-110 pixel-shadow': variant === 'destructive',
         'bg-white text-foreground hover:bg-muted border-foreground pixel-shadow': variant === 'outline'
       },
       {

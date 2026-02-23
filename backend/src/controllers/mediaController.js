@@ -290,6 +290,65 @@ export async function serveMedia(req, res) {
 }
 
 /**
+ * List all media for the authenticated user
+ * GET /api/media
+ */
+export async function listMedia(req, res) {
+  try {
+    const { quizId, search, page = 1, limit = 20 } = req.query;
+
+    const query = { uploadedBy: req.user.userId };
+
+    // Filter by quiz if provided
+    if (quizId) {
+      query.quizId = quizId;
+    }
+
+    // Search by original filename
+    if (search) {
+      query.originalName = { $regex: search, $options: 'i' };
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const total = await Media.countDocuments(query);
+
+    const media = await Media.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .select('filename originalName mimeType size width height quizId createdAt');
+
+    const items = media.map(m => ({
+      id: m._id,
+      url: `/media/${m._id}`,
+      originalName: m.originalName,
+      mimeType: m.mimeType,
+      size: m.size,
+      width: m.width,
+      height: m.height,
+      quizId: m.quizId,
+      createdAt: m.createdAt
+    }));
+
+    sendSuccess(res, {
+      message: 'Media list retrieved',
+      data: {
+        media: items,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('List media error:', error);
+    sendServerError(res, 'Failed to fetch media list');
+  }
+}
+
+/**
  * Link media to a quiz (called when question is created/updated)
  */
 export async function linkMediaToQuiz(mediaUrl, quizId) {

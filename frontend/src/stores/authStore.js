@@ -183,6 +183,29 @@ export const useAuthStore = defineStore('auth', () => {
     return true;
   }
 
+  async function deleteAccount(confirmText, password) {
+    if (!token.value) throw new Error('Not authenticated');
+
+    const res = await fetch(apiUrl('/api/auth/delete-account'), {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token.value}`
+      },
+      body: JSON.stringify({ confirmText, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed to delete account');
+    }
+
+    // Clear auth state after successful deletion
+    clearAuth();
+    return true;
+  }
+
   async function fetchFavorites() {
     if (!token.value) return;
 
@@ -256,6 +279,7 @@ export const useAuthStore = defineStore('auth', () => {
     updateName,
     updateEmail,
     updatePassword,
+    deleteAccount,
     fetchFavorites,
     addFavorite,
     removeFavorite,

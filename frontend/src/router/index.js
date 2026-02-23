@@ -18,6 +18,8 @@ import LibraryDetailPage from '../pages/LibraryDetailPage.vue';
 import SessionLobbyPage from '../pages/SessionLobbyPage.vue';
 import GameControlPage from '../pages/GameControlPage.vue';
 import SessionResultsPage from '../pages/SessionResultsPage.vue';
+import AnalyticsPage from '../pages/AnalyticsPage.vue';
+import SessionAnalyticsPage from '../pages/SessionAnalyticsPage.vue';
 import PlayerJoinPage from '../pages/PlayerJoinPage.vue';
 import PlayerProfilePage from '../pages/PlayerProfilePage.vue';
 import PlayerLobbyPage from '../pages/PlayerLobbyPage.vue';
@@ -43,6 +45,8 @@ const routes = [
   // Moderator (auth required — or guest token for sessions started from library)
   { path: '/dashboard', component: DashboardPage, meta: { requiresAuth: true } },
   { path: '/account', component: AccountPage, meta: { requiresAuth: true } },
+  { path: '/analytics', component: AnalyticsPage, meta: { requiresAuth: true } },
+  { path: '/analytics/:sessionId', component: SessionAnalyticsPage, meta: { requiresAuth: true } },
   { path: '/quiz/:id/edit', component: QuizEditPage, meta: { requiresAuth: true } },
   { path: '/session/:id/lobby', component: SessionLobbyPage, meta: { requiresGuestOrAuth: true } },
   { path: '/session/:id/control', component: GameControlPage, meta: { requiresGuestOrAuth: true } },

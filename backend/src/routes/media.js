@@ -5,11 +5,15 @@ import {
   uploadMedia,
   deleteMedia,
   getMediaInfo,
+  listMedia,
   serveMedia
 } from '../controllers/mediaController.js';
 
 // API routes (require authentication)
 export const apiRouter = express.Router();
+
+// List all media for the user
+apiRouter.get('/', authenticate, listMedia);
 
 apiRouter.post('/upload', authenticate, upload.single('file'), (req, res, next) => {
   // Handle multer errors

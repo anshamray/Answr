@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { apiUrl } from '../lib/api.js';
+import { uploadMedia, isDataUrl } from '../lib/mediaService.js';
 import MultipleChoiceEditor from './editors/MultipleChoiceEditor.vue';
 import TrueFalseEditor from './editors/TrueFalseEditor.vue';
 import TypeAnswerEditor from './editors/TypeAnswerEditor.vue';
@@ -8,6 +9,7 @@ import SortEditor from './editors/SortEditor.vue';
 import SliderEditor from './editors/SliderEditor.vue';
 import QuizAudioEditor from './editors/QuizAudioEditor.vue';
 import PinAnswerEditor from './editors/PinAnswerEditor.vue';
+import MediaLibrary from './MediaLibrary.vue';
 
 const props = defineProps({
   question: {
@@ -28,11 +30,23 @@ const localQuestion = ref({ ...props.question });
 // Error state for file validation
 const fileError = ref('');
 
+// Upload progress state
+const uploadProgress = ref(0);
+const isUploading = ref(false);
+
 // File input ref
 const fileInputRef = ref(null);
 
 // Media section collapsed by default (optional, not often used)
 const mediaExpanded = ref(false);
+
+// Media library modal state
+const showMediaLibrary = ref(false);
+
+function handleLibrarySelect(url) {
+  updateMediaUrl(url);
+  showMediaLibrary.value = false;
+}
 
 // Time limit options
 const timeLimitOptions = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240];
@@ -96,8 +110,8 @@ function triggerFileInput() {
   fileInputRef.value?.click();
 }
 
-// Handle file selection
-function handleFileSelect(event) {
+// Handle file selection - upload to server
+async function handleFileSelect(event) {
   const file = event.target.files?.[0];
   if (!file) return;
 
@@ -115,12 +129,26 @@ function handleFileSelect(event) {
     return;
   }
 
-  // Convert to data URL for preview (will be uploaded on save)
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    updateMediaUrl(e.target.result);
-  };
-  reader.readAsDataURL(file);
+  // Upload to server
+  isUploading.value = true;
+  uploadProgress.value = 0;
+
+  try {
+    const media = await uploadMedia(file, (percent) => {
+      uploadProgress.value = percent;
+    });
+    // Use the server URL instead of data URL
+    updateMediaUrl(media.url);
+  } catch (err) {
+    fileError.value = err.message || 'Upload failed';
+  } finally {
+    isUploading.value = false;
+    uploadProgress.value = 0;
+    // Reset file input
+    if (fileInputRef.value) {
+      fileInputRef.value.value = '';
+    }
+  }
 }
 
 // Get icon for question type
@@ -239,7 +267,22 @@ function getIcon(iconName) {
             @change="handleFileSelect"
           />
           <div class="border-2 border-dashed border-border p-8 text-center hover:border-primary transition-colors">
-            <div v-if="localQuestion.mediaUrl" class="relative">
+            <!-- Uploading state -->
+            <div v-if="isUploading" class="space-y-3">
+              <svg class="mx-auto mb-3 text-primary animate-pulse" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p class="text-sm text-muted-foreground">Uploading...</p>
+              <div class="w-full max-w-xs mx-auto bg-border h-2">
+                <div
+                  class="bg-primary h-full transition-all duration-200"
+                  :style="{ width: `${uploadProgress}%` }"
+                ></div>
+              </div>
+              <p class="text-xs text-muted-foreground">{{ uploadProgress }}%</p>
+            </div>
+            <!-- Image preview -->
+            <div v-else-if="localQuestion.mediaUrl" class="relative">
               <img
                 :src="apiUrl(localQuestion.mediaUrl)"
                 alt="Question media"
@@ -254,23 +297,43 @@ function getIcon(iconName) {
                 </svg>
               </button>
             </div>
-            <div v-else class="cursor-pointer" @click="triggerFileInput">
-              <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
-              </svg>
-              <p class="text-sm text-muted-foreground mb-2">Drag and drop an image, or click to browse</p>
-              <p v-if="fileError" class="text-sm text-destructive mb-2">{{ fileError }}</p>
-              <input
-                type="text"
-                placeholder="Or paste an image URL"
-                class="w-full max-w-sm mx-auto px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
-                @click.stop
-                @blur="updateMediaUrl($event.target.value)"
-              />
+            <!-- Upload prompt -->
+            <div v-else class="space-y-4">
+              <div class="cursor-pointer" @click="triggerFileInput">
+                <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                </svg>
+                <p class="text-sm text-muted-foreground mb-2">Drag and drop an image, or click to browse</p>
+                <p v-if="fileError" class="text-sm text-destructive mb-2">{{ fileError }}</p>
+              </div>
+              <div class="flex items-center gap-2 justify-center">
+                <button
+                  type="button"
+                  class="px-3 py-2 text-sm border-2 border-primary text-primary hover:bg-primary/10 transition"
+                  @click.stop="showMediaLibrary = true"
+                >
+                  Browse Library
+                </button>
+                <span class="text-sm text-muted-foreground">or</span>
+                <input
+                  type="text"
+                  placeholder="Paste URL"
+                  class="w-48 px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
+                  @click.stop
+                  @blur="updateMediaUrl($event.target.value)"
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Media Library Modal -->
+      <MediaLibrary
+        :open="showMediaLibrary"
+        @close="showMediaLibrary = false"
+        @select="handleLibrarySelect"
+      />
 
       <!-- Type-Specific Editor -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">

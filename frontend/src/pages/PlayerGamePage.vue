@@ -10,6 +10,7 @@ import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
+import StreakCounter from '../components/game/StreakCounter.vue';
 
 const { t } = useI18n();
 
@@ -54,6 +55,32 @@ const shapeButtonGridClass = computed(() => {
   if (count <= 4) return 'grid-cols-2 grid-rows-2';
   return 'grid-cols-2 grid-rows-3'; // 5-6 options
 });
+
+// Streak helpers (mirroring backend config)
+const STREAK_THRESHOLDS = [
+  { streak: 2, multiplier: 1.1, label: 'Hot!' },
+  { streak: 3, multiplier: 1.2, label: 'On Fire!' },
+  { streak: 5, multiplier: 1.3, label: 'Unstoppable!' },
+  { streak: 8, multiplier: 1.5, label: 'LEGENDARY!' }
+];
+
+function getStreakLabel(streak) {
+  if (!streak || streak < 2) return null;
+  let label = null;
+  for (const t of STREAK_THRESHOLDS) {
+    if (streak >= t.streak) label = t.label;
+  }
+  return label;
+}
+
+function getStreakMultiplier(streak) {
+  if (!streak || streak < 2) return 1.0;
+  let multiplier = 1.0;
+  for (const t of STREAK_THRESHOLDS) {
+    if (streak >= t.streak) multiplier = t.multiplier;
+  }
+  return multiplier;
+}
 
 // Use shared answer colors from constants
 const answerBg = ANSWER_COLORS.BUTTON_GRADIENTS;
@@ -177,6 +204,13 @@ function setup() {
     if (me) {
       pointsEarned.value = me.score - previousScore;
       previousScore = me.score;
+
+      // Update streak state
+      if (me.streak !== undefined) {
+        const streakLabel = getStreakLabel(me.streak);
+        const multiplier = getStreakMultiplier(me.streak);
+        game.updateStreak(me.streak, streakLabel, multiplier, pointsEarned.value);
+      }
     }
   });
 
@@ -217,13 +251,17 @@ onUnmounted(cleanup);
       <PixelBadge variant="primary">
         Q{{ question?.questionNumber || '?' }} / {{ question?.totalQuestions || '?' }}
       </PixelBadge>
-      <div
-        v-if="timeRemaining != null && !questionEnded && phase === 'answering'"
-        class="flex items-center gap-2 px-4 py-2 border-2 border-black font-bold"
-        :class="timeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : timeRemaining <= 10 ? 'bg-warning text-warning-foreground' : 'bg-success text-white'"
-      >
-        <PixelClock :size="16" />
-        {{ timeRemaining }}s
+      <div class="flex items-center gap-2">
+        <!-- Streak Counter -->
+        <StreakCounter v-if="game.currentStreak >= 2 && !questionEnded" />
+        <div
+          v-if="timeRemaining != null && !questionEnded && phase === 'answering'"
+          class="flex items-center gap-2 px-4 py-2 border-2 border-black font-bold"
+          :class="timeRemaining <= 5 ? 'bg-destructive text-destructive-foreground animate-pulse' : timeRemaining <= 10 ? 'bg-warning text-warning-foreground' : 'bg-success text-white'"
+        >
+          <PixelClock :size="16" />
+          {{ timeRemaining }}s
+        </div>
       </div>
       <PixelBadge v-else-if="questionEnded" variant="accent">
         {{ t('playerGame.timesUp') }}

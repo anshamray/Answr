@@ -66,10 +66,10 @@ function getAvatar(index) {
         </div>
       </PixelCard>
 
-      <!-- Podium -->
+      <!-- Podium with staggered animations -->
       <div v-if="topThree.length >= 3" class="flex items-end justify-center gap-2 sm:gap-4 lg:gap-6 mb-8">
-        <!-- 2nd Place -->
-        <div class="flex flex-col items-center">
+        <!-- 2nd Place - animates first (delay 0s) -->
+        <div class="flex flex-col items-center animate-podium-rise-2">
           <div class="mb-2 sm:mb-4 text-center">
             <div class="text-3xl sm:text-4xl lg:text-6xl mb-1 sm:mb-2">{{ getAvatar(1) }}</div>
             <div class="text-sm sm:text-lg lg:text-xl font-bold truncate max-w-[80px] sm:max-w-[120px]">{{ topThree[0]?.nickname || 'Player' }}</div>
@@ -80,8 +80,8 @@ function getAvatar(index) {
           </div>
         </div>
 
-        <!-- 1st Place -->
-        <div class="flex flex-col items-center mb-4 sm:mb-8">
+        <!-- 1st Place - animates last (delay 0.4s) -->
+        <div class="flex flex-col items-center mb-4 sm:mb-8 animate-podium-rise-1">
           <PixelStar class="text-warning animate-spin mb-2 sm:mb-4" :size="36" style="animation-duration: 3s;" />
           <div class="mb-2 sm:mb-4 text-center">
             <div class="text-4xl sm:text-5xl lg:text-7xl mb-1 sm:mb-2">{{ getAvatar(0) }}</div>
@@ -93,8 +93,8 @@ function getAvatar(index) {
           </div>
         </div>
 
-        <!-- 3rd Place -->
-        <div class="flex flex-col items-center">
+        <!-- 3rd Place - animates second (delay 0.2s) -->
+        <div class="flex flex-col items-center animate-podium-rise-3">
           <div class="mb-2 sm:mb-4 text-center">
             <div class="text-3xl sm:text-4xl lg:text-6xl mb-1 sm:mb-2">{{ getAvatar(2) }}</div>
             <div class="text-sm sm:text-lg lg:text-xl font-bold truncate max-w-[80px] sm:max-w-[120px]">{{ topThree[2]?.nickname || 'Player' }}</div>

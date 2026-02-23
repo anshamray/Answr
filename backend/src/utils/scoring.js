@@ -18,6 +18,42 @@ export const DEFAULT_SCORING_CONFIG = {
   wrongAnswerPoints: 0     // Points for incorrect answers
 };
 
+// ─── Streak Configuration ────────────────────────────────────────────────────
+
+export const STREAK_CONFIG = {
+  thresholds: [
+    { streak: 2, multiplier: 1.1, label: 'Hot!' },
+    { streak: 3, multiplier: 1.2, label: 'On Fire!' },
+    { streak: 5, multiplier: 1.3, label: 'Unstoppable!' },
+    { streak: 8, multiplier: 1.5, label: 'LEGENDARY!' }
+  ]
+};
+
+/**
+ * Get the streak multiplier and label for a given streak count.
+ *
+ * @param {number} streak - Current streak count
+ * @returns {{ multiplier: number, label: string | null }}
+ */
+export function getStreakBonus(streak) {
+  if (!streak || streak < 2) {
+    return { multiplier: 1.0, label: null };
+  }
+
+  // Find the highest applicable threshold
+  let applicable = { multiplier: 1.0, label: null };
+
+  for (const threshold of STREAK_CONFIG.thresholds) {
+    if (streak >= threshold.streak) {
+      applicable = { multiplier: threshold.multiplier, label: threshold.label };
+    } else {
+      break;
+    }
+  }
+
+  return applicable;
+}
+
 // ─── Score Calculation ───────────────────────────────────────────────────────
 
 /**

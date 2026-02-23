@@ -15,7 +15,7 @@ import {
   broadcastQuestionStart,
   INTRO_DURATION
 } from './gameEvents.js';
-import { calculateScore, DEFAULT_SCORING_CONFIG } from '../utils/scoring.js';
+import { calculateScore, DEFAULT_SCORING_CONFIG, getStreakBonus } from '../utils/scoring.js';
 
 // ─── Timer ──────────────────────────────────────────────────────────────
 
@@ -111,6 +111,7 @@ export function endCurrentQuestion(io, sessionPin, session) {
 /**
  * Score all submitted answers for the current question.
  * Uses the scoring utility (WS-5) for point calculation.
+ * Tracks streaks and applies multipliers for consecutive correct answers.
  * Updates each player's cumulative score in place.
  *
  * @param {object} session
@@ -128,8 +129,24 @@ function scoreCurrentQuestion(session) {
   // Use session-level scoring config if available, otherwise defaults
   const scoringConfig = session.scoringConfig || DEFAULT_SCORING_CONFIG;
 
+  // Initialize streak tracking if not present
+  if (!session.playerStreaks) {
+    session.playerStreaks = new Map();
+  }
+
   for (const [playerId, answer] of questionAnswers) {
     const isCorrect = correctIds.has(answer.answerId);
+
+    // Get current streak for player
+    let currentStreak = session.playerStreaks.get(playerId) || 0;
+
+    // Update streak based on correctness
+    if (isCorrect) {
+      currentStreak += 1;
+    } else {
+      currentStreak = 0;
+    }
+    session.playerStreaks.set(playerId, currentStreak);
 
     // Delegate scoring calculation to the utility
     const result = calculateScore({
@@ -139,14 +156,28 @@ function scoreCurrentQuestion(session) {
       config: scoringConfig
     });
 
-    answer.pointsAwarded = result.points;
+    // Apply streak multiplier
+    const streakBonus = getStreakBonus(currentStreak);
+    let finalPoints = result.points;
+
+    if (isCorrect && streakBonus.multiplier > 1.0) {
+      finalPoints = Math.round(result.points * streakBonus.multiplier);
+    }
+
+    answer.pointsAwarded = finalPoints;
+    answer.basePoints = result.points;
     answer.isCorrect = result.isCorrect;
     answer.timeBonus = result.timeBonus;
+    answer.streak = currentStreak;
+    answer.streakMultiplier = streakBonus.multiplier;
+    answer.streakLabel = streakBonus.label;
 
     // Accumulate into the player's running total
     const player = session.players?.get(playerId);
     if (player) {
-      player.score = (player.score || 0) + result.points;
+      player.score = (player.score || 0) + finalPoints;
+      player.currentStreak = currentStreak;
+      player.maxStreak = Math.max(player.maxStreak || 0, currentStreak);
     }
   }
 }
@@ -156,9 +187,10 @@ function scoreCurrentQuestion(session) {
 /**
  * Compute a full leaderboard sorted by score (descending).
  * Includes every player so each client can find their own position.
+ * Includes streak information for gamification.
  *
  * @param {object} session
- * @returns {Array<{ position: number, playerId: string, nickname: string, score: number }>}
+ * @returns {Array<{ position: number, playerId: string, nickname: string, score: number, streak: number }>}
  */
 export function computeLeaderboard(session) {
   if (!session.players) return [];
@@ -170,7 +202,9 @@ export function computeLeaderboard(session) {
     position: i + 1,
     playerId: p.id,
     nickname: p.nickname,
-    score: p.score || 0
+    score: p.score || 0,
+    streak: p.currentStreak || 0,
+    maxStreak: p.maxStreak || 0
   }));
 }
 

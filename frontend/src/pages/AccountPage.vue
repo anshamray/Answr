@@ -9,6 +9,7 @@ import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
 import LanguageSwitcher from '../components/LanguageSwitcher.vue';
 import UserDropdown from '../components/UserDropdown.vue';
+import BadgeGrid from '../components/BadgeGrid.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -19,6 +20,38 @@ const expandedSection = ref(null);
 
 function toggleSection(section) {
   expandedSection.value = expandedSection.value === section ? null : section;
+}
+
+// Stats and badges
+const userStats = ref(null);
+const userBadges = ref([]);
+const statsLoading = ref(false);
+
+async function fetchStatsAndBadges() {
+  statsLoading.value = true;
+  try {
+    const token = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const [statsRes, badgesRes] = await Promise.all([
+      fetch('/api/auth/me/stats', { headers }),
+      fetch('/api/auth/me/badges', { headers })
+    ]);
+
+    if (statsRes.ok) {
+      const statsData = await statsRes.json();
+      userStats.value = statsData.data?.stats || null;
+    }
+
+    if (badgesRes.ok) {
+      const badgesData = await badgesRes.json();
+      userBadges.value = badgesData.data?.badges || [];
+    }
+  } catch (err) {
+    console.error('Failed to fetch stats/badges:', err);
+  } finally {
+    statsLoading.value = false;
+  }
 }
 
 // Change Name Form
@@ -152,10 +185,57 @@ const providerName = computed(() => {
   return auth.user.provider.charAt(0).toUpperCase() + auth.user.provider.slice(1);
 });
 
+// Delete Account
+const showDeleteDialog = ref(false);
+const deleteForm = ref({
+  confirmText: '',
+  password: '',
+  loading: false,
+  error: ''
+});
+
+function openDeleteDialog() {
+  deleteForm.value = {
+    confirmText: '',
+    password: '',
+    loading: false,
+    error: ''
+  };
+  showDeleteDialog.value = true;
+}
+
+function closeDeleteDialog() {
+  showDeleteDialog.value = false;
+}
+
+async function handleDeleteAccount() {
+  deleteForm.value.error = '';
+
+  if (deleteForm.value.confirmText !== 'DELETE') {
+    deleteForm.value.error = t('account.deleteAccountConfirmMismatch');
+    return;
+  }
+
+  if (!isOAuthUser.value && !deleteForm.value.password) {
+    deleteForm.value.error = t('account.deleteAccountPasswordRequired');
+    return;
+  }
+
+  deleteForm.value.loading = true;
+  try {
+    await auth.deleteAccount(deleteForm.value.confirmText, deleteForm.value.password);
+    router.push('/');
+  } catch (err) {
+    deleteForm.value.error = err.message || t('account.updateFailed');
+    deleteForm.value.loading = false;
+  }
+}
+
 onMounted(() => {
   if (!auth.user) {
     auth.fetchMe();
   }
+  fetchStatsAndBadges();
 });
 </script>
 
@@ -211,6 +291,49 @@ onMounted(() => {
               </PixelBadge>
             </div>
           </div>
+        </div>
+      </PixelCard>
+
+      <!-- Stats & Achievements Section -->
+      <PixelCard class="space-y-6">
+        <h2 class="text-lg font-bold">{{ t('account.statsSection') }}</h2>
+
+        <!-- Loading State -->
+        <div v-if="statsLoading" class="flex justify-center py-8">
+          <div class="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div v-else-if="userStats" class="space-y-6">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="text-center p-4 bg-muted/30 border-2 border-border">
+              <div class="text-2xl font-bold text-primary">{{ userStats.quizzesCompleted || 0 }}</div>
+              <div class="text-xs text-muted-foreground">{{ t('account.quizzesPlayed') }}</div>
+            </div>
+            <div class="text-center p-4 bg-muted/30 border-2 border-border">
+              <div class="text-2xl font-bold text-success">{{ userStats.wins || 0 }}</div>
+              <div class="text-xs text-muted-foreground">{{ t('account.wins') }}</div>
+            </div>
+            <div class="text-center p-4 bg-muted/30 border-2 border-border">
+              <div class="text-2xl font-bold text-warning">{{ userStats.accuracy || 0 }}%</div>
+              <div class="text-xs text-muted-foreground">{{ t('account.accuracy') }}</div>
+            </div>
+            <div class="text-center p-4 bg-muted/30 border-2 border-border">
+              <div class="text-2xl font-bold text-secondary">{{ userStats.maxStreak || 0 }}</div>
+              <div class="text-xs text-muted-foreground">{{ t('account.bestStreak') }}</div>
+            </div>
+          </div>
+
+          <!-- Badges -->
+          <div>
+            <h3 class="text-md font-bold mb-4">{{ t('account.badgesSection') }}</h3>
+            <BadgeGrid :badges="userBadges" :show-progress="true" />
+          </div>
+        </div>
+
+        <!-- No Stats Yet -->
+        <div v-else class="text-center py-8 text-muted-foreground">
+          <p>{{ t('account.noStatsYet') }}</p>
         </div>
       </PixelCard>
 
@@ -395,6 +518,97 @@ onMounted(() => {
           </template>
         </div>
       </PixelCard>
+
+      <!-- Delete Account Section -->
+      <PixelCard class="border-destructive/50">
+        <button
+          @click="toggleSection('delete')"
+          class="w-full flex items-center justify-between py-2"
+        >
+          <h2 class="text-lg font-bold text-destructive">{{ t('account.deleteAccountSection') }}</h2>
+          <svg
+            :class="['w-5 h-5 text-destructive transition-transform', expandedSection === 'delete' ? 'rotate-180' : '']"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+
+        <div v-if="expandedSection === 'delete'" class="pt-4 space-y-4">
+          <div class="p-3 bg-destructive/10 border-2 border-destructive/30 text-sm">
+            <p class="text-destructive font-medium">{{ t('account.deleteAccountWarning') }}</p>
+          </div>
+
+          <PixelButton
+            variant="destructive"
+            @click="openDeleteDialog"
+          >
+            {{ t('account.deleteAccountButton') }}
+          </PixelButton>
+        </div>
+      </PixelCard>
     </main>
+
+    <!-- Delete Confirmation Dialog -->
+    <div
+      v-if="showDeleteDialog"
+      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      @click.self="closeDeleteDialog"
+    >
+      <div class="bg-white border-[3px] border-black pixel-shadow max-w-md w-full p-6 space-y-4">
+        <h3 class="text-xl font-bold text-destructive">{{ t('account.deleteAccountSection') }}</h3>
+
+        <div class="p-3 bg-destructive/10 border-2 border-destructive/30 text-sm">
+          <p class="text-destructive">{{ t('account.deleteAccountWarning') }}</p>
+        </div>
+
+        <div v-if="deleteForm.error" class="p-3 bg-destructive/10 border-2 border-destructive text-destructive text-sm">
+          {{ deleteForm.error }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-2">{{ t('account.deleteAccountConfirmLabel') }}</label>
+          <input
+            v-model="deleteForm.confirmText"
+            type="text"
+            :placeholder="t('account.deleteAccountConfirmPlaceholder')"
+            class="w-full px-4 py-3 border-2 border-border focus:border-destructive focus:outline-none transition"
+            autocomplete="off"
+          />
+        </div>
+
+        <div v-if="!isOAuthUser">
+          <label class="block text-sm font-medium mb-2">{{ t('account.currentPassword') }}</label>
+          <input
+            v-model="deleteForm.password"
+            type="password"
+            class="w-full px-4 py-3 border-2 border-border focus:border-destructive focus:outline-none transition"
+          />
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <PixelButton
+            variant="outline"
+            class="flex-1"
+            @click="closeDeleteDialog"
+          >
+            {{ t('common.cancel') }}
+          </PixelButton>
+          <PixelButton
+            variant="destructive"
+            class="flex-1"
+            :disabled="deleteForm.loading"
+            @click="handleDeleteAccount"
+          >
+            {{ deleteForm.loading ? t('account.deleting') : t('account.deleteAccountButton') }}
+          </PixelButton>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

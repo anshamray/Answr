@@ -41,6 +41,18 @@ const userSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Quiz'
   }],
+  // Gamification stats
+  stats: {
+    quizzesCompleted: { type: Number, default: 0 },
+    correctAnswers: { type: Number, default: 0 },
+    totalAnswers: { type: Number, default: 0 },
+    wins: { type: Number, default: 0 },
+    maxStreak: { type: Number, default: 0 },
+    badges: [{
+      badgeId: { type: String, required: true },
+      earnedAt: { type: Date, default: Date.now }
+    }]
+  },
   // Email verification
   emailVerified: {
     type: Boolean,

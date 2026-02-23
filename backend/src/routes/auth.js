@@ -1,6 +1,6 @@
 import { Router } from 'express';
 
-import { register, login, getMe, updateName, updateEmail, updatePassword } from '../controllers/authController.js';
+import { register, login, getMe, updateName, updateEmail, updatePassword, deleteAccount, getUserStats, getUserBadges } from '../controllers/authController.js';
 import {
   verifyEmail,
   resendVerification,
@@ -26,6 +26,7 @@ router.get('/me', authenticate, getMe);
 router.put('/update-name', authenticate, updateName);
 router.put('/update-email', authenticate, updateEmail);
 router.put('/update-password', authenticate, updatePassword);
+router.delete('/delete-account', authenticate, deleteAccount);
 
 // Email verification endpoints
 router.post('/verify-email', verifyEmail);
@@ -35,6 +36,10 @@ router.post('/resend-verification', authenticate, resendVerification);
 router.post('/forgot-password', forgotPassword);
 router.get('/check-reset-token/:token', checkResetToken);
 router.post('/reset-password', resetPassword);
+
+// Stats and badges endpoints (protected)
+router.get('/me/stats', authenticate, getUserStats);
+router.get('/me/badges', authenticate, getUserBadges);
 
 // OAuth routes (Google, GitHub)
 router.use('/', oauthRoutes);

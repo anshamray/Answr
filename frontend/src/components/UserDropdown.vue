@@ -35,6 +35,11 @@ function goToAccount() {
   router.push('/account');
 }
 
+function goToAnalytics() {
+  close();
+  router.push('/analytics');
+}
+
 function handleLogout() {
   close();
   auth.logout();
@@ -111,6 +116,24 @@ onUnmounted(() => {
 
         <!-- Menu Items -->
         <div class="py-1">
+          <button
+            @click="goToAnalytics"
+            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-muted/50 transition-colors"
+          >
+            <svg
+              class="w-4 h-4 text-muted-foreground"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" />
+            </svg>
+            Analytics
+          </button>
+
           <button
             @click="goToAccount"
             class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-muted/50 transition-colors"

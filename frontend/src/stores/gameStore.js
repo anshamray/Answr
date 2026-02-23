@@ -13,6 +13,13 @@ export const useGameStore = defineStore('game', () => {
   const leaderboard = ref([]);
   const answerResult = ref(null);
 
+  // Streak tracking
+  const currentStreak = ref(0);
+  const maxStreak = ref(0);
+  const streakLabel = ref(null);
+  const lastPointsEarned = ref(0);
+  const lastStreakMultiplier = ref(1.0);
+
   // Player display settings (persisted to localStorage)
   const defaultSettings = { showAnswerText: true };
   const saved = localStorage.getItem('playerSettings');
@@ -42,6 +49,25 @@ export const useGameStore = defineStore('game', () => {
     currentQuestion.value = null;
     leaderboard.value = [];
     answerResult.value = null;
+    currentStreak.value = 0;
+    maxStreak.value = 0;
+    streakLabel.value = null;
+    lastPointsEarned.value = 0;
+    lastStreakMultiplier.value = 1.0;
+  }
+
+  function updateStreak(streak, label, multiplier, points) {
+    currentStreak.value = streak;
+    maxStreak.value = Math.max(maxStreak.value, streak);
+    streakLabel.value = label;
+    lastStreakMultiplier.value = multiplier || 1.0;
+    lastPointsEarned.value = points || 0;
+  }
+
+  function resetStreak() {
+    currentStreak.value = 0;
+    streakLabel.value = null;
+    lastStreakMultiplier.value = 1.0;
   }
 
   return {
@@ -56,8 +82,15 @@ export const useGameStore = defineStore('game', () => {
     leaderboard,
     answerResult,
     playerSettings,
+    currentStreak,
+    maxStreak,
+    streakLabel,
+    lastPointsEarned,
+    lastStreakMultiplier,
     setSession,
     setPlayerSetting,
-    reset
+    reset,
+    updateStreak,
+    resetStreak
   };
 });
