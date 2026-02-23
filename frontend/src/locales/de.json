@@ -149,7 +149,9 @@
     "needDescriptionAndTags": "Beschreibung und Tags sind leer. Es wäre besser, diese hinzuzufügen, damit andere dein Quiz finden und verstehen können.",
     "needDescription": "Die Beschreibung ist leer. Es wäre besser, eine hinzuzufügen, damit andere verstehen, worum es in deinem Quiz geht.",
     "needTags": "Tags sind leer. Es wäre besser, Tags hinzuzufügen, damit andere dein Quiz in der Bibliothek finden können.",
-    "needOneQuestion": "Das Quiz muss mindestens 1 Frage haben, um veröffentlicht zu werden"
+    "needOneQuestion": "Das Quiz muss mindestens 1 Frage haben, um veröffentlicht zu werden",
+    "viewDetailed": "Detailansicht",
+    "viewCompact": "Kompaktansicht"
   },
   "verification": {
     "pleaseVerify": "Bitte bestätige deine E-Mail-Adresse",

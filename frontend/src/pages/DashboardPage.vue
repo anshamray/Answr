@@ -20,14 +20,13 @@ const loading = ref(true);
 const error = ref('');
 const actionError = ref(''); // Error for quiz actions (start, publish, delete)
 const filter = ref('all');
-const view = ref('grid');
+const view = ref('detailed'); // 'detailed' or 'compact'
 const publishDialogQuiz = ref(null);
 const unpublishDialogQuiz = ref(null);
 const favoritesLoading = ref(false);
-const expandedQuizId = ref(null);
 
-function toggleQuizExpand(quizId) {
-  expandedQuizId.value = expandedQuizId.value === quizId ? null : quizId;
+function previewQuiz(quizId) {
+  router.push(`/quiz/${quizId}/preview`);
 }
 
 async function fetchQuizzes() {
@@ -328,24 +327,34 @@ onMounted(fetchQuizzes);
         </div>
 
         <div class="flex gap-2">
+          <!-- Detailed view -->
           <button
             class="p-2 border-2"
-            :class="view === 'grid' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'"
-            @click="view = 'grid'"
+            :class="view === 'detailed' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'"
+            :title="t('dashboard.viewDetailed')"
+            @click="view = 'detailed'"
           >
-            <div class="grid grid-cols-2 gap-1">
-              <div class="w-2 h-2 bg-current"></div><div class="w-2 h-2 bg-current"></div>
-              <div class="w-2 h-2 bg-current"></div><div class="w-2 h-2 bg-current"></div>
-            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <line x1="3" y1="9" x2="21" y2="9" />
+              <line x1="9" y1="21" x2="9" y2="9" />
+            </svg>
           </button>
+          <!-- Compact view -->
           <button
             class="p-2 border-2"
-            :class="view === 'list' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'"
-            @click="view = 'list'"
+            :class="view === 'compact' ? 'border-primary bg-primary/10' : 'border-border hover:border-primary'"
+            :title="t('dashboard.viewCompact')"
+            @click="view = 'compact'"
           >
-            <div class="space-y-1">
-              <div class="w-6 h-1 bg-current"></div><div class="w-6 h-1 bg-current"></div><div class="w-6 h-1 bg-current"></div>
-            </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6" />
+              <line x1="8" y1="12" x2="21" y2="12" />
+              <line x1="8" y1="18" x2="21" y2="18" />
+              <line x1="3" y1="6" x2="3.01" y2="6" />
+              <line x1="3" y1="12" x2="3.01" y2="12" />
+              <line x1="3" y1="18" x2="3.01" y2="18" />
+            </svg>
           </button>
         </div>
       </div>
@@ -464,19 +473,20 @@ onMounted(fetchQuizzes);
         </PixelCard>
       </div>
 
-      <!-- Quiz Grid -->
-      <div v-else-if="filter !== 'favorites'" :class="view === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'">
+      <!-- Quiz Grid - Detailed View -->
+      <div v-else-if="filter !== 'favorites' && view === 'detailed'" class="space-y-4">
         <template v-for="quiz in quizzes" :key="quiz._id || quiz.id">
           <PixelCard
             v-if="filter === 'all' || (filter === 'published' && quiz.isPublished) || (filter === 'draft' && !quiz.isPublished)"
-            class="transition-all group cursor-pointer"
-            :class="{ 'border-primary': expandedQuizId === (quiz._id || quiz.id) }"
-            @click="toggleQuizExpand(quiz._id || quiz.id)"
+            class="transition-all group"
           >
-            <!-- Collapsed view -->
+            <!-- Header -->
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
+                <h3
+                  class="text-xl font-bold mb-2 hover:text-primary transition-colors cursor-pointer"
+                  @click="previewQuiz(quiz._id || quiz.id)"
+                >
                   {{ quiz.title }}
                 </h3>
                 <div class="flex items-center gap-3 text-sm text-muted-foreground">
@@ -485,26 +495,13 @@ onMounted(fetchQuizzes);
                   <span>{{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
-              <div class="flex items-center gap-2">
-                <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
-                  {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
-                </PixelBadge>
-                <svg
-                  class="w-5 h-5 text-muted-foreground transition-transform"
-                  :class="{ 'rotate-180': expandedQuizId === (quiz._id || quiz.id) }"
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
+              <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
+                {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
+              </PixelBadge>
             </div>
 
-            <!-- Expanded view -->
-            <div
-              v-if="expandedQuizId === (quiz._id || quiz.id)"
-              class="mt-4 pt-4 border-t-2 border-border space-y-4"
-              @click.stop
-            >
+            <!-- Details section -->
+            <div class="mt-4 pt-4 border-t-2 border-border space-y-4">
               <!-- Description -->
               <div v-if="quiz.description" class="text-sm text-muted-foreground">
                 {{ quiz.description }}
@@ -542,7 +539,7 @@ onMounted(fetchQuizzes);
 
               <!-- Action buttons -->
               <div class="flex items-center gap-2 flex-wrap pt-2">
-                <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click.stop="startSession(quiz._id || quiz.id)">
+                <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click="startSession(quiz._id || quiz.id)">
                   <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
@@ -550,7 +547,7 @@ onMounted(fetchQuizzes);
                 </PixelButton>
                 <button
                   class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-secondary hover:bg-secondary/10 transition-colors"
-                  @click.stop="editQuiz(quiz._id || quiz.id)"
+                  @click="editQuiz(quiz._id || quiz.id)"
                   :title="t('common.edit')"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -560,7 +557,7 @@ onMounted(fetchQuizzes);
                 </button>
                 <button
                   class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-destructive hover:bg-destructive/10 transition-colors"
-                  @click.stop="deleteQuiz(quiz._id || quiz.id)"
+                  @click="deleteQuiz(quiz._id || quiz.id)"
                   :title="t('common.delete')"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -577,7 +574,7 @@ onMounted(fetchQuizzes);
                   variant="secondary"
                   size="sm"
                   class="w-full"
-                  @click.stop="openPublishDialog(quiz._id || quiz.id)"
+                  @click="openPublishDialog(quiz._id || quiz.id)"
                   :title="t('dashboard.publishToLibrary')"
                 >
                   {{ t('dashboard.publish') }}
@@ -587,10 +584,74 @@ onMounted(fetchQuizzes);
                   variant="outline"
                   size="sm"
                   class="w-full"
-                  @click.stop="openUnpublishDialog(quiz._id || quiz.id)"
+                  @click="openUnpublishDialog(quiz._id || quiz.id)"
                 >
                   {{ t('dashboard.unpublish') }}
                 </PixelButton>
+              </div>
+            </div>
+          </PixelCard>
+        </template>
+      </div>
+
+      <!-- Quiz Grid - Compact View -->
+      <div v-else-if="filter !== 'favorites' && view === 'compact'" class="space-y-2">
+        <template v-for="quiz in quizzes" :key="quiz._id || quiz.id">
+          <PixelCard
+            v-if="filter === 'all' || (filter === 'published' && quiz.isPublished) || (filter === 'draft' && !quiz.isPublished)"
+            class="transition-all group !p-3"
+          >
+            <div class="flex items-center gap-4">
+              <!-- Title - clickable -->
+              <h3
+                class="flex-1 font-bold hover:text-primary transition-colors cursor-pointer truncate"
+                @click="previewQuiz(quiz._id || quiz.id)"
+              >
+                {{ quiz.title }}
+              </h3>
+
+              <!-- Quick stats -->
+              <div class="flex items-center gap-3 text-sm text-muted-foreground shrink-0">
+                <span>{{ quiz.questionCount || quiz.questions?.length || 0 }} Q</span>
+                <span>{{ quiz.playCount || 0 }} plays</span>
+              </div>
+
+              <!-- Status badge -->
+              <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'" class="shrink-0">
+                {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
+              </PixelBadge>
+
+              <!-- Action buttons -->
+              <div class="flex items-center gap-1 shrink-0">
+                <button
+                  class="p-2 hover:bg-primary/10 hover:text-primary transition-colors rounded"
+                  @click="startSession(quiz._id || quiz.id)"
+                  :title="t('common.start')"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+                <button
+                  class="p-2 hover:bg-secondary/10 hover:text-secondary transition-colors rounded"
+                  @click="editQuiz(quiz._id || quiz.id)"
+                  :title="t('common.edit')"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button
+                  class="p-2 hover:bg-destructive/10 hover:text-destructive transition-colors rounded"
+                  @click="deleteQuiz(quiz._id || quiz.id)"
+                  :title="t('common.delete')"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
               </div>
             </div>
           </PixelCard>

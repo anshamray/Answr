@@ -149,7 +149,9 @@
     "needDescriptionAndTags": "Description and tags are empty. It would be better to add them so others can find and understand your quiz.",
     "needDescription": "Description is empty. It would be better to add one so others can understand what your quiz is about.",
     "needTags": "Tags are empty. It would be better to add tags so others can find your quiz in the library.",
-    "needOneQuestion": "Quiz must have at least 1 question to publish"
+    "needOneQuestion": "Quiz must have at least 1 question to publish",
+    "viewDetailed": "Detailed view",
+    "viewCompact": "Compact view"
   },
   "verification": {
     "pleaseVerify": "Please verify your email address",
