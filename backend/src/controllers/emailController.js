@@ -292,3 +292,60 @@ export async function resetPassword(req, res) {
     sendServerError(res, 'Failed to reset password');
   }
 }
+
+/**
+ * Test email configuration (temporary endpoint for debugging)
+ * GET /api/auth/test-email-config
+ */
+export async function testEmailConfig(req, res) {
+  console.log('[TestEmailConfig] ========== START ==========');
+
+  const config = {
+    EMAIL_PROVIDER: process.env.EMAIL_PROVIDER || 'not set',
+    EMAIL_FROM: process.env.EMAIL_FROM || 'not set',
+    RESEND_API_KEY_EXISTS: !!process.env.RESEND_API_KEY,
+    RESEND_API_KEY_PREFIX: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 8) + '...' : 'N/A',
+    SENDGRID_API_KEY_EXISTS: !!process.env.SENDGRID_API_KEY,
+    SMTP_HOST: process.env.SMTP_HOST || 'not set',
+    NODE_ENV: process.env.NODE_ENV || 'not set'
+  };
+
+  console.log('[TestEmailConfig] Config:', JSON.stringify(config, null, 2));
+
+  // Try to send a test email if email query param is provided
+  const testEmail = req.query.email;
+  if (testEmail) {
+    console.log('[TestEmailConfig] Attempting to send test email to:', testEmail);
+    try {
+      const result = await sendEmail({
+        to: testEmail,
+        subject: 'Answr Email Test',
+        html: '<h1>Test Email</h1><p>If you receive this, email is working!</p>',
+        text: 'Test Email - If you receive this, email is working!'
+      });
+      console.log('[TestEmailConfig] Email sent! Result:', result);
+      return res.json({
+        success: true,
+        config,
+        emailResult: { messageId: result.messageId }
+      });
+    } catch (error) {
+      console.error('[TestEmailConfig] Email failed:', error.message);
+      console.error('[TestEmailConfig] Full error:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      return res.json({
+        success: false,
+        config,
+        error: error.message,
+        errorDetails: {
+          name: error.name,
+          code: error.code,
+          responseCode: error.responseCode,
+          response: error.response
+        }
+      });
+    }
+  }
+
+  console.log('[TestEmailConfig] ========== END ==========');
+  res.json({ success: true, config, note: 'Add ?email=your@email.com to send a test email' });
+}

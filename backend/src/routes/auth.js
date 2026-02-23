@@ -6,7 +6,8 @@ import {
   resendVerification,
   forgotPassword,
   checkResetToken,
-  resetPassword
+  resetPassword,
+  testEmailConfig
 } from '../controllers/emailController.js';
 import { authenticate } from '../middleware/auth.js';
 import oauthRoutes from './oauth.js';
@@ -36,6 +37,9 @@ router.post('/resend-verification', authenticate, resendVerification);
 router.post('/forgot-password', forgotPassword);
 router.get('/check-reset-token/:token', checkResetToken);
 router.post('/reset-password', resetPassword);
+
+// Test endpoint (temporary - remove after debugging)
+router.get('/test-email-config', testEmailConfig);
 
 // Stats and badges endpoints (protected)
 router.get('/me/stats', authenticate, getUserStats);
