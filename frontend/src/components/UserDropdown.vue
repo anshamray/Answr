@@ -49,6 +49,10 @@ function handleClickOutside(event) {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // Fetch user data if authenticated but not loaded yet
+  if (auth.isAuthenticated && !auth.user) {
+    auth.fetchMe();
+  }
 });
 
 onUnmounted(() => {
