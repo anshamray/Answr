@@ -548,6 +548,119 @@ onMounted(() => {
     <div v-else class="flex-1 flex overflow-hidden min-w-0">
       <!-- Sidebar: Question List -->
       <aside class="w-72 shrink-0 border-r-[3px] border-black bg-white flex flex-col">
+        <!-- Quiz Settings (at top) -->
+        <div class="border-b-[3px] border-border">
+          <details class="group" open>
+            <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-muted/50 transition-colors">
+              <span class="flex items-center gap-2 font-medium text-sm">
+                <svg class="w-4 h-4 text-primary" viewBox="0 0 16 16" fill="currentColor">
+                  <!-- Pixel gear icon -->
+                  <rect x="6" y="0" width="4" height="2" />
+                  <rect x="6" y="14" width="4" height="2" />
+                  <rect x="0" y="6" width="2" height="4" />
+                  <rect x="14" y="6" width="2" height="4" />
+                  <rect x="2" y="2" width="2" height="2" />
+                  <rect x="12" y="2" width="2" height="2" />
+                  <rect x="2" y="12" width="2" height="2" />
+                  <rect x="12" y="12" width="2" height="2" />
+                  <rect x="4" y="4" width="8" height="8" />
+                  <rect x="6" y="6" width="4" height="4" fill="white" />
+                </svg>
+                {{ t('quizEditor.quizSettings') }}
+              </span>
+              <svg class="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </summary>
+            <div class="px-4 pb-4 space-y-3">
+              <!-- Description -->
+              <div>
+                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.description') }}</label>
+                <textarea
+                  v-model="quiz.description"
+                  :placeholder="t('quizEditor.addDescription')"
+                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none resize-none"
+                  rows="2"
+                  @input="hasUnsavedChanges = true"
+                ></textarea>
+              </div>
+
+              <!-- Category & Language row -->
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.category') }}</label>
+                  <select
+                    v-model="quiz.category"
+                    class="w-full px-2 py-1.5 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
+                    @change="hasUnsavedChanges = true"
+                  >
+                    <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
+                      {{ t(option.labelKey) }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.language') }}</label>
+                  <select
+                    v-model="quiz.language"
+                    class="w-full px-2 py-1.5 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
+                    @change="hasUnsavedChanges = true"
+                  >
+                    <option v-for="lang in languageOptions" :key="lang.value" :value="lang.value">
+                      {{ lang.flag }} {{ lang.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Tags Input -->
+              <div>
+                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.tags') }}</label>
+                <div class="flex gap-2">
+                  <input
+                    v-model="newTag"
+                    type="text"
+                    :placeholder="t('quizEditor.addTag')"
+                    class="flex-1 px-2 py-1.5 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
+                    :disabled="quiz.tags.length >= 10"
+                    @keydown="handleTagKeydown"
+                  />
+                  <button
+                    type="button"
+                    class="px-2 py-1.5 text-sm border-2 border-border bg-white hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!newTag.trim() || quiz.tags.length >= 10"
+                    @click="addTag"
+                  >
+                    {{ t('quizEditor.addTagButton') }}
+                  </button>
+                </div>
+                <!-- Tags display -->
+                <div v-if="quiz.tags.length > 0" class="flex flex-wrap gap-1 mt-2">
+                  <span
+                    v-for="tag in quiz.tags"
+                    :key="tag"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-primary/10 border border-primary/30 text-primary"
+                  >
+                    {{ tag }}
+                    <button
+                      type="button"
+                      class="hover:text-destructive transition-colors"
+                      @click="removeTag(tag)"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </span>
+                </div>
+                <p v-if="quiz.tags.length >= 10" class="text-xs text-muted-foreground mt-1">
+                  {{ t('quizEditor.maxTags') }}
+                </p>
+              </div>
+            </div>
+          </details>
+        </div>
+
         <div class="p-4 border-b-[3px] border-border">
           <PixelButton
             variant="primary"
@@ -632,103 +745,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Quiz Settings (collapsible) -->
-        <div class="border-t-[3px] border-border">
-          <details class="group">
-            <summary class="p-4 cursor-pointer flex items-center justify-between hover:bg-muted/50 transition-colors">
-              <span class="font-medium text-sm">{{ t('quizEditor.quizSettings') }}</span>
-              <svg class="w-4 h-4 text-muted-foreground group-open:rotate-180 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </summary>
-            <div class="p-4 pt-0 space-y-4">
-              <!-- Description -->
-              <div>
-                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.description') }}</label>
-                <textarea
-                  v-model="quiz.description"
-                  :placeholder="t('quizEditor.addDescription')"
-                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none resize-none"
-                  rows="2"
-                  @input="hasUnsavedChanges = true"
-                ></textarea>
-              </div>
-
-              <!-- Category Dropdown -->
-              <div>
-                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.category') }}</label>
-                <select
-                  v-model="quiz.category"
-                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
-                  @change="hasUnsavedChanges = true"
-                >
-                  <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
-                    {{ t(option.labelKey) }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Language Dropdown -->
-              <div>
-                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.language') }}</label>
-                <select
-                  v-model="quiz.language"
-                  class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
-                  @change="hasUnsavedChanges = true"
-                >
-                  <option v-for="lang in languageOptions" :key="lang.value" :value="lang.value">
-                    {{ lang.flag }} {{ lang.label }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Tags Input -->
-              <div>
-                <label class="text-xs text-muted-foreground mb-1 block">{{ t('quizEditor.tags') }}</label>
-                <div class="flex gap-2">
-                  <input
-                    v-model="newTag"
-                    type="text"
-                    :placeholder="t('quizEditor.addTag')"
-                    class="flex-1 px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
-                    :disabled="quiz.tags.length >= 10"
-                    @keydown="handleTagKeydown"
-                  />
-                  <button
-                    type="button"
-                    class="px-3 py-2 text-sm border-2 border-border bg-white hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    :disabled="!newTag.trim() || quiz.tags.length >= 10"
-                    @click="addTag"
-                  >
-                    {{ t('quizEditor.addTagButton') }}
-                  </button>
-                </div>
-                <!-- Tags display -->
-                <div v-if="quiz.tags.length > 0" class="flex flex-wrap gap-2 mt-2">
-                  <span
-                    v-for="tag in quiz.tags"
-                    :key="tag"
-                    class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary/10 border border-primary/30 text-primary"
-                  >
-                    {{ tag }}
-                    <button
-                      type="button"
-                      class="hover:text-destructive transition-colors"
-                      @click="removeTag(tag)"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </span>
-                </div>
-                <p v-if="quiz.tags.length >= 10" class="text-xs text-muted-foreground mt-1">
-                  {{ t('quizEditor.maxTags') }}
-                </p>
-              </div>
-            </div>
-          </details>
-        </div>
       </aside>
 
       <!-- Main Content: Question Editor -->

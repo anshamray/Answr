@@ -24,6 +24,11 @@ const view = ref('grid');
 const publishDialogQuiz = ref(null);
 const unpublishDialogQuiz = ref(null);
 const favoritesLoading = ref(false);
+const expandedQuizId = ref(null);
+
+function toggleQuizExpand(quizId) {
+  expandedQuizId.value = expandedQuizId.value === quizId ? null : quizId;
+}
 
 async function fetchQuizzes() {
   loading.value = true;
@@ -464,8 +469,11 @@ onMounted(fetchQuizzes);
         <template v-for="quiz in quizzes" :key="quiz._id || quiz.id">
           <PixelCard
             v-if="filter === 'all' || (filter === 'published' && quiz.isPublished) || (filter === 'draft' && !quiz.isPublished)"
-            class="space-y-4 hover:border-primary transition-all group"
+            class="transition-all group cursor-pointer"
+            :class="{ 'border-primary': expandedQuizId === (quiz._id || quiz.id) }"
+            @click="toggleQuizExpand(quiz._id || quiz.id)"
           >
+            <!-- Collapsed view -->
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <h3 class="text-xl font-bold mb-2 group-hover:text-primary transition-colors">
@@ -477,58 +485,113 @@ onMounted(fetchQuizzes);
                   <span>{{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
-              <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
-                {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
-              </PixelBadge>
+              <div class="flex items-center gap-2">
+                <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
+                  {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
+                </PixelBadge>
+                <svg
+                  class="w-5 h-5 text-muted-foreground transition-transform"
+                  :class="{ 'rotate-180': expandedQuizId === (quiz._id || quiz.id) }"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap">
-              <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click="startSession(quiz._id || quiz.id)">
-                <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-                {{ t('common.start') }}
-              </PixelButton>
-              <button
-                class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-secondary hover:bg-secondary/10 transition-colors"
-                @click="editQuiz(quiz._id || quiz.id)"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                </svg>
-              </button>
-              <button
-                class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-destructive hover:bg-destructive/10 transition-colors"
-                @click="deleteQuiz(quiz._id || quiz.id)"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6" />
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                </svg>
-              </button>
-            </div>
+            <!-- Expanded view -->
+            <div
+              v-if="expandedQuizId === (quiz._id || quiz.id)"
+              class="mt-4 pt-4 border-t-2 border-border space-y-4"
+              @click.stop
+            >
+              <!-- Description -->
+              <div v-if="quiz.description" class="text-sm text-muted-foreground">
+                {{ quiz.description }}
+              </div>
+              <div v-else class="text-sm text-muted-foreground italic">
+                {{ t('common.noDescription') }}
+              </div>
 
-            <div class="pt-2 border-t-2 border-border">
-              <PixelButton
-                v-if="!quiz.isPublished"
-                variant="secondary"
-                size="sm"
-                class="w-full"
-                @click="openPublishDialog(quiz._id || quiz.id)"
-                :title="t('dashboard.publishToLibrary')"
-              >
-                {{ t('dashboard.publish') }}
-              </PixelButton>
-              <PixelButton
-                v-else
-                variant="outline"
-                size="sm"
-                class="w-full"
-                @click="openUnpublishDialog(quiz._id || quiz.id)"
-              >
-                {{ t('dashboard.unpublish') }}
-              </PixelButton>
+              <!-- Metadata row -->
+              <div class="flex flex-wrap gap-4 text-sm">
+                <div v-if="quiz.category" class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <span class="text-muted-foreground">{{ quiz.category }}</span>
+                </div>
+                <div v-if="quiz.language" class="flex items-center gap-1">
+                  <svg class="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                  <span class="text-muted-foreground">{{ quiz.language?.toUpperCase() }}</span>
+                </div>
+              </div>
+
+              <!-- Tags -->
+              <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                <span
+                  v-for="tag in quiz.tags"
+                  :key="tag"
+                  class="px-2 py-1 bg-primary/10 text-primary text-xs font-medium"
+                >{{ tag }}</span>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="flex items-center gap-2 flex-wrap pt-2">
+                <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click.stop="startSession(quiz._id || quiz.id)">
+                  <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                  {{ t('common.start') }}
+                </PixelButton>
+                <button
+                  class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-secondary hover:bg-secondary/10 transition-colors"
+                  @click.stop="editQuiz(quiz._id || quiz.id)"
+                  :title="t('common.edit')"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                </button>
+                <button
+                  class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-destructive hover:bg-destructive/10 transition-colors"
+                  @click.stop="deleteQuiz(quiz._id || quiz.id)"
+                  :title="t('common.delete')"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Publish/Unpublish -->
+              <div class="pt-2 border-t-2 border-border">
+                <PixelButton
+                  v-if="!quiz.isPublished"
+                  variant="secondary"
+                  size="sm"
+                  class="w-full"
+                  @click.stop="openPublishDialog(quiz._id || quiz.id)"
+                  :title="t('dashboard.publishToLibrary')"
+                >
+                  {{ t('dashboard.publish') }}
+                </PixelButton>
+                <PixelButton
+                  v-else
+                  variant="outline"
+                  size="sm"
+                  class="w-full"
+                  @click.stop="openUnpublishDialog(quiz._id || quiz.id)"
+                >
+                  {{ t('dashboard.unpublish') }}
+                </PixelButton>
+              </div>
             </div>
           </PixelCard>
         </template>
