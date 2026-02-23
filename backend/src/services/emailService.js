@@ -3,6 +3,41 @@ import nodemailer from 'nodemailer';
 let transporter = null;
 
 /**
+ * Send email using Resend HTTP API directly (bypasses SMTP)
+ */
+async function sendWithResendAPI({ to, from, subject, html, text }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  console.log('[Email] Using Resend HTTP API...');
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject,
+      html,
+      text
+    })
+  });
+
+  const data = await response.json();
+  console.log('[Email] Resend API response:', JSON.stringify(data));
+
+  if (!response.ok) {
+    const error = new Error(data.message || 'Resend API error');
+    error.statusCode = response.status;
+    error.response = data;
+    throw error;
+  }
+
+  return { messageId: data.id };
+}
+
+/**
  * Initialize the email transporter based on environment configuration
  */
 function getTransporter() {
@@ -44,19 +79,20 @@ function getTransporter() {
     if (!apiKey) {
       throw new Error('RESEND_API_KEY is required when EMAIL_PROVIDER=resend. Add it to .env');
     }
+    // Try port 587 with STARTTLS (more compatible with some hosting providers)
     transporter = nodemailer.createTransport({
       host: 'smtp.resend.com',
-      port: 465,
-      secure: true,
+      port: 587,
+      secure: false, // Use STARTTLS
       auth: {
         user: 'resend',
         pass: apiKey
       },
       ...timeoutOptions,
-      debug: true, // Enable debug output
-      logger: true  // Log to console
+      debug: true,
+      logger: true
     });
-    console.log('[Email] Resend transporter created (host: smtp.resend.com, port: 465)');
+    console.log('[Email] Resend transporter created (host: smtp.resend.com, port: 587, STARTTLS)');
   } else if (process.env.SMTP_HOST) {
     // Custom SMTP - only if SMTP_HOST is explicitly set
     console.log('[Email] Using custom SMTP:', process.env.SMTP_HOST);
@@ -92,16 +128,8 @@ function getTransporter() {
  * @returns {Promise<Object>} Nodemailer send result
  */
 export async function sendEmail({ to, subject, html, text }) {
-  const transport = getTransporter();
   const from = process.env.EMAIL_FROM || 'noreply@answr.ing';
-
-  const mailOptions = {
-    from,
-    to,
-    subject,
-    html,
-    text
-  };
+  const provider = process.env.EMAIL_PROVIDER;
 
   // Skip sending if no email provider is configured
   const hasEmailConfig = process.env.SMTP_HOST || process.env.SENDGRID_API_KEY || process.env.RESEND_API_KEY;
@@ -116,12 +144,34 @@ export async function sendEmail({ to, subject, html, text }) {
     return { messageId: 'email-not-configured' };
   }
 
+  console.log('--- Sending email ---');
+  console.log('Provider:', provider);
+  console.log('From:', from);
+  console.log('To:', to);
+  console.log('Subject:', subject);
+
+  // Use Resend HTTP API directly (more reliable than SMTP on cloud hosts)
+  if (provider === 'resend') {
+    try {
+      const result = await sendWithResendAPI({ to, from, subject, html, text });
+      console.log('[Email] Sent successfully via Resend API:', result.messageId);
+      return result;
+    } catch (err) {
+      console.error('[Email] ========== RESEND API ERROR ==========');
+      console.error('[Email] Error message:', err.message);
+      console.error('[Email] Status code:', err.statusCode);
+      console.error('[Email] Response:', JSON.stringify(err.response));
+      console.error('[Email] ========================================');
+      throw err;
+    }
+  }
+
+  // For other providers, use SMTP via nodemailer
+  const transport = getTransporter();
+  const mailOptions = { from, to, subject, html, text };
+
   try {
-    console.log('--- Sending email ---');
-    console.log('Provider:', process.env.EMAIL_PROVIDER);
-    console.log('From:', from);
-    console.log('To:', to);
-    console.log('Subject:', subject);
+    console.log('[Email] Using SMTP transport...');
 
     // Add timeout to prevent hanging forever
     const timeoutMs = 30000; // 30 seconds
