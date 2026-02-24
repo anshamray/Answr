@@ -18,6 +18,6 @@ export function setLocale(locale) {
 
 // Available locales
 export const availableLocales = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
+  { code: 'en', name: 'English', flag: 'gb' },
+  { code: 'de', name: 'Deutsch', flag: 'de' }
 ];

@@ -6,6 +6,7 @@ import { i18n } from './i18n.js';
 import { apiUrl } from './lib/api.js';
 
 import './styles.css';
+import 'flag-icons/css/flag-icons.min.css';
 
 const app = createApp(App);
 

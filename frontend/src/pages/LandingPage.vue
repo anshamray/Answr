@@ -25,6 +25,8 @@ const game = useGameStore();
 const auth = useAuthStore();
 
 const pin = ref('');
+const selectedAnswer = ref(null);
+const heroAnswers = ['Paris', 'London', 'Rome', 'Berlin'];
 const { shake, triggerShake } = useShakeAnimation();
 const { loading, error, checkPin, cleanupListeners } = usePinValidation();
 
@@ -38,6 +40,12 @@ onMounted(() => {
 onUnmounted(() => {
   cleanupListeners();
 });
+
+function selectAnswer(city) {
+  if (!selectedAnswer.value) {
+    selectedAnswer.value = city;
+  }
+}
 
 function handlePinSubmit() {
   checkPin(pin.value, {
@@ -165,29 +173,30 @@ function handlePinSubmit() {
               <div class="space-y-4">
                 <div class="flex items-center justify-between">
                   <span class="pixel-font text-sm text-primary">{{ t('landing.questionCounter', { current: 5, total: 10 }) }}</span>
-                  <PixelClock class="text-accent" :size="24" />
                 </div>
                 <h3 class="text-2xl font-bold">{{ t('landing.questionExample') }}</h3>
                 <div class="grid grid-cols-2 gap-3">
-                  <div class="p-4 bg-primary/20 border-2 border-primary font-medium cursor-pointer hover:bg-primary/30 transition-colors">
-                    Paris
-                  </div>
-                  <div class="p-4 bg-white border-2 border-border font-medium cursor-pointer hover:bg-muted transition-colors">
-                    London
-                  </div>
-                  <div class="p-4 bg-white border-2 border-border font-medium cursor-pointer hover:bg-muted transition-colors">
-                    Rome
-                  </div>
-                  <div class="p-4 bg-white border-2 border-border font-medium cursor-pointer hover:bg-muted transition-colors">
-                    Berlin
+                  <div
+                    v-for="city in heroAnswers"
+                    :key="city"
+                    class="p-4 border-2 font-medium cursor-pointer transition-colors"
+                    :class="selectedAnswer === city
+                      ? (city === 'Paris' ? 'bg-green-200 border-green-600' : 'bg-red-200 border-red-500')
+                      : 'bg-white border-border hover:bg-muted'"
+                    @click="selectAnswer(city)"
+                  >
+                    {{ city }}
                   </div>
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center gap-2">
                     <PixelUsers :size="20" />
-                    <span class="font-medium">48 {{ t('common.players', 48) }}</span>
+                    <span class="font-medium">{{ t('common.players', 48) }}</span>
                   </div>
-                  <div class="text-muted-foreground">{{ t('landing.remaining', { seconds: 15 }) }}</div>
+                  <div class="flex items-center gap-1 text-muted-foreground">
+                    <PixelClock class="text-accent" :size="16" />
+                    <span>{{ t('landing.remaining', { seconds: 15 }) }}</span>
+                  </div>
                 </div>
               </div>
             </PixelCard>

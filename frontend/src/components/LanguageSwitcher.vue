@@ -31,7 +31,7 @@ function closeDropdown() {
       class="flex items-center gap-2 px-3 py-2 border-2 border-border hover:border-primary bg-white transition-colors text-sm font-medium"
       @click="toggleDropdown"
     >
-      <span class="text-base">{{ currentLocale.flag }}</span>
+      <span :class="`fi fi-${currentLocale.flag}`"></span>
       <span class="hidden sm:inline">{{ currentLocale.code.toUpperCase() }}</span>
       <svg
         class="w-4 h-4 transition-transform"
@@ -59,7 +59,7 @@ function closeDropdown() {
         :class="{ 'bg-primary/5 font-medium': loc.code === locale }"
         @click="selectLocale(loc.code)"
       >
-        <span class="text-base">{{ loc.flag }}</span>
+        <span :class="`fi fi-${loc.flag}`"></span>
         <span class="text-sm">{{ loc.name }}</span>
       </button>
     </div>
