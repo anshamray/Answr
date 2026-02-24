@@ -39,11 +39,17 @@ onMounted(() => {
 
 onUnmounted(() => {
   cleanupListeners();
+  if (answerTimeout) clearTimeout(answerTimeout);
 });
+
+let answerTimeout = null;
 
 function selectAnswer(city) {
   if (!selectedAnswer.value) {
     selectedAnswer.value = city;
+    answerTimeout = setTimeout(() => {
+      selectedAnswer.value = null;
+    }, 2000);
   }
 }
 
