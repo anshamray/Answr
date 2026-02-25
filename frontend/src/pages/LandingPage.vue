@@ -196,7 +196,7 @@ function handlePinSubmit() {
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center gap-2">
-                    <PixelUsers class="shrink-0 -translate-y-px" :size="18" />
+                    <PixelUsers class="shrink-0 translate-y-px" :size="18" />
                     <span class="font-medium">{{ t('common.players', 48) }}</span>
                   </div>
                   <div class="flex items-center gap-1 text-muted-foreground">
