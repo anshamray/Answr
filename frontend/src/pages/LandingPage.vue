@@ -188,7 +188,7 @@ function handlePinSubmit() {
                     class="p-4 border-2 font-medium cursor-pointer transition-colors"
                     :class="selectedAnswer === city
                       ? (city === 'Paris' ? 'bg-green-200 border-green-600' : 'bg-red-200 border-red-500')
-                      : 'bg-white border-border hover:bg-muted'"
+                      : 'bg-white border-border hover:bg-primary/20 hover:border-primary'"
                     @click="selectAnswer(city)"
                   >
                     {{ city }}
@@ -196,7 +196,7 @@ function handlePinSubmit() {
                 </div>
                 <div class="flex items-center justify-between text-sm">
                   <div class="flex items-center gap-2">
-                    <PixelUsers :size="20" />
+                    <PixelUsers class="shrink-0 -translate-y-px" :size="18" />
                     <span class="font-medium">{{ t('common.players', 48) }}</span>
                   </div>
                   <div class="flex items-center gap-1 text-muted-foreground">
