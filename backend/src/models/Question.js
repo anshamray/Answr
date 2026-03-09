@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import {
   QUESTION_TYPES,
   getBackendValidationMessages
-} from '../../shared/questionTypeSchema.js';
+} from '../../../shared/questionTypeSchema.js';
 
 // ---------------------------------------------------------------------------
 // Sub-schemas
