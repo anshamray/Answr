@@ -32,11 +32,15 @@ export function authenticate(req, res, next) {
 export function optionalAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // Check Authorization header first, then fall back to query param
+  // (needed for <img> tags that can't send headers)
+  const token = (authHeader && authHeader.startsWith('Bearer '))
+    ? authHeader.split(' ')[1]
+    : req.query.token || null;
+
+  if (!token) {
     return next();
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

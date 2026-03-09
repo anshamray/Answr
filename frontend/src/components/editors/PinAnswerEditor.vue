@@ -1,7 +1,10 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
 import { uploadMedia } from '../../lib/mediaService.js';
-import { apiUrl } from '../../lib/api.js';
+import { authMediaUrl } from '../../lib/api.js';
+import { useAuthStore } from '../../stores/authStore.js';
+
+const auth = useAuthStore();
 
 const props = defineProps({
   mediaUrl: {
@@ -294,7 +297,7 @@ onUnmounted(() => {
       >
         <img
           ref="imageElement"
-          :src="apiUrl(localMediaUrl)"
+          :src="authMediaUrl(localMediaUrl, auth.token)"
           alt="Pin answer image"
           class="w-full max-h-96 object-contain"
           @load="updateImageDimensions"

@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { apiUrl } from '../lib/api.js';
+import { apiUrl, authMediaUrl } from '../lib/api.js';
+import { useAuthStore } from '../stores/authStore.js';
 import { uploadMedia, isDataUrl } from '../lib/mediaService.js';
 import MultipleChoiceEditor from './editors/MultipleChoiceEditor.vue';
 import TrueFalseEditor from './editors/TrueFalseEditor.vue';
@@ -26,6 +27,7 @@ const props = defineProps({
 const emit = defineEmits(['update', 'delete', 'error']);
 
 const { t } = useI18n();
+const auth = useAuthStore();
 
 // Local copy of question for editing
 const localQuestion = ref({ ...props.question });
@@ -416,7 +418,7 @@ function getIcon(iconName) {
             <!-- Image preview -->
             <div v-else-if="localQuestion.mediaUrl" class="relative">
               <img
-                :src="apiUrl(localQuestion.mediaUrl)"
+                :src="authMediaUrl(localQuestion.mediaUrl, auth.token)"
                 alt="Question media"
                 class="max-h-48 mx-auto object-contain"
               />
