@@ -51,18 +51,6 @@ const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
 const sliderConfig = computed(() => question.value?.sliderConfig || DEFAULT_SLIDER_CONFIG);
-const sliderPosition = computed(() => {
-  const min = Number(sliderConfig.value.min ?? DEFAULT_SLIDER_CONFIG.min);
-  const max = Number(sliderConfig.value.max ?? DEFAULT_SLIDER_CONFIG.max);
-  const range = max - min;
-
-  if (!Number.isFinite(min) || !Number.isFinite(max) || range <= 0) {
-    return 50;
-  }
-
-  const clamped = Math.min(Math.max(sliderValue.value, min), max);
-  return ((clamped - min) / range) * 100;
-});
 
 // Slider state
 const sliderValue = ref(50);
@@ -607,61 +595,22 @@ onUnmounted(cleanup);
           </div>
 
           <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center justify-center gap-8">
-            <div class="w-full max-w-md space-y-5">
-              <div class="border-[3px] border-black bg-white px-4 py-5 pixel-shadow">
-                <div class="text-center mb-4">
-                  <div class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
-                    {{ t('playerGame.yourAnswer') || 'Your answer' }}
-                  </div>
-                  <div class="text-6xl sm:text-7xl font-bold pixel-font text-primary leading-none">
-                    {{ sliderValue }}
-                    <span v-if="sliderConfig.unit" class="text-2xl sm:text-3xl text-muted-foreground ml-2">{{ sliderConfig.unit }}</span>
-                  </div>
-                </div>
+            <div class="text-7xl sm:text-8xl font-bold pixel-font text-primary">
+              {{ sliderValue }}<span v-if="sliderConfig.unit" class="text-3xl text-muted-foreground ml-2">{{ sliderConfig.unit }}</span>
+            </div>
 
-                <div class="relative px-1 pt-5 pb-4">
-                  <div class="absolute inset-x-1 top-1/2 -translate-y-1/2">
-                    <div class="h-4 border-2 border-black bg-muted relative overflow-hidden">
-                      <div class="absolute inset-0 opacity-25 slider-pixel-grid"></div>
-                    </div>
-                  </div>
-
-                  <div class="relative h-12">
-                    <div class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none">
-                      <template v-for="i in 11" :key="i">
-                        <div class="w-0.5 h-2 bg-black/40"></div>
-                      </template>
-                    </div>
-
-                    <div
-                      class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100 pointer-events-none"
-                      :style="{ left: `${sliderPosition}%` }"
-                    >
-                      <div class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap bg-success text-white">
-                        {{ sliderValue }}
-                        <span v-if="sliderConfig.unit"> {{ sliderConfig.unit }}</span>
-                      </div>
-                      <div class="w-7 h-7 bg-success border-[3px] border-black rotate-45 pixel-shadow"></div>
-                    </div>
-
-                    <input
-                      v-model.number="sliderValue"
-                      type="range"
-                      :min="sliderConfig.min || 0"
-                      :max="sliderConfig.max || 100"
-                      step="1"
-                      class="absolute inset-0 z-10 h-12 w-full cursor-pointer opacity-0"
-                    />
-                  </div>
-                </div>
-
-                <div class="flex justify-between mt-2 text-xs sm:text-sm font-bold">
-                  <span class="bg-black text-white px-2 py-1">{{ sliderConfig.min || 0 }}</span>
-                  <span class="text-muted-foreground uppercase text-[10px] sm:text-xs flex items-center">
-                    {{ t('gameControl.sliderRange') }}
-                  </span>
-                  <span class="bg-black text-white px-2 py-1">{{ sliderConfig.max || 100 }}</span>
-                </div>
+            <div class="w-full max-w-md px-4">
+              <input
+                v-model.number="sliderValue"
+                type="range"
+                :min="sliderConfig.min || 0"
+                :max="sliderConfig.max || 100"
+                step="1"
+                class="w-full h-3 bg-muted rounded-none appearance-none cursor-pointer accent-primary"
+              />
+              <div class="flex justify-between text-sm text-muted-foreground mt-2 font-bold">
+                <span>{{ sliderConfig.min || 0 }}</span>
+                <span>{{ sliderConfig.max || 100 }}</span>
               </div>
             </div>
 
@@ -1115,15 +1064,3 @@ onUnmounted(cleanup);
     </template>
   </div>
 </template>
-
-<style scoped>
-.slider-pixel-grid {
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent,
-    transparent 6px,
-    rgba(0, 0, 0, 0.14) 6px,
-    rgba(0, 0, 0, 0.14) 12px
-  );
-}
-</style>

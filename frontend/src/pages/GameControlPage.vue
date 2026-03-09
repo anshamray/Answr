@@ -659,7 +659,7 @@ onUnmounted(cleanup);
                   </div>
                   <div class="flex justify-between text-base font-bold text-muted-foreground mt-2">
                     <span>{{ currentQuestion.sliderConfig?.min ?? 0 }}</span>
-                    <span class="text-sm">{{ t('gameControl.sliderRange') }}</span>
+                    <span></span>
                     <span>{{ currentQuestion.sliderConfig?.max ?? 100 }}{{ currentQuestion.sliderConfig?.unit ? ' ' + currentQuestion.sliderConfig.unit : '' }}</span>
                   </div>
                 </div>
@@ -812,7 +812,7 @@ onUnmounted(cleanup);
 
                     <div class="mt-3 flex justify-between text-sm font-bold text-muted-foreground">
                       <span>{{ formatSliderValue(sliderConfig.min ?? 0) }}</span>
-                      <span>{{ t('gameControl.sliderRange') }}</span>
+                      <span></span>
                       <span>{{ formatSliderValue(sliderConfig.max ?? 100) }}</span>
                     </div>
                   </div>
