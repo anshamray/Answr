@@ -32,12 +32,66 @@ import {
   startQuestionTimer,
   clearQuestionTimer,
   endCurrentQuestion,
+  computeLeaderboard,
   computeFinalResults
 } from './broadcastEvents.js';
 
 import Session from '../models/Session.js';
 import Participant from '../models/Participant.js';
 import Submission from '../models/Submission.js';
+
+function restoreReconnectedModeratorState(socket, session) {
+  if (!session?.status || session.status === 'lobby') {
+    return;
+  }
+
+  if (session.status === 'finished') {
+    socket.emit(GAME_EVENTS.END, computeFinalResults(session));
+    return;
+  }
+
+  socket.emit(GAME_EVENTS.STARTED, {
+    status: session.status
+  });
+
+  if (session.currentQuestionPayload) {
+    socket.emit(GAME_EVENTS.QUESTION, session.currentQuestionPayload);
+  }
+
+  if (session.questionEnded) {
+    socket.emit(GAME_EVENTS.QUESTION_END, {
+      correctAnswerIds: session.currentCorrectAnswerIds || []
+    });
+    socket.emit(GAME_EVENTS.LEADERBOARD, {
+      leaderboard: computeLeaderboard(session)
+    });
+    return;
+  }
+
+  if (session.introTimer && session.currentQuestionPayload) {
+    socket.emit(GAME_EVENTS.QUESTION_INTRO, {
+      questionNumber: session.currentQuestionPayload.questionNumber,
+      totalQuestions: session.currentQuestionPayload.totalQuestions
+    });
+    return;
+  }
+
+  if (session.status === 'paused') {
+    socket.emit(GAME_EVENTS.PAUSED, {
+      status: 'paused'
+    });
+  }
+
+  if (session.currentQuestionPayload) {
+    socket.emit(GAME_EVENTS.QUESTION_START, {});
+  }
+
+  if (typeof session.questionTimeRemaining === 'number') {
+    socket.emit(GAME_EVENTS.TIMER, {
+      remaining: session.questionTimeRemaining
+    });
+  }
+}
 
 /**
  * Register all moderator-related Socket.io event handlers (WS-3)
@@ -85,14 +139,25 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         };
         activeSessions.set(sessionPin, session);
       } else {
-        // If a host is already present and it's not this socket, reject
+        const existingHostSocket = session.hostSocketId
+          ? io.sockets.sockets.get(session.hostSocketId)
+          : null;
+        const hasActiveDifferentHost = (
+          session.hostSocketId &&
+          session.hostSocketId !== socket.id &&
+          existingHostSocket?.connected
+        );
+
+        // If a host is already present on another live socket, reject.
         if (session.hostSocketId && session.hostSocketId !== socket.id) {
-          emitModeratorError(
-            socket,
-            ERROR_CODES.SESSION_ALREADY_HOSTED,
-            'This session already has an active host.'
-          );
-          return;
+          if (hasActiveDifferentHost) {
+            emitModeratorError(
+              socket,
+              ERROR_CODES.SESSION_ALREADY_HOSTED,
+              'This session already has an active host.'
+            );
+            return;
+          }
         }
 
         // (Re)assign hostSocketId to this socket (e.g. on reconnect)
@@ -125,6 +190,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       }));
 
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
+      restoreReconnectedModeratorState(socket, session);
     } catch (error) {
       console.error('Error in moderator:join handler:', error);
       emitModeratorError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while joining.');
@@ -262,6 +328,11 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           'Question payload is required to advance to the next question.'
         );
         return;
+      }
+
+      if (session.currentQuestionId && !session.questionEnded) {
+        clearQuestionTimer(session);
+        endCurrentQuestion(io, sessionPin, session);
       }
 
       session.status = 'playing';
@@ -535,6 +606,10 @@ export function registerModeratorEvents(io, socket, activeSessions) {
 
       // Stop any running question timer
       clearQuestionTimer(session);
+
+      if (session.currentQuestionId && !session.questionEnded) {
+        endCurrentQuestion(io, sessionPin, session);
+      }
 
       session.status = 'finished';
 

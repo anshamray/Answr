@@ -69,6 +69,13 @@ const isSliderQuestion = computed(() =>
 );
 const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
 const isTypeAnswerQuestion = computed(() => currentQuestion.value?.type === 'type-answer');
+const pinQuestionMediaUrl = computed(() => {
+  const url = currentQuestion.value?.mediaUrl;
+  if (!url) return null;
+
+  const full = apiUrl(url);
+  return pin.value ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${pin.value}` : full;
+});
 
 const isLastQuestion = computed(() => currentIndex.value >= questions.value.length - 1);
 const questionNumber = computed(() => currentIndex.value + 1);
@@ -438,6 +445,42 @@ async function fetchSession() {
 
 // ─── WebSocket ──────────────────────────────────────────────────────────
 
+function rejoinModeratorSession() {
+  const socket = getSocket();
+  if (!socket || !pin.value) return;
+
+  socket.emit('moderator:join', { pin: pin.value });
+}
+
+function handleModeratorQuestion(data) {
+  const nextQuestionId = data?.questionId ? String(data.questionId) : null;
+  if (!nextQuestionId) return;
+
+  const previousQuestionId = currentQuestion.value?._id
+    ? String(currentQuestion.value._id)
+    : null;
+  const nextIndex = questions.value.findIndex((question) => String(question._id) === nextQuestionId);
+
+  if (nextIndex === -1) return;
+
+  currentIndex.value = nextIndex;
+
+  if (previousQuestionId !== nextQuestionId) {
+    answersReceived.value = 0;
+    answerDistribution.value = {};
+    playerAnswers.value = {};
+    leaderboard.value = [];
+    status.value = 'question';
+    phase.value = 'intro';
+  } else if (status.value === 'loading') {
+    status.value = 'question';
+  }
+
+  if (data?.timeLimit != null) {
+    timeRemaining.value = data.timeLimit;
+  }
+}
+
 function ensureSocket(sessionPin) {
   return new Promise((resolve) => {
     let socket = getSocket();
@@ -464,14 +507,20 @@ function ensureSocket(sessionPin) {
 
 function attachListeners(socket) {
   // Remove any existing listeners first to avoid duplicates
+  socket.off('connect', rejoinModeratorSession);
   socket.off('player:answer:detail');
   socket.off('player:answer:received');
+  socket.off('game:question');
   socket.off('game:timer');
   socket.off('game:questionIntro');
   socket.off('game:questionStart');
   socket.off('game:questionEnd');
   socket.off('game:leaderboard');
   socket.off('lobby:update');
+
+  socket.on('connect', rejoinModeratorSession);
+
+  socket.on('game:question', handleModeratorQuestion);
 
   socket.on('game:questionIntro', () => {
     phase.value = 'intro';
@@ -508,6 +557,12 @@ function attachListeners(socket) {
 
   socket.on('game:timer', (data) => {
     if (data?.remaining != null) {
+      if (phase.value === 'intro') {
+        phase.value = 'answering';
+      }
+      if (status.value === 'loading') {
+        status.value = 'question';
+      }
       timeRemaining.value = data.remaining;
     }
   });
@@ -530,8 +585,10 @@ function attachListeners(socket) {
 function cleanup() {
   const socket = getSocket();
   if (socket) {
+    socket.off('connect', rejoinModeratorSession);
     socket.off('player:answer:detail');
     socket.off('player:answer:received');
+    socket.off('game:question');
     socket.off('game:timer');
     socket.off('game:questionIntro');
     socket.off('game:questionStart');
@@ -838,8 +895,21 @@ onUnmounted(cleanup);
               </div>
 
               <!-- Pin-answer: show image -->
-              <div v-else-if="currentQuestion.type === 'pin-answer'" class="text-center text-lg text-muted-foreground py-4">
-                📍 {{ t('gameControl.playersPinning') }}
+              <div v-else-if="currentQuestion.type === 'pin-answer'" class="space-y-4 py-4">
+                <div class="text-center text-lg text-muted-foreground">
+                  📍 {{ t('gameControl.playersPinning') }}
+                </div>
+                <div class="mx-auto w-full max-w-3xl border-[3px] border-black bg-white overflow-hidden">
+                  <img
+                    v-if="pinQuestionMediaUrl"
+                    :src="pinQuestionMediaUrl"
+                    :alt="currentQuestion.text"
+                    class="block max-h-[28rem] w-full object-contain"
+                  />
+                  <div v-else class="flex min-h-48 items-center justify-center px-6 py-10 text-center text-muted-foreground">
+                    {{ t('playerGame.imageNotAvailable') }}
+                  </div>
+                </div>
               </div>
             </PixelCard>
           </div>

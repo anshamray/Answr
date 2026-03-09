@@ -14,6 +14,15 @@ import {
   sendServerError
 } from '../utils/responseHelper.js';
 
+function submissionCountsAsCorrect(submission) {
+  if (submission?.isCorrect === true) return true;
+  if (submission?.isCorrect === false) return false;
+
+  // Fallback for older/badly persisted rows where correctness was not saved
+  // but points were still awarded for a correct answer.
+  return (submission?.pointsAwarded || 0) > 0;
+}
+
 /**
  * Create a new game session
  * POST /api/sessions
@@ -113,7 +122,16 @@ export async function getSession(req, res) {
       return sendNotFound(res, 'Session not found');
     }
 
-    sendSuccess(res, { message: 'Session retrieved', data: { session } });
+    const sessionData = session.toObject();
+
+    // Finished sessions may have persisted participants even when the
+    // reference array was not populated on the document yet.
+    if ((!sessionData.participants || sessionData.participants.length === 0) && session.status === 'finished') {
+      sessionData.participants = await Participant.find({ sessionId: session._id })
+        .sort({ score: -1 });
+    }
+
+    sendSuccess(res, { message: 'Session retrieved', data: { session: sessionData } });
   } catch (error) {
     console.error('Get session error:', error);
     sendServerError(res, 'Failed to fetch session');
@@ -159,7 +177,7 @@ export async function getSessionResults(req, res) {
     const session = await Session.findOne({
       _id: req.params.id,
       moderatorId: req.user.userId
-    }).populate('quizId', 'title');
+    }).populate('quizId', 'title questions');
 
     if (!session) {
       return sendNotFound(res, 'Session not found');
@@ -182,6 +200,9 @@ export async function getSessionResults(req, res) {
       score: p.score
     }));
 
+    const totalScore = participants.reduce((sum, participant) => sum + (participant.score || 0), 0);
+    const avgScore = rankings.length > 0 ? Math.round(totalScore / rankings.length) : 0;
+
     sendSuccess(res, {
       message: 'Session results retrieved',
       data: {
@@ -190,7 +211,14 @@ export async function getSessionResults(req, res) {
         pin: session.pin,
         status: session.status,
         totalParticipants: rankings.length,
+        totalQuestions: session.quizId?.questions?.length || 0,
+        avgScore,
         finishedAt: session.finishedAt,
+        stats: {
+          totalPlayers: rankings.length,
+          totalQuestions: session.quizId?.questions?.length || 0,
+          avgScore
+        },
         rankings
       }
     });
@@ -284,7 +312,7 @@ export async function getSessionAnalytics(req, res) {
     const totalScore = participants.reduce((sum, p) => sum + (p.score || 0), 0);
     const avgScore = totalParticipants > 0 ? Math.round(totalScore / totalParticipants) : 0;
 
-    const totalCorrect = submissions.filter(s => s.isCorrect).length;
+    const totalCorrect = submissions.filter(submissionCountsAsCorrect).length;
     const totalAnswers = submissions.length;
     const avgAccuracy = totalAnswers > 0 ? Math.round((totalCorrect / totalAnswers) * 100) : 0;
 
@@ -299,7 +327,7 @@ export async function getSessionAnalytics(req, res) {
       const playerSubmissions = submissions.filter(
         s => s.participantId.toString() === p._id.toString()
       );
-      const correctCount = playerSubmissions.filter(s => s.isCorrect).length;
+      const correctCount = playerSubmissions.filter(submissionCountsAsCorrect).length;
       const accuracy = playerSubmissions.length > 0
         ? Math.round((correctCount / playerSubmissions.length) * 100)
         : 0;
@@ -337,7 +365,7 @@ export async function getSessionAnalytics(req, res) {
 
       const stat = questionMap.get(qId);
       stat.totalAnswers++;
-      if (sub.isCorrect) stat.correctCount++;
+      if (submissionCountsAsCorrect(sub)) stat.correctCount++;
       stat.totalTime += sub.timeTaken || 0;
 
       // Track answer distribution

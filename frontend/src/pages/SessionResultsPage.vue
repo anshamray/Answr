@@ -18,6 +18,11 @@ const loading = ref(true);
 const error = ref('');
 const session = ref(null);
 const rankings = ref([]);
+const resultStats = ref({
+  totalPlayers: null,
+  totalQuestions: null,
+  avgScore: null
+});
 
 const leaderboard = computed(() => {
   // Prefer rankings from /results endpoint
@@ -39,31 +44,52 @@ const topThree = computed(() => {
 });
 
 const otherPlayers = computed(() => leaderboard.value.slice(3, 10));
-const totalPlayers = computed(() => leaderboard.value.length);
+const totalPlayers = computed(() => {
+  if (typeof resultStats.value.totalPlayers === 'number') {
+    return resultStats.value.totalPlayers;
+  }
+  return leaderboard.value.length;
+});
+const totalQuestions = computed(() => {
+  if (typeof resultStats.value.totalQuestions === 'number') {
+    return resultStats.value.totalQuestions;
+  }
+  return session.value?.quizId?.questions?.length ?? 0;
+});
 const avgScore = computed(() => {
-  if (totalPlayers.value === 0) return 0;
+  if (typeof resultStats.value.avgScore === 'number') {
+    return resultStats.value.avgScore;
+  }
+
+  if (leaderboard.value.length === 0) return 0;
   const sum = leaderboard.value.reduce((s, p) => s + (p.score || 0), 0);
-  return Math.round(sum / totalPlayers.value);
+  return Math.round(sum / leaderboard.value.length);
 });
 
 async function fetchResults() {
   loading.value = true;
   try {
     const headers = {};
+    const authToken = auth.token || localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     const guestToken = sessionStorage.getItem(STORAGE_KEYS.GUEST_TOKEN);
 
-    if (auth.isAuthenticated) {
-      headers['Authorization'] = `Bearer ${auth.token}`;
+    if (authToken) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
     // Try the dedicated results endpoint first
-    if (auth.isAuthenticated) {
+    if (authToken) {
       try {
         const resultsRes = await fetch(apiUrl(`/api/sessions/${sessionId}/results`), { headers });
         if (resultsRes.ok) {
           const resultsJson = await resultsRes.json();
           const data = resultsJson.data;
           rankings.value = data?.rankings || [];
+          resultStats.value = {
+            totalPlayers: data?.stats?.totalPlayers ?? data?.totalParticipants ?? rankings.value.length,
+            totalQuestions: data?.stats?.totalQuestions ?? data?.totalQuestions ?? 0,
+            avgScore: data?.stats?.avgScore ?? data?.avgScore ?? 0
+          };
           session.value = {
             quizId: { title: data?.quizTitle },
             status: data?.status,
@@ -85,6 +111,11 @@ async function fetchResults() {
 
     const json = await res.json();
     session.value = json.data?.session;
+    resultStats.value = {
+      totalPlayers: json.data?.session?.participants?.length ?? null,
+      totalQuestions: json.data?.session?.quizId?.questions?.length ?? null,
+      avgScore: null
+    };
   } catch (err) {
     error.value = err.message;
   } finally {
@@ -241,7 +272,7 @@ onMounted(fetchResults);
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-muted-foreground">Questions</span>
-                <span class="text-2xl font-bold text-secondary">{{ session?.quizId?.questions?.length || '?' }}</span>
+                <span class="text-2xl font-bold text-secondary">{{ totalQuestions }}</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-muted-foreground">Avg. Score</span>

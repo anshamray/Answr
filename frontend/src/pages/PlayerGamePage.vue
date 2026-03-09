@@ -51,6 +51,18 @@ const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
 const sliderConfig = computed(() => question.value?.sliderConfig || DEFAULT_SLIDER_CONFIG);
+const sliderPosition = computed(() => {
+  const min = Number(sliderConfig.value.min ?? DEFAULT_SLIDER_CONFIG.min);
+  const max = Number(sliderConfig.value.max ?? DEFAULT_SLIDER_CONFIG.max);
+  const range = max - min;
+
+  if (!Number.isFinite(min) || !Number.isFinite(max) || range <= 0) {
+    return 50;
+  }
+
+  const clamped = Math.min(Math.max(sliderValue.value, min), max);
+  return ((clamped - min) / range) * 100;
+});
 
 // Slider state
 const sliderValue = ref(50);
@@ -69,10 +81,11 @@ const orderedItems = computed(() =>
 // Pin-answer state
 const pinX = ref(null);
 const pinY = ref(null);
+const pinImageFailed = ref(false);
 const pinMediaUrl = computed(() => {
   const url = question.value?.mediaUrl;
   if (!url) return null;
-  const sessionPin = game.sessionId;
+  const sessionPin = game.pin;
   const full = apiUrl(url);
   return sessionPin ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${sessionPin}` : full;
 });
@@ -105,6 +118,20 @@ const myEntry = computed(() =>
 );
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
+
+const showFloatingMultiAnswerSubmit = computed(() =>
+  !game.playerSettings.showAnswerText &&
+  isMultiAnswer.value &&
+  !submitted.value &&
+  !timedOut.value &&
+  selectedAnswers.value.length > 0
+);
+
+const shapeAnswerLabelClass = computed(() => (
+  options.value.length <= 4
+    ? 'text-6xl sm:text-8xl'
+    : 'text-4xl sm:text-5xl'
+));
 
 // Grid layout for shape buttons based on number of options
 const shapeButtonGridClass = computed(() => {
@@ -347,6 +374,7 @@ function initializeQuestionState(data = question.value) {
   draggedSortIndex.value = null;
   pinX.value = null;
   pinY.value = null;
+  pinImageFailed.value = false;
   textAnswer.value = '';
   timeRemaining.value = data.timeLimit ?? null;
 }
@@ -600,17 +628,45 @@ onUnmounted(cleanup);
             </div>
 
             <div class="w-full max-w-md px-4">
-              <input
-                v-model.number="sliderValue"
-                type="range"
-                :min="sliderConfig.min || 0"
-                :max="sliderConfig.max || 100"
-                step="1"
-                class="w-full h-3 bg-muted rounded-none appearance-none cursor-pointer accent-primary"
-              />
-              <div class="flex justify-between text-sm text-muted-foreground mt-2 font-bold">
-                <span>{{ sliderConfig.min || 0 }}</span>
-                <span>{{ sliderConfig.max || 100 }}</span>
+              <div class="border-[3px] border-black bg-white px-4 py-4 pixel-shadow">
+                <div class="relative pt-7">
+                  <div
+                    class="absolute top-0 -translate-x-1/2 pointer-events-none"
+                    :style="{ left: `${sliderPosition}%` }"
+                  >
+                    <div class="px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap bg-success text-white">
+                      {{ sliderValue }}<span v-if="sliderConfig.unit"> {{ sliderConfig.unit }}</span>
+                    </div>
+                  </div>
+
+                  <div class="relative h-8">
+                    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <div class="h-4 border-2 border-black bg-muted relative overflow-hidden">
+                        <div class="absolute inset-0 opacity-25 slider-pixel-grid"></div>
+                      </div>
+                    </div>
+
+                    <div class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none">
+                      <template v-for="i in 11" :key="i">
+                        <div class="w-0.5 h-2 bg-black/40"></div>
+                      </template>
+                    </div>
+
+                    <input
+                      v-model.number="sliderValue"
+                      type="range"
+                      :min="sliderConfig.min || 0"
+                      :max="sliderConfig.max || 100"
+                      step="1"
+                      class="slider-input absolute inset-0 z-10 h-8 w-full cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex justify-between text-sm text-muted-foreground mt-3 font-bold">
+                  <span class="bg-black px-2 py-1 text-white">{{ sliderConfig.min || 0 }}</span>
+                  <span class="bg-black px-2 py-1 text-white">{{ sliderConfig.max || 100 }}</span>
+                </div>
               </div>
             </div>
 
@@ -748,11 +804,12 @@ onUnmounted(cleanup);
               @touchstart="handlePinTouch"
             >
               <img
-                v-if="pinMediaUrl"
+                v-if="pinMediaUrl && !pinImageFailed"
                 :src="pinMediaUrl"
                 class="w-full h-auto block"
                 alt="Pin target"
                 draggable="false"
+                @error="pinImageFailed = true"
               />
               <div v-else class="w-full h-48 bg-muted flex items-center justify-center text-muted-foreground">
                 {{ t('playerGame.imageNotAvailable') }}
@@ -834,6 +891,7 @@ onUnmounted(cleanup);
         <div
           class="flex-1 grid gap-2 p-2"
           :class="shapeButtonGridClass"
+          :style="showFloatingMultiAnswerSubmit ? { paddingBottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' } : undefined"
         >
           <button
             v-for="(option, i) in options"
@@ -851,8 +909,8 @@ onUnmounted(cleanup);
             @click="selectAnswer(option.id, i)"
           >
             <span
-              class="font-bold pixel-font text-white"
-              :class="options.length <= 4 ? 'text-6xl sm:text-8xl' : 'text-5xl sm:text-6xl'"
+              class="font-bold pixel-font leading-none text-white"
+              :class="shapeAnswerLabelClass"
             >
               {{ answerLabels[i] }}
             </span>
@@ -861,11 +919,12 @@ onUnmounted(cleanup);
 
         <!-- Multi-answer submit button -->
         <div
-          v-if="isMultiAnswer && !submitted && !timedOut && selectedAnswers.length > 0"
+          v-if="showFloatingMultiAnswerSubmit"
           class="fixed bottom-6 left-1/2 -translate-x-1/2 z-20"
+          style="bottom: calc(env(safe-area-inset-bottom) + 1rem);"
         >
           <button
-            class="px-8 py-4 bg-black text-white border-[3px] border-white pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none shadow-lg"
+            class="min-w-52 px-6 py-3 bg-black text-white border-[3px] border-white pixel-shadow font-bold text-lg active:translate-x-1 active:translate-y-1 active:shadow-none shadow-lg"
             @click="submitMultiAnswer"
           >
             {{ t('playerGame.submitAnswer') }} ({{ selectedAnswers.length }})
@@ -1064,3 +1123,58 @@ onUnmounted(cleanup);
     </template>
   </div>
 </template>
+
+<style scoped>
+.slider-pixel-grid {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 6px,
+    rgba(0, 0, 0, 0.14) 6px,
+    rgba(0, 0, 0, 0.14) 12px
+  );
+}
+
+.slider-input {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  touch-action: pan-x;
+}
+
+.slider-input::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  background: transparent;
+}
+
+.slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -3px;
+  border: 3px solid #000;
+  background: rgb(34 197 94);
+  box-shadow: 3px 3px 0 #000;
+  transform: rotate(45deg);
+  border-radius: 0;
+}
+
+.slider-input::-moz-range-track {
+  height: 16px;
+  background: transparent;
+  border: 0;
+}
+
+.slider-input::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 3px solid #000;
+  background: rgb(34 197 94);
+  box-shadow: 3px 3px 0 #000;
+  transform: rotate(45deg);
+  border-radius: 0;
+}
+</style>
