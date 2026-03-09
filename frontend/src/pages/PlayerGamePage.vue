@@ -3,7 +3,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
-import { getSocket } from '../lib/socket.js';
+import { connectSocket, getSocket } from '../lib/socket.js';
+import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
 import { apiUrl } from '../lib/api.js';
 
@@ -35,6 +36,7 @@ let introInterval = null;
 
 let timerInterval = null;
 let previousScore = 0;
+let cleanupReconnect = () => {};
 
 const DEFAULT_SLIDER_CONFIG = { min: 0, max: 100 };
 
@@ -49,6 +51,18 @@ const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
 const sliderConfig = computed(() => question.value?.sliderConfig || DEFAULT_SLIDER_CONFIG);
+const sliderPosition = computed(() => {
+  const min = Number(sliderConfig.value.min ?? DEFAULT_SLIDER_CONFIG.min);
+  const max = Number(sliderConfig.value.max ?? DEFAULT_SLIDER_CONFIG.max);
+  const range = max - min;
+
+  if (!Number.isFinite(min) || !Number.isFinite(max) || range <= 0) {
+    return 50;
+  }
+
+  const clamped = Math.min(Math.max(sliderValue.value, min), max);
+  return ((clamped - min) / range) * 100;
+});
 
 // Slider state
 const sliderValue = ref(50);
@@ -391,11 +405,14 @@ watch(question, (newQuestion, oldQuestion) => {
 }, { immediate: true });
 
 function setup() {
-  const socket = getSocket();
-  if (!socket) {
-    router.push('/');
+  if (!game.pin || !game.sessionId || !game.playerId) {
+    router.replace('/play');
     return;
   }
+
+  const socket = getSocket() || connectSocket();
+  const reconnect = usePlayerReconnect({ socket, game, router });
+  cleanupReconnect = reconnect.cleanup;
 
   // Start intro countdown for initial question
   startIntroCountdown();
@@ -463,6 +480,8 @@ function setup() {
     game.leaderboard = data?.leaderboard || [];
     router.push('/play/results');
   });
+
+  reconnect.maybeRecoverSession();
 }
 
 function cleanup() {
@@ -478,6 +497,7 @@ function cleanup() {
     socket.off('game:leaderboard');
     socket.off('game:end');
   }
+  cleanupReconnect();
 }
 
 onMounted(setup);
@@ -551,22 +571,61 @@ onUnmounted(cleanup);
           </div>
 
           <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center justify-center gap-8">
-            <div class="text-7xl sm:text-8xl font-bold pixel-font text-primary">
-              {{ sliderValue }}<span v-if="sliderConfig.unit" class="text-3xl text-muted-foreground ml-2">{{ sliderConfig.unit }}</span>
-            </div>
+            <div class="w-full max-w-md space-y-5">
+              <div class="border-[3px] border-black bg-white px-4 py-5 pixel-shadow">
+                <div class="text-center mb-4">
+                  <div class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground mb-2">
+                    {{ t('playerGame.yourAnswer') || 'Your answer' }}
+                  </div>
+                  <div class="text-6xl sm:text-7xl font-bold pixel-font text-primary leading-none">
+                    {{ sliderValue }}
+                    <span v-if="sliderConfig.unit" class="text-2xl sm:text-3xl text-muted-foreground ml-2">{{ sliderConfig.unit }}</span>
+                  </div>
+                </div>
 
-            <div class="w-full max-w-md px-4">
-              <input
-                v-model.number="sliderValue"
-                type="range"
-                :min="sliderConfig.min || 0"
-                :max="sliderConfig.max || 100"
-                step="1"
-                class="w-full h-3 bg-muted rounded-none appearance-none cursor-pointer accent-primary"
-              />
-              <div class="flex justify-between text-sm text-muted-foreground mt-2 font-bold">
-                <span>{{ sliderConfig.min || 0 }}</span>
-                <span>{{ sliderConfig.max || 100 }}</span>
+                <div class="relative px-1 pt-3 pb-4">
+                  <div class="absolute inset-x-1 top-1/2 -translate-y-1/2">
+                    <div class="h-4 border-2 border-black bg-muted relative overflow-hidden">
+                      <div
+                        class="absolute inset-y-0 left-0 bg-primary/25 border-r-2 border-primary"
+                        :style="{ width: `${sliderPosition}%` }"
+                      />
+                      <div class="absolute inset-0 opacity-25 slider-pixel-grid"></div>
+                    </div>
+                  </div>
+
+                  <div class="relative h-10 pointer-events-none">
+                    <div class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between">
+                      <template v-for="i in 11" :key="i">
+                        <div class="w-0.5 h-2 bg-black/40"></div>
+                      </template>
+                    </div>
+
+                    <div
+                      class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100"
+                      :style="{ left: `${sliderPosition}%` }"
+                    >
+                      <div class="w-7 h-7 bg-primary border-[3px] border-black rotate-45 pixel-shadow"></div>
+                    </div>
+
+                    <input
+                      v-model.number="sliderValue"
+                      type="range"
+                      :min="sliderConfig.min || 0"
+                      :max="sliderConfig.max || 100"
+                      step="1"
+                      class="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex justify-between mt-1 text-xs sm:text-sm font-bold">
+                  <span class="bg-black text-white px-2 py-1">{{ sliderConfig.min || 0 }}</span>
+                  <span class="text-muted-foreground uppercase text-[10px] sm:text-xs flex items-center">
+                    {{ sliderConfig.unit || t('gameControl.sliderRange') }}
+                  </span>
+                  <span class="bg-black text-white px-2 py-1">{{ sliderConfig.max || 100 }}</span>
+                </div>
               </div>
             </div>
 
@@ -989,3 +1048,15 @@ onUnmounted(cleanup);
     </template>
   </div>
 </template>
+
+<style scoped>
+.slider-pixel-grid {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 6px,
+    rgba(0, 0, 0, 0.14) 6px,
+    rgba(0, 0, 0, 0.14) 12px
+  );
+}
+</style>

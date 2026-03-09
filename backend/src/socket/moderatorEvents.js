@@ -213,6 +213,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           mediaUrl: firstQuestion.mediaUrl || null
         };
 
+        session.currentQuestionPayload = questionPayload;
         broadcastQuestion(io, sessionPin, questionPayload);
         startQuestionTimer(io, sessionPin, session);
       }
@@ -296,6 +297,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         mediaUrl: question.mediaUrl || null
       };
 
+      session.currentQuestionPayload = questionPayload;
       broadcastQuestion(io, sessionPin, questionPayload);
       startQuestionTimer(io, sessionPin, session);
     } catch (error) {

@@ -76,6 +76,50 @@ const totalDistributionAnswers = computed(() =>
   Object.values(answerDistribution.value).reduce((s, c) => s + c, 0)
 );
 
+const sliderConfig = computed(() => currentQuestion.value?.sliderConfig || {
+  min: 0,
+  max: 100,
+  correctValue: 50,
+  margin: 'medium',
+  unit: ''
+});
+
+const sliderEntries = computed(() =>
+  Object.entries(answerDistribution.value)
+    .map(([rawValue, count]) => ({
+      rawValue,
+      value: Number(rawValue),
+      count
+    }))
+    .filter((entry) => Number.isFinite(entry.value) && entry.count > 0)
+    .sort((a, b) => a.value - b.value)
+);
+
+const sliderAcceptedRange = computed(() => {
+  const config = sliderConfig.value;
+  const margins = {
+    none: 0,
+    low: 0.05,
+    medium: 0.1,
+    high: 0.2,
+    max: 0.5
+  };
+  const range = Math.max(1, (config.max ?? 100) - (config.min ?? 0));
+  const tolerance = range * (margins[config.margin] || 0);
+
+  return {
+    min: Math.max(config.min ?? 0, (config.correctValue ?? 0) - tolerance),
+    max: Math.min(config.max ?? 100, (config.correctValue ?? 0) + tolerance)
+  };
+});
+
+const sliderAverageValue = computed(() => {
+  if (sliderEntries.value.length === 0 || totalDistributionAnswers.value === 0) return null;
+
+  const weightedTotal = sliderEntries.value.reduce((sum, entry) => sum + (entry.value * entry.count), 0);
+  return Math.round((weightedTotal / totalDistributionAnswers.value) * 10) / 10;
+});
+
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 
 // Use shared answer colors from constants
@@ -101,8 +145,45 @@ function getPercentage(answerId) {
 
 function getCorrectCount() {
   if (!currentQuestion.value) return 0;
+
+  if (isSliderQuestion.value) {
+    return sliderEntries.value.reduce((sum, entry) => (
+      isSliderValueCorrect(entry.value) ? sum + entry.count : sum
+    ), 0);
+  }
+
   const correctIds = (currentQuestion.value.answers || []).filter(a => a.isCorrect).map(a => a._id);
   return correctIds.reduce((sum, id) => sum + getCount(id), 0);
+}
+
+function getAccuracyPercentage() {
+  if (totalDistributionAnswers.value === 0) return 0;
+  return Math.round((getCorrectCount() / totalDistributionAnswers.value) * 100);
+}
+
+function getSliderPosition(value) {
+  const min = sliderConfig.value.min ?? 0;
+  const max = sliderConfig.value.max ?? 100;
+  const range = max - min;
+
+  if (range <= 0) return 50;
+
+  const clamped = Math.min(Math.max(value, min), max);
+  return ((clamped - min) / range) * 100;
+}
+
+function isSliderValueCorrect(value) {
+  const accepted = sliderAcceptedRange.value;
+  return value >= accepted.min && value <= accepted.max;
+}
+
+function formatSliderValue(value) {
+  const unit = sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : '';
+  return `${value}${unit}`;
+}
+
+function formatSliderRangeValue(value) {
+  return `${Math.round(value * 10) / 10}${sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : ''}`;
 }
 
 function getCorrectAnswerLabel() {
@@ -619,6 +700,78 @@ onUnmounted(cleanup);
                 </div>
               </PixelCard>
 
+              <!-- Slider results -->
+              <PixelCard v-else-if="isSliderQuestion" class="space-y-4 !p-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
+                  <PixelBadge variant="secondary" class="text-xs">
+                    {{ answersReceived }} / {{ playerCount }} {{ t('gameControl.answered') }}
+                  </PixelBadge>
+                </div>
+
+                <div class="space-y-4">
+                  <div class="relative px-2 pt-10 pb-8">
+                    <div
+                      class="absolute top-1/2 h-4 -translate-y-1/2 border-2 border-success bg-success/20"
+                      :style="{
+                        left: `${getSliderPosition(sliderAcceptedRange.min)}%`,
+                        width: `${Math.max(getSliderPosition(sliderAcceptedRange.max) - getSliderPosition(sliderAcceptedRange.min), 2)}%`
+                      }"
+                    />
+
+                    <div class="relative h-4 border-2 border-black bg-muted">
+                      <div
+                        class="absolute top-1/2 h-8 w-1 -translate-x-1/2 -translate-y-1/2 bg-success border border-black"
+                        :style="{ left: `${getSliderPosition(sliderConfig.correctValue ?? 0)}%` }"
+                      />
+
+                      <div
+                        v-for="entry in sliderEntries"
+                        :key="entry.rawValue"
+                        class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+                        :style="{ left: `${getSliderPosition(entry.value)}%` }"
+                      >
+                        <div
+                          class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap"
+                          :class="isSliderValueCorrect(entry.value) ? 'bg-success text-white' : 'bg-white text-foreground'"
+                        >
+                          {{ entry.count }}x {{ formatSliderValue(entry.value) }}
+                        </div>
+                        <div
+                          class="h-6 w-6 border-2 border-black rotate-45"
+                          :class="isSliderValueCorrect(entry.value) ? 'bg-success' : 'bg-primary'"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="mt-3 flex justify-between text-sm font-bold text-muted-foreground">
+                      <span>{{ formatSliderValue(sliderConfig.min ?? 0) }}</span>
+                      <span>{{ t('gameControl.sliderRange') }}</span>
+                      <span>{{ formatSliderValue(sliderConfig.max ?? 100) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-3">
+                    <PixelCard class="text-center !p-3">
+                      <div class="text-sm text-muted-foreground">{{ t('gameControl.correctAnswer') }}</div>
+                      <div class="text-xl font-bold text-success">{{ formatSliderValue(sliderConfig.correctValue ?? 0) }}</div>
+                    </PixelCard>
+                    <PixelCard class="text-center !p-3">
+                      <div class="text-sm text-muted-foreground">{{ t('gameControl.averageAnswer') }}</div>
+                      <div class="text-xl font-bold text-primary">
+                        {{ sliderAverageValue == null ? '—' : formatSliderValue(sliderAverageValue) }}
+                      </div>
+                    </PixelCard>
+                    <PixelCard class="text-center !p-3">
+                      <div class="text-sm text-muted-foreground">{{ t('gameControl.acceptedRange') }}</div>
+                      <div class="text-lg font-bold text-accent">
+                        {{ formatSliderRangeValue(sliderAcceptedRange.min) }} - {{ formatSliderRangeValue(sliderAcceptedRange.max) }}
+                      </div>
+                    </PixelCard>
+                  </div>
+                </div>
+              </PixelCard>
+
               <!-- Non-MC types: simple results summary -->
               <PixelCard v-else class="space-y-3 !p-4">
                 <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
@@ -636,7 +789,7 @@ onUnmounted(cleanup);
                 </PixelCard>
                 <PixelCard class="text-center !p-3">
                   <div class="text-2xl font-bold text-accent">
-                    {{ totalDistributionAnswers > 0 ? Math.round((getCorrectCount() / totalDistributionAnswers) * 100) : 0 }}%
+                    {{ getAccuracyPercentage() }}%
                   </div>
                   <div class="text-xs text-muted-foreground">{{ t('gameControl.accuracy') }}</div>
                 </PixelCard>

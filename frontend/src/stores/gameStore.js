@@ -1,16 +1,46 @@
 import { defineStore } from 'pinia';
-import { ref, reactive } from 'vue';
+import { ref, reactive, watch } from 'vue';
+
+const PLAYER_SESSION_STORAGE_KEY = 'playerSession';
+
+function readPersistedPlayerSession() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = sessionStorage.getItem(PLAYER_SESSION_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writePersistedPlayerSession(data) {
+  if (typeof window === 'undefined') return;
+
+  try {
+    sessionStorage.setItem(PLAYER_SESSION_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    // Ignore storage write failures so gameplay is not interrupted.
+  }
+}
+
+function clearPersistedPlayerSession() {
+  if (typeof window === 'undefined') return;
+  sessionStorage.removeItem(PLAYER_SESSION_STORAGE_KEY);
+}
 
 export const useGameStore = defineStore('game', () => {
-  const pin = ref(null);
-  const playerId = ref(null);
-  const sessionId = ref(null);
-  const playerName = ref('');
-  const playerEmoji = ref('');
-  const status = ref(null); // 'lobby' | 'playing' | 'paused' | 'finished'
+  const persistedSession = readPersistedPlayerSession();
+
+  const pin = ref(persistedSession?.pin ?? null);
+  const playerId = ref(persistedSession?.playerId ?? null);
+  const sessionId = ref(persistedSession?.sessionId ?? null);
+  const playerName = ref(persistedSession?.playerName ?? '');
+  const playerEmoji = ref(persistedSession?.playerEmoji ?? '');
+  const status = ref(persistedSession?.status ?? null); // 'lobby' | 'playing' | 'paused' | 'finished'
   const players = ref([]);
-  const currentQuestion = ref(null);
-  const leaderboard = ref([]);
+  const currentQuestion = ref(persistedSession?.currentQuestion ?? null);
+  const leaderboard = ref(Array.isArray(persistedSession?.leaderboard) ? persistedSession.leaderboard : []);
   const answerResult = ref(null);
 
   // Streak tracking
@@ -69,6 +99,28 @@ export const useGameStore = defineStore('game', () => {
     streakLabel.value = null;
     lastStreakMultiplier.value = 1.0;
   }
+
+  watch(
+    [pin, playerId, sessionId, playerName, playerEmoji, status, currentQuestion, leaderboard],
+    () => {
+      if (!sessionId.value || !playerId.value) {
+        clearPersistedPlayerSession();
+        return;
+      }
+
+      writePersistedPlayerSession({
+        pin: pin.value,
+        playerId: playerId.value,
+        sessionId: sessionId.value,
+        playerName: playerName.value,
+        playerEmoji: playerEmoji.value,
+        status: status.value,
+        currentQuestion: currentQuestion.value,
+        leaderboard: leaderboard.value
+      });
+    },
+    { deep: true }
+  );
 
   return {
     pin,

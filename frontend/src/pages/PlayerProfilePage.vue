@@ -97,7 +97,7 @@ function handleJoin() {
 }
 
 function goBack() {
-  game.pin = null;
+  game.reset();
   router.push('/');
 }
 </script>

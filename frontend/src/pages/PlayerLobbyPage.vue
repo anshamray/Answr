@@ -3,7 +3,8 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
-import { getSocket } from '../lib/socket.js';
+import { connectSocket, disconnectSocket, getSocket } from '../lib/socket.js';
+import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
 import { TIMING } from '../constants/index.js';
 
 import PixelCard from '../components/PixelCard.vue';
@@ -20,13 +21,17 @@ const dots = ref('.');
 const playerCount = ref(0);
 // Use ref for interval ID to ensure reliable cleanup
 const dotsIntervalId = ref(null);
+let cleanupReconnect = () => {};
 
 function setup() {
-  const socket = getSocket();
-  if (!socket) {
-    router.push('/');
+  if (!game.pin || !game.sessionId || !game.playerId) {
+    router.replace('/play');
     return;
   }
+
+  const socket = getSocket() || connectSocket();
+  const reconnect = usePlayerReconnect({ socket, game, router });
+  cleanupReconnect = reconnect.cleanup;
 
   dotsIntervalId.value = setInterval(() => {
     dots.value = dots.value.length >= 3 ? '.' : dots.value + '.';
@@ -53,6 +58,8 @@ function setup() {
   socket.on('lobby:update', (data) => {
     playerCount.value = data.playerCount || data.players?.length || 0;
   });
+
+  reconnect.maybeRecoverSession();
 }
 
 function cleanup() {
@@ -68,10 +75,13 @@ function cleanup() {
     socket.off('player:kicked');
     socket.off('lobby:update');
   }
+  cleanupReconnect();
 }
 
 function leaveGame() {
   cleanup();
+  disconnectSocket();
+  game.reset();
   router.push('/');
 }
 

@@ -37,7 +37,7 @@ export function initializeSocket(io) {
         const session = activeSessions.get(sessionPin);
         if (session && session.players && session.players.has(playerId)) {
           const player = session.players.get(playerId);
-          if (player) {
+          if (player && player.socketId === socket.id) {
             player.isConnected = false;
             player.disconnectedAt = new Date();
             console.log(`Player ${playerId} marked disconnected from session ${sessionPin}`);
