@@ -71,6 +71,13 @@ const deletedQuestionIds = ref([]); // Track questions to delete on save
 const dragIndex = ref(null);
 const dropTargetIndex = ref(null);
 
+function syncQuestionOrders() {
+  questions.value = questions.value.map((question, index) => ({
+    ...question,
+    order: index
+  }));
+}
+
 function onDragStart(index, event) {
   dragIndex.value = index;
   event.dataTransfer.effectAllowed = 'move';
@@ -91,6 +98,7 @@ function onDrop(index) {
   if (from !== null && from !== index) {
     const moved = questions.value.splice(from, 1)[0];
     questions.value.splice(index, 0, moved);
+    syncQuestionOrders();
     hasUnsavedChanges.value = true;
   }
   dragIndex.value = null;
@@ -218,6 +226,7 @@ async function fetchQuiz() {
       language: loadedQuiz.language || 'en'
     };
     questions.value = quiz.value.questions || [];
+    syncQuestionOrders();
 
     // Select first question if available
     if (questions.value.length > 0) {
@@ -242,6 +251,7 @@ function addQuestion(type) {
   };
 
   questions.value.push(newQuestion);
+  syncQuestionOrders();
   selectedQuestionId.value = tempId;
   showTypeSelector.value = false;
   hasUnsavedChanges.value = true;
@@ -380,6 +390,7 @@ function deleteQuestion(questionId) {
   }
 
   questions.value = questions.value.filter(q => q._id !== questionId);
+  syncQuestionOrders();
 
   // Select another question if the deleted one was selected
   if (selectedQuestionId.value === questionId) {
@@ -404,6 +415,7 @@ function duplicateQuestion(questionId) {
   };
 
   questions.value.push(duplicated);
+  syncQuestionOrders();
   selectedQuestionId.value = tempId;
   hasUnsavedChanges.value = true;
 }
@@ -501,15 +513,27 @@ async function saveAll() {
     // Preserve current question selection (stay on same question after save)
     const selectedIndex = questions.value.findIndex(q => q._id === selectedQuestionId.value);
 
-    // Replace local questions with server responses (to get real IDs)
-    questions.value = updatedQuestions;
+    // Persist the sidebar order after creates/updates so reloads keep the dragged order.
+    if (updatedQuestions.length > 0) {
+      const reorderData = await apiFetch(`/api/quizzes/${quiz.value._id}/questions/reorder`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          questionIds: updatedQuestions.map(question => question._id)
+        })
+      });
+      questions.value = reorderData.data.questions;
+    } else {
+      questions.value = updatedQuestions;
+    }
+
+    syncQuestionOrders();
 
     if (selectedIndex >= 0 && selectedIndex < updatedQuestions.length) {
-      selectedQuestionId.value = updatedQuestions[selectedIndex]._id;
-    } else if (updatedQuestions.length > 0) {
+      selectedQuestionId.value = questions.value[selectedIndex]._id;
+    } else if (questions.value.length > 0) {
       // Selected question was deleted or not found; stay near same position or first
-      const fallbackIndex = selectedIndex >= 0 ? Math.min(selectedIndex, updatedQuestions.length - 1) : 0;
-      selectedQuestionId.value = updatedQuestions[fallbackIndex]._id;
+      const fallbackIndex = selectedIndex >= 0 ? Math.min(selectedIndex, questions.value.length - 1) : 0;
+      selectedQuestionId.value = questions.value[fallbackIndex]._id;
     }
 
     hasUnsavedChanges.value = false;
