@@ -1,4 +1,4 @@
-import { getQuestionValidationErrors } from '../../shared/questionTypeSchema.js';
+import { getQuestionValidationErrors } from '../../../shared/questionTypeSchema.js';
 
 /**
  * Client-side question validation that mirrors the shared
