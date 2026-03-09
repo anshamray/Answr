@@ -217,7 +217,9 @@ export function registerPlayerEvents(io, socket, activeSessions) {
    */
   socket.on(PLAYER_EVENTS.ANSWER, (payload) => {
     try {
-      let { questionId, answerId, timeTaken } = payload || {};
+      const normalizedPayload = payload || {};
+      let { questionId } = normalizedPayload;
+      const { answerId, timeTaken } = normalizedPayload;
 
       const sessionPin = socket.data.sessionPin;
       const playerId = socket.data.playerId;
@@ -309,6 +311,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       const hostSocketId = session.hostSocketId;
       if (hostSocketId) {
         io.to(hostSocketId).emit(PLAYER_EVENTS.ANSWER_DETAIL, {
+          playerId,
           questionId,
           answerId,
           answerCount

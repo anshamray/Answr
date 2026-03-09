@@ -33,6 +33,7 @@ const answersReceived = ref(0);
 const playerCount = ref(0);
 const timeRemaining = ref(0);
 const answerDistribution = ref({});
+const playerAnswers = ref({});
 const leaderboard = ref([]);
 
 // Intro phase: 'intro' (question only) -> 'answering' (answers visible) -> handled by status='reveal'
@@ -67,6 +68,7 @@ const isSliderQuestion = computed(() =>
   (currentQuestion.value?.sliderConfig?.min != null && currentQuestion.value?.sliderConfig?.max != null)
 );
 const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
+const isTypeAnswerQuestion = computed(() => currentQuestion.value?.type === 'type-answer');
 
 const isLastQuestion = computed(() => currentIndex.value >= questions.value.length - 1);
 const questionNumber = computed(() => currentIndex.value + 1);
@@ -160,6 +162,100 @@ const barBg = ANSWER_COLORS.BAR_COLORS;
 const barLabels = ANSWER_COLORS.LABELS;
 const answerGradients = ANSWER_COLORS.MODERATOR_GRADIENTS;
 
+function questionAllowsMultipleAnswers(question = currentQuestion.value) {
+  if (!question) return false;
+  if (question.allowMultipleAnswers) return true;
+  return (question.answers || []).filter((answer) => answer.isCorrect).length > 1;
+}
+
+function normalizeTextAnswer(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function getSelectedAnswerIds(answerId) {
+  if (answerId == null) return [];
+  if (Array.isArray(answerId)) {
+    return answerId.map((id) => String(id));
+  }
+  return [String(answerId)];
+}
+
+function getAnswerDistributionKeys(answerId, question = currentQuestion.value) {
+  const qType = question?.type || 'multiple-choice';
+  if (answerId == null) return [];
+
+  if (qType === 'sort') {
+    return [getSelectedAnswerIds(answerId).join(',')];
+  }
+
+  if (qType === 'type-answer') {
+    const normalized = normalizeTextAnswer(answerId);
+    return normalized ? [normalized] : [];
+  }
+
+  if (questionAllowsMultipleAnswers(question)) {
+    return getSelectedAnswerIds(answerId);
+  }
+
+  if (Array.isArray(answerId)) {
+    return [answerId.map((id) => String(id)).join(',')];
+  }
+
+  return [String(answerId)];
+}
+
+function rebuildAnswerDistribution() {
+  const nextDistribution = {};
+
+  for (const answerId of Object.values(playerAnswers.value)) {
+    for (const key of getAnswerDistributionKeys(answerId)) {
+      nextDistribution[key] = (nextDistribution[key] || 0) + 1;
+    }
+  }
+
+  answerDistribution.value = nextDistribution;
+}
+
+const acceptedTypeAnswers = computed(() => {
+  if (!isTypeAnswerQuestion.value) return [];
+
+  return (currentQuestion.value?.answers || [])
+    .map((answer) => String(answer.text || '').trim())
+    .filter(Boolean);
+});
+
+const acceptedTypeAnswerSet = computed(() => new Set(
+  acceptedTypeAnswers.value.map((answer) => normalizeTextAnswer(answer))
+));
+
+const textAnswerEntries = computed(() => {
+  if (!isTypeAnswerQuestion.value) return [];
+
+  const groupedAnswers = new Map();
+
+  for (const rawAnswer of Object.values(playerAnswers.value)) {
+    const text = String(rawAnswer || '').trim();
+    const normalized = normalizeTextAnswer(text);
+    if (!normalized) continue;
+
+    const existingEntry = groupedAnswers.get(normalized);
+    if (existingEntry) {
+      existingEntry.count += 1;
+      continue;
+    }
+
+    groupedAnswers.set(normalized, {
+      key: normalized,
+      text,
+      count: 1,
+      isCorrect: acceptedTypeAnswerSet.value.has(normalized)
+    });
+  }
+
+  return Array.from(groupedAnswers.values())
+    .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }));
+});
+
 function getCount(answerId) {
   return answerDistribution.value[answerId] || 0;
 }
@@ -171,13 +267,16 @@ function getBarWidth(answerId) {
 }
 
 function getPercentage(answerId) {
-  const total = totalDistributionAnswers.value;
+  const total = questionAllowsMultipleAnswers()
+    ? answersReceived.value
+    : totalDistributionAnswers.value;
   if (total === 0) return 0;
   return Math.round((getCount(answerId) / total) * 100);
 }
 
 function getCorrectCount() {
   if (!currentQuestion.value) return 0;
+  const qType = currentQuestion.value.type || 'multiple-choice';
 
   if (isSliderQuestion.value) {
     return sliderEntries.value.reduce((sum, entry) => (
@@ -186,18 +285,61 @@ function getCorrectCount() {
   }
 
   if (isSortQuestion.value) {
+    const answers = Object.values(playerAnswers.value);
+    if (answers.length > 0) {
+      return answers.reduce((sum, answerId) => (
+        getAnswerDistributionKeys(answerId)[0] === correctSortKey.value ? sum + 1 : sum
+      ), 0);
+    }
+
     return sortAnswerEntries.value.reduce((sum, entry) => (
       entry.isCorrect ? sum + entry.count : sum
     ), 0);
   }
 
-  const correctIds = (currentQuestion.value.answers || []).filter(a => a.isCorrect).map(a => a._id);
+  if (qType === 'type-answer') {
+    const answers = Object.values(playerAnswers.value);
+    if (answers.length > 0) {
+      return answers.reduce((sum, answerId) => (
+        acceptedTypeAnswerSet.value.has(normalizeTextAnswer(answerId)) ? sum + 1 : sum
+      ), 0);
+    }
+
+    return textAnswerEntries.value.reduce((sum, entry) => (
+      entry.isCorrect ? sum + entry.count : sum
+    ), 0);
+  }
+
+  const correctIds = (currentQuestion.value.answers || [])
+    .filter((answer) => answer.isCorrect)
+    .map((answer) => String(answer._id));
+  const answers = Object.values(playerAnswers.value);
+
+  if (answers.length > 0) {
+    const correctIdSet = new Set(correctIds);
+
+    return answers.reduce((sum, answerId) => {
+      const selectedIds = getSelectedAnswerIds(answerId);
+
+      if (questionAllowsMultipleAnswers()) {
+        const selectedIdSet = new Set(selectedIds);
+        const isCorrect = selectedIdSet.size === correctIdSet.size &&
+          correctIds.every((id) => selectedIdSet.has(id));
+
+        return isCorrect ? sum + 1 : sum;
+      }
+
+      return selectedIds.length === 1 && correctIdSet.has(selectedIds[0]) ? sum + 1 : sum;
+    }, 0);
+  }
+
   return correctIds.reduce((sum, id) => sum + getCount(id), 0);
 }
 
 function getAccuracyPercentage() {
-  if (totalDistributionAnswers.value === 0) return 0;
-  return Math.round((getCorrectCount() / totalDistributionAnswers.value) * 100);
+  const total = answersReceived.value || totalDistributionAnswers.value;
+  if (total === 0) return 0;
+  return Math.round((getCorrectCount() / total) * 100);
 }
 
 function getSliderPosition(value) {
@@ -340,11 +482,18 @@ function attachListeners(socket) {
   });
 
   socket.on('player:answer:detail', (data) => {
-    if (data?.answerId) {
-      answerDistribution.value = {
-        ...answerDistribution.value,
-        [data.answerId]: (answerDistribution.value[data.answerId] || 0) + 1
+    if (data?.playerId) {
+      playerAnswers.value = {
+        ...playerAnswers.value,
+        [data.playerId]: data.answerId
       };
+      rebuildAnswerDistribution();
+    } else if (data?.answerId != null) {
+      const nextDistribution = { ...answerDistribution.value };
+      for (const key of getAnswerDistributionKeys(data.answerId)) {
+        nextDistribution[key] = (nextDistribution[key] || 0) + 1;
+      }
+      answerDistribution.value = nextDistribution;
     }
     if (data?.answerCount != null) {
       answersReceived.value = data.answerCount;
@@ -455,6 +604,7 @@ function sendFirstQuestion() {
   currentIndex.value = 0;
   answersReceived.value = 0;
   answerDistribution.value = {};
+  playerAnswers.value = {};
   leaderboard.value = [];
   status.value = 'question';
   phase.value = 'intro';
@@ -488,6 +638,7 @@ function sendNextQuestion() {
   currentIndex.value++;
   answersReceived.value = 0;
   answerDistribution.value = {};
+  playerAnswers.value = {};
   leaderboard.value = [];
   status.value = 'question';
   phase.value = 'intro';
@@ -906,6 +1057,65 @@ onUnmounted(cleanup);
                     <div v-else class="border-[3px] border-dashed border-border bg-muted/30 px-4 py-6 text-center text-muted-foreground">
                       {{ t('gameControl.noSortSubmissions') }}
                     </div>
+                  </div>
+                </div>
+              </PixelCard>
+
+              <PixelCard v-else-if="isTypeAnswerQuestion" class="space-y-4 !p-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
+                  <PixelBadge variant="secondary" class="text-xs">
+                    {{ answersReceived }} / {{ playerCount }} {{ t('gameControl.answered') }}
+                  </PixelBadge>
+                </div>
+
+                <div class="space-y-3">
+                  <h3 class="text-sm font-bold uppercase text-muted-foreground">
+                    {{ t('gameControl.acceptedAnswers') }}
+                  </h3>
+                  <div class="flex flex-wrap gap-2">
+                    <PixelBadge
+                      v-for="answer in acceptedTypeAnswers"
+                      :key="answer"
+                      variant="success"
+                      class="text-xs"
+                    >
+                      {{ answer }}
+                    </PixelBadge>
+                  </div>
+                </div>
+
+                <div class="space-y-3">
+                  <h3 class="text-sm font-bold uppercase text-muted-foreground">
+                    {{ t('gameControl.submittedAnswers') }}
+                  </h3>
+
+                  <div v-if="textAnswerEntries.length > 0" class="space-y-2">
+                    <div
+                      v-for="entry in textAnswerEntries"
+                      :key="entry.key"
+                      class="flex items-center justify-between gap-3 border-[3px] px-3 py-3"
+                      :class="entry.isCorrect ? 'border-success bg-success/10' : 'border-black bg-white'"
+                    >
+                      <div class="min-w-0">
+                        <div class="font-bold break-words">{{ entry.text }}</div>
+                      </div>
+                      <div class="flex items-center gap-2 flex-shrink-0">
+                        <PixelBadge :variant="entry.isCorrect ? 'success' : 'secondary'" class="text-[11px]">
+                          {{ entry.isCorrect ? t('session.correct') : t('gameControl.answered') }}
+                        </PixelBadge>
+                        <div class="text-right">
+                          <span class="text-lg font-bold">{{ entry.count }}</span>
+                          <span class="text-xs text-muted-foreground ml-1">
+                            ({{ Math.round((entry.count / Math.max(answersReceived, 1)) * 100) }}%)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-else class="border-[3px] border-dashed border-border bg-muted/30 px-4 py-6 text-center text-muted-foreground">
+                    {{ t('gameControl.noTypeSubmissions') }}
                   </div>
                 </div>
               </PixelCard>
