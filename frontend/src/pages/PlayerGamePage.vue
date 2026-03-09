@@ -39,7 +39,7 @@ let previousScore = 0;
 const question = computed(() => game.currentQuestion);
 const options = computed(() => question.value?.options || []);
 const isMultiAnswer = computed(() => question.value?.allowMultipleAnswers || false);
-const isSlider = computed(() => question.value?.type === 'slider');
+const isSlider = computed(() => question.value?.type === 'slider' || !!question.value?.sliderConfig);
 const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');

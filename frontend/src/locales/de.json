@@ -374,7 +374,10 @@
     "gotItRight": "Richtig beantwortet",
     "accuracy": "Genauigkeit",
     "top5": "Top 5",
-    "finishGame": "Spiel beenden"
+    "finishGame": "Spiel beenden",
+    "sliderRange": "Bereich",
+    "playersTyping": "Spieler geben ihre Antworten ein...",
+    "playersPinning": "Spieler setzen ihre Pins..."
   },
   "account": {
     "title": "Kontoeinstellungen",

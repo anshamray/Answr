@@ -514,19 +514,29 @@ onUnmounted(cleanup);
                 </div>
               </div>
 
-              <!-- Slider: show range info -->
-              <div v-else-if="currentQuestion.type === 'slider' && currentQuestion.sliderConfig" class="text-center text-lg text-muted-foreground">
-                {{ t('gameControl.sliderRange') || 'Range' }}: {{ currentQuestion.sliderConfig.min }} – {{ currentQuestion.sliderConfig.max }}{{ currentQuestion.sliderConfig.unit ? ' ' + currentQuestion.sliderConfig.unit : '' }}
+              <!-- Slider: show visual slider on presenter screen -->
+              <div v-else-if="currentQuestion.type === 'slider'" class="flex flex-col items-center gap-4 py-4">
+                <div class="text-5xl lg:text-7xl font-bold pixel-font text-primary">?</div>
+                <div class="w-full max-w-lg px-4">
+                  <div class="w-full h-4 bg-muted border-2 border-black rounded-none relative">
+                    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 bg-primary border-2 border-black"></div>
+                  </div>
+                  <div class="flex justify-between text-base font-bold text-muted-foreground mt-2">
+                    <span>{{ currentQuestion.sliderConfig?.min ?? 0 }}</span>
+                    <span class="text-sm">{{ t('gameControl.sliderRange') }}</span>
+                    <span>{{ currentQuestion.sliderConfig?.max ?? 100 }}{{ currentQuestion.sliderConfig?.unit ? ' ' + currentQuestion.sliderConfig.unit : '' }}</span>
+                  </div>
+                </div>
               </div>
 
               <!-- Type-answer: show hint -->
-              <div v-else-if="currentQuestion.type === 'type-answer'" class="text-center text-lg text-muted-foreground">
-                ⌨️ {{ t('gameControl.playersTyping') || 'Players are typing their answers...' }}
+              <div v-else-if="currentQuestion.type === 'type-answer'" class="text-center text-lg text-muted-foreground py-4">
+                ⌨️ {{ t('gameControl.playersTyping') }}
               </div>
 
               <!-- Pin-answer: show image -->
-              <div v-else-if="currentQuestion.type === 'pin-answer'" class="text-center text-lg text-muted-foreground">
-                📍 {{ t('gameControl.playersPinning') || 'Players are placing their pins...' }}
+              <div v-else-if="currentQuestion.type === 'pin-answer'" class="text-center text-lg text-muted-foreground py-4">
+                📍 {{ t('gameControl.playersPinning') }}
               </div>
             </PixelCard>
           </div>

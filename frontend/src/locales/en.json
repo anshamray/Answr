@@ -374,7 +374,10 @@
     "gotItRight": "Got it right",
     "accuracy": "Accuracy",
     "top5": "Top 5",
-    "finishGame": "Finish Game"
+    "finishGame": "Finish Game",
+    "sliderRange": "Range",
+    "playersTyping": "Players are typing their answers...",
+    "playersPinning": "Players are placing their pins..."
   },
   "account": {
     "title": "Account Settings",
