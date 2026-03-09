@@ -462,7 +462,10 @@
     "addFirstQuestion": "Erste Frage hinzufügen",
     "noQuestionText": "Kein Fragentext",
     "deleteConfirm": "Bist du sicher, dass du diese Frage löschen möchtest?",
-    "leaveConfirm": "Du hast ungespeicherte Änderungen. Möchtest du wirklich gehen?"
+    "leaveConfirm": "Du hast ungespeicherte Änderungen. Möchtest du wirklich gehen?",
+    "pasteHint": "💡 Tipp: Frage mit Antworten einfügen zum automatischen Ausfüllen",
+    "questionText": "Fragentext",
+    "questionPlaceholder": "Gib hier deine Frage ein..."
   },
   "questionValidation": {
     "textRequired": "Fragetext ist erforderlich für Typ \"{type}\"",

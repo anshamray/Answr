@@ -462,7 +462,10 @@
     "addFirstQuestion": "Add Your First Question",
     "noQuestionText": "No question text",
     "deleteConfirm": "Are you sure you want to delete this question?",
-    "leaveConfirm": "You have unsaved changes. Are you sure you want to leave?"
+    "leaveConfirm": "You have unsaved changes. Are you sure you want to leave?",
+    "pasteHint": "💡 Tip: Paste a question with answers to auto-fill",
+    "questionText": "Question Text",
+    "questionPlaceholder": "Enter your question here..."
   },
   "questionValidation": {
     "textRequired": "Question text is required for type \"{type}\"",

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { apiUrl } from '../lib/api.js';
 import { uploadMedia, isDataUrl } from '../lib/mediaService.js';
 import MultipleChoiceEditor from './editors/MultipleChoiceEditor.vue';
@@ -23,6 +24,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update', 'delete', 'error']);
+
+const { t } = useI18n();
 
 // Local copy of question for editing
 const localQuestion = ref({ ...props.question });
@@ -103,6 +106,48 @@ function updatePinConfig(config) {
 function updateMediaUrl(url) {
   localQuestion.value.mediaUrl = url;
   emitUpdate();
+}
+
+// Parse pasted structured question text
+function handlePaste(event) {
+  const text = event.clipboardData?.getData('text');
+  if (!text) return;
+
+  // Try to detect structured format with question + answers
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 3) return; // Need at least a header/question + 2 answers
+
+  let questionText = '';
+  const answers = [];
+
+  for (const line of lines) {
+    // Skip type header lines like "12. Multiple Choice"
+    if (/^\d+\.\s*(Multiple Choice|True\/False|Type Answer|Sort|Slider|Poll)/i.test(line)) continue;
+
+    // Extract question from "Frage: ..." or "Question: ..."
+    const qMatch = line.match(/^(?:Frage|Question)\s*:\s*(.+)/i);
+    if (qMatch) {
+      questionText = qMatch[1].trim();
+      continue;
+    }
+
+    // Skip "Antworten:" / "Answers:" header
+    if (/^(?:Antworten|Answers)\s*:?\s*$/i.test(line)) continue;
+
+    // Parse answer lines — detect ✅ or (correct) markers
+    const isCorrect = /✅|\(correct\)|\(richtig\)/i.test(line);
+    const answerText = line.replace(/[✅❌]|\(correct\)|\(richtig\)|\(wrong\)|\(falsch\)/gi, '').trim();
+    if (answerText) {
+      answers.push({ text: answerText, isCorrect });
+    }
+  }
+
+  if (questionText && answers.length >= 2) {
+    event.preventDefault();
+    localQuestion.value.text = questionText;
+    localQuestion.value.answers = answers;
+    emitUpdate();
+  }
 }
 
 // Trigger file input click
@@ -218,17 +263,18 @@ function getIcon(iconName) {
     <div class="space-y-6">
       <!-- Question Text -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
-        <label class="block text-sm font-medium mb-2">Question Text</label>
+        <label class="block text-sm font-medium mb-2">{{ t('quizEditor.questionText') }}</label>
         <textarea
           v-model="localQuestion.text"
-          placeholder="Enter your question here..."
+          :placeholder="t('quizEditor.questionPlaceholder')"
           class="w-full px-4 py-3 border-2 border-border bg-white text-lg focus:border-primary focus:outline-none resize-none"
           rows="3"
           maxlength="300"
           @input="emitUpdate"
+          @paste="handlePaste"
         ></textarea>
         <div class="flex justify-between mt-2">
-          <span class="text-xs text-muted-foreground">Maximum 300 characters</span>
+          <span class="text-xs text-muted-foreground">{{ t('quizEditor.pasteHint') }}</span>
           <span class="text-xs text-muted-foreground">{{ localQuestion.text?.length || 0 }}/300</span>
         </div>
       </div>
