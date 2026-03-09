@@ -1,9 +1,42 @@
 import { io } from 'socket.io-client';
 import { apiBase } from './api.js';
+import { addDebugLog } from './debugLog.js';
 
 let socket = null;
 
 const defaultSocketUrl = apiBase || 'http://localhost:3000';
+
+function attachDebugListeners(activeSocket) {
+  activeSocket.on('connect_error', (error) => {
+    addDebugLog({
+      level: 'error',
+      source: 'socket',
+      message: error?.message || 'Socket connection failed',
+      stack: error?.stack || '',
+      fatal: true
+    });
+  });
+
+  activeSocket.on('error', (error) => {
+    addDebugLog({
+      level: 'error',
+      source: 'socket',
+      message: typeof error === 'string' ? error : error?.message || 'Socket error',
+      details: typeof error === 'object' && error ? JSON.stringify(error, null, 2) : '',
+      fatal: true
+    });
+  });
+
+  activeSocket.on('player:error', (data) => {
+    addDebugLog({
+      level: 'error',
+      source: 'player',
+      message: data?.message || 'Player error',
+      details: data?.code ? `Code: ${data.code}` : '',
+      fatal: true
+    });
+  });
+}
 
 /**
  * Connect to the WebSocket server.
@@ -21,6 +54,8 @@ export function connectSocket(url = defaultSocketUrl, opts = {}) {
     autoConnect: true,
     ...opts
   });
+
+  attachDebugListeners(socket);
 
   return socket;
 }
