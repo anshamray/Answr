@@ -69,6 +69,7 @@ const sliderValue = ref(50);
 
 // Sort state
 const sortOrder = ref([]); // IDs in player-chosen order
+const draggedSortIndex = ref(null);
 const availableItems = computed(() => {
   const ordered = new Set(sortOrder.value);
   return options.value.filter(o => !ordered.has(o.id));
@@ -222,10 +223,6 @@ function addToSortOrder(optionId) {
   if (!sortOrder.value.includes(optionId)) {
     sortOrder.value.push(optionId);
   }
-  // Auto-submit when all items are ordered
-  if (sortOrder.value.length === options.value.length) {
-    submitSortAnswer();
-  }
 }
 
 function removeFromSortOrder(optionId) {
@@ -233,8 +230,46 @@ function removeFromSortOrder(optionId) {
   sortOrder.value = sortOrder.value.filter(id => id !== optionId);
 }
 
-function submitSortAnswer() {
+function moveSortItem(fromIndex, toIndex) {
+  if (fromIndex === toIndex) return;
+  if (fromIndex < 0 || toIndex < 0) return;
+  if (fromIndex >= sortOrder.value.length || toIndex >= sortOrder.value.length) return;
+
+  const nextOrder = [...sortOrder.value];
+  const [movedItem] = nextOrder.splice(fromIndex, 1);
+  nextOrder.splice(toIndex, 0, movedItem);
+  sortOrder.value = nextOrder;
+}
+
+function startSortDrag(index, event) {
+  if (submitted.value || timedOut.value || sortOrder.value.length < 2) return;
+
+  draggedSortIndex.value = index;
+  event.currentTarget?.setPointerCapture?.(event.pointerId);
+}
+
+function updateSortDrag(event) {
+  if (draggedSortIndex.value == null) return;
+
+  const target = document.elementFromPoint(event.clientX, event.clientY)?.closest?.('[data-sort-index]');
+  const targetIndex = Number(target?.dataset?.sortIndex);
+
+  if (Number.isInteger(targetIndex) && targetIndex !== draggedSortIndex.value) {
+    moveSortItem(draggedSortIndex.value, targetIndex);
+    draggedSortIndex.value = targetIndex;
+  }
+}
+
+function stopSortDrag(event) {
+  if (draggedSortIndex.value == null) return;
+
+  event?.currentTarget?.releasePointerCapture?.(event.pointerId);
+  draggedSortIndex.value = null;
+}
+
+function submitSortAnswer(force = false) {
   if (submitted.value || timedOut.value || sortOrder.value.length === 0) return;
+  if (!force && sortOrder.value.length !== options.value.length) return;
   submitted.value = true;
 
   const socket = getSocket();
@@ -321,6 +356,7 @@ function initializeQuestionState(data = question.value) {
   pointsEarned.value = null;
   sliderValue.value = getSliderMidpoint(data.sliderConfig);
   sortOrder.value = [];
+  draggedSortIndex.value = null;
   pinX.value = null;
   pinY.value = null;
   textAnswer.value = '';
@@ -341,7 +377,7 @@ function submitPendingAnswerOnTimeout() {
   }
 
   if (isSort.value && sortOrder.value.length > 0) {
-    submitSortAnswer();
+    submitSortAnswer(true);
     return;
   }
 
@@ -590,15 +626,15 @@ onUnmounted(cleanup);
                     </div>
                   </div>
 
-                  <div class="relative h-10 pointer-events-none">
-                    <div class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between">
+                  <div class="relative h-12">
+                    <div class="absolute inset-x-2 top-1/2 -translate-y-1/2 flex items-center justify-between pointer-events-none">
                       <template v-for="i in 11" :key="i">
                         <div class="w-0.5 h-2 bg-black/40"></div>
                       </template>
                     </div>
 
                     <div
-                      class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100"
+                      class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100 pointer-events-none"
                       :style="{ left: `${sliderPosition}%` }"
                     >
                       <div class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap bg-success text-white">
@@ -614,7 +650,7 @@ onUnmounted(cleanup);
                       :min="sliderConfig.min || 0"
                       :max="sliderConfig.max || 100"
                       step="1"
-                      class="absolute inset-0 h-10 w-full cursor-pointer opacity-0"
+                      class="absolute inset-0 z-10 h-12 w-full cursor-pointer opacity-0"
                     />
                   </div>
                 </div>
@@ -664,20 +700,37 @@ onUnmounted(cleanup);
           <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col gap-4 overflow-auto">
             <!-- Ordered items -->
             <div v-if="orderedItems.length > 0">
-              <p class="text-xs font-bold text-muted-foreground uppercase mb-2">{{ t('playerGame.yourOrder') }}</p>
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <p class="text-xs font-bold text-muted-foreground uppercase">{{ t('playerGame.yourOrder') }}</p>
+                <p class="text-[11px] font-bold text-muted-foreground">{{ t('playerGame.dragToReorder') }}</p>
+              </div>
               <div class="space-y-2">
-                <button
+                <div
                   v-for="(item, i) in orderedItems"
                   :key="'ordered-' + item.id"
-                  class="w-full p-3 border-[3px] border-success bg-success/10 text-left font-bold text-base flex items-center gap-3 active:scale-95 transition-transform"
-                  @click="removeFromSortOrder(item.id)"
+                  :data-sort-index="i"
+                  class="w-full p-3 border-[3px] border-success bg-success/10 text-left font-bold text-base flex items-center gap-3 transition-transform touch-none"
+                  :class="draggedSortIndex === i ? 'scale-[1.01] ring-4 ring-success/20' : ''"
+                  @pointerdown="startSortDrag(i, $event)"
+                  @pointermove="updateSortDrag"
+                  @pointerup="stopSortDrag"
+                  @pointercancel="stopSortDrag"
                 >
                   <span class="w-8 h-8 bg-success text-white border-2 border-black flex items-center justify-center font-bold pixel-font flex-shrink-0">
                     {{ i + 1 }}
                   </span>
                   <span class="flex-1">{{ item.text }}</span>
-                  <span class="text-muted-foreground text-sm">✕</span>
-                </button>
+                  <span class="text-muted-foreground text-base select-none">↕</span>
+                  <button
+                    type="button"
+                    class="w-8 h-8 border-2 border-black bg-white text-sm text-muted-foreground flex items-center justify-center"
+                    :aria-label="t('playerGame.removeItem')"
+                    @pointerdown.stop
+                    @click.stop="removeFromSortOrder(item.id)"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -697,6 +750,20 @@ onUnmounted(cleanup);
                   <span class="flex-1">{{ item.text }}</span>
                 </button>
               </div>
+            </div>
+
+            <div v-if="sortOrder.length > 0" class="mt-auto pt-2">
+              <button
+                class="w-full py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl transition-all"
+                :class="sortOrder.length === options.length ? 'active:translate-x-1 active:translate-y-1 active:shadow-none' : 'opacity-50 cursor-not-allowed'"
+                :disabled="sortOrder.length !== options.length"
+                @click="submitSortAnswer"
+              >
+                {{ t('playerGame.submitAnswer') }} ({{ sortOrder.length }}/{{ options.length }})
+              </button>
+              <p class="text-sm text-muted-foreground text-center mt-2">
+                {{ sortOrder.length === options.length ? t('playerGame.dragToReorder') : t('playerGame.completeOrderToSubmit') }}
+              </p>
             </div>
           </div>
 

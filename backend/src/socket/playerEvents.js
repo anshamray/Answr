@@ -360,20 +360,26 @@ export function registerPlayerEvents(io, socket, activeSessions) {
         return;
       }
 
-      if (player.isConnected) {
-        emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'Player is already connected.');
-        return;
+      const isSameSocket = player.socketId === socket.id;
+      const wasRecentlyDisconnected =
+        player.disconnectedAt &&
+        (Date.now() - player.disconnectedAt.getTime()) <= RECONNECT_WINDOW_MS;
+
+      // Mobile browsers can keep the old websocket around briefly after
+      // lock/unlock or page restore. Allow the new socket to reclaim the
+      // player session instead of rejecting it as "already connected".
+      if (!isSameSocket && player.isConnected && player.socketId) {
+        const previousSocket = io.sockets.sockets.get(player.socketId);
+        if (previousSocket) {
+          previousSocket.leave(sessionPin);
+          previousSocket.data.sessionPin = null;
+          previousSocket.data.playerId = null;
+          previousSocket.disconnect(true);
+        }
       }
 
-      if (!player.disconnectedAt) {
+      if (!isSameSocket && !player.isConnected && !wasRecentlyDisconnected) {
         emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'Reconnect window has expired.');
-        return;
-      }
-
-      const elapsed = Date.now() - player.disconnectedAt.getTime();
-      if (elapsed > RECONNECT_WINDOW_MS) {
-        emitPlayerError(socket, ERROR_CODES.SESSION_EXPIRED, 'Reconnect window has expired.');
-        // Optional: clean up player entry once reconnect window is over
         session.players.delete(playerId);
         return;
       }

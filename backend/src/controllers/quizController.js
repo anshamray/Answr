@@ -1,5 +1,6 @@
 import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
+import Session from '../models/Session.js';
 import {
   sendSuccess,
   sendCreated,
@@ -18,11 +19,22 @@ export async function listQuizzes(req, res) {
       .sort({ updatedAt: -1 })
       .lean();
 
+    const quizIds = quizzes.map(q => q._id);
+    const sessionCounts = quizIds.length > 0
+      ? await Session.aggregate([
+        { $match: { quizId: { $in: quizIds } } },
+        { $group: { _id: '$quizId', count: { $sum: 1 } } }
+      ])
+      : [];
+    const sessionCountMap = new Map(
+      sessionCounts.map(entry => [entry._id.toString(), entry.count])
+    );
+
     // Add questionCount and ensure playCount for display (exclude questions array to keep payload small)
     const enriched = quizzes.map(({ questions, ...q }) => ({
       ...q,
       questionCount: (questions || []).length,
-      playCount: q.playCount ?? 0
+      playCount: Math.max(q.playCount ?? 0, sessionCountMap.get(q._id.toString()) ?? 0)
     }));
 
     sendSuccess(res, { message: 'Quizzes retrieved', data: { quizzes: enriched } });

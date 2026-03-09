@@ -66,6 +66,7 @@ const isSliderQuestion = computed(() =>
   currentQuestion.value?.type === 'slider' ||
   (currentQuestion.value?.sliderConfig?.min != null && currentQuestion.value?.sliderConfig?.max != null)
 );
+const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
 
 const isLastQuestion = computed(() => currentIndex.value >= questions.value.length - 1);
 const questionNumber = computed(() => currentIndex.value + 1);
@@ -125,6 +126,34 @@ const hasSliderAcceptedRangeWidth = computed(() =>
 );
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
+const answerTextById = computed(() => new Map(
+  (currentQuestion.value?.answers || []).map((answer) => [String(answer._id), answer.text])
+));
+const correctSortOrderIds = computed(() => {
+  if (!isSortQuestion.value) return [];
+
+  return [...(currentQuestion.value?.answers || [])]
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((answer) => String(answer._id));
+});
+const correctSortKey = computed(() => correctSortOrderIds.value.join(','));
+const sortAnswerEntries = computed(() => {
+  if (!isSortQuestion.value) return [];
+
+  return Object.entries(answerDistribution.value)
+    .map(([rawOrder, count]) => {
+      const orderIds = rawOrder.split(',').filter(Boolean);
+      return {
+        rawOrder,
+        orderIds,
+        count,
+        isCorrect: rawOrder === correctSortKey.value
+      };
+    })
+    .filter((entry) => entry.orderIds.length > 0 && entry.count > 0)
+    .sort((a, b) => b.count - a.count);
+});
+const topSortAnswerEntries = computed(() => sortAnswerEntries.value.slice(0, 4));
 
 // Use shared answer colors from constants
 const barBg = ANSWER_COLORS.BAR_COLORS;
@@ -153,6 +182,12 @@ function getCorrectCount() {
   if (isSliderQuestion.value) {
     return sliderEntries.value.reduce((sum, entry) => (
       isSliderValueCorrect(entry.value) ? sum + entry.count : sum
+    ), 0);
+  }
+
+  if (isSortQuestion.value) {
+    return sortAnswerEntries.value.reduce((sum, entry) => (
+      entry.isCorrect ? sum + entry.count : sum
     ), 0);
   }
 
@@ -198,6 +233,12 @@ function formatAcceptedSliderRange() {
   return `${formatSliderRangeValue(sliderAcceptedRange.value.min)} - ${formatSliderRangeValue(sliderAcceptedRange.value.max)}`;
 }
 
+function getSortOrderText(orderIds) {
+  return orderIds
+    .map((id) => answerTextById.value.get(String(id)) || '—')
+    .join(' → ');
+}
+
 function getCorrectAnswerLabel() {
   const q = currentQuestion.value;
   if (!q) return '?';
@@ -207,11 +248,7 @@ function getCorrectAnswerLabel() {
     return q.sliderConfig.correctValue + (q.sliderConfig.unit ? ' ' + q.sliderConfig.unit : '');
   }
   if (qType === 'sort') {
-    return (q.answers || [])
-      .slice()
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map(a => a.text)
-      .join(' → ');
+    return getSortOrderText(correctSortOrderIds.value);
   }
   if (qType === 'pin-answer') {
     const pc = q.pinConfig;
@@ -594,7 +631,7 @@ onUnmounted(cleanup);
               </h1>
 
               <!-- MC / True-False / Poll: answer grid -->
-              <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer' ].includes(currentQuestion.type) && !isSliderQuestion" class="grid grid-cols-2 gap-3">
+              <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer', 'sort' ].includes(currentQuestion.type) && !isSliderQuestion" class="grid grid-cols-2 gap-3">
                 <div
                   v-for="(answer, i) in currentQuestion.answers"
                   :key="answer._id"
@@ -624,6 +661,22 @@ onUnmounted(cleanup);
                     <span>{{ currentQuestion.sliderConfig?.min ?? 0 }}</span>
                     <span class="text-sm">{{ t('gameControl.sliderRange') }}</span>
                     <span>{{ currentQuestion.sliderConfig?.max ?? 100 }}{{ currentQuestion.sliderConfig?.unit ? ' ' + currentQuestion.sliderConfig.unit : '' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sort: show sorting mode instead of fake option bars -->
+              <div v-else-if="isSortQuestion" class="space-y-4 py-2">
+                <div class="text-center text-lg text-muted-foreground">
+                  ↕ {{ t('gameControl.playersSorting') }}
+                </div>
+                <div class="grid gap-2 sm:grid-cols-2">
+                  <div
+                    v-for="answer in currentQuestion.answers"
+                    :key="answer._id"
+                    class="border-[3px] border-black bg-white px-4 py-3 font-bold text-base"
+                  >
+                    {{ answer.text }}
                   </div>
                 </div>
               </div>
@@ -676,7 +729,7 @@ onUnmounted(cleanup);
           <div class="grid gap-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:grid-cols-3' : ''">
             <!-- Answer Distribution -->
             <div class="space-y-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:col-span-2' : ''">
-              <PixelCard v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer' ].includes(currentQuestion.type) && !isSliderQuestion" class="space-y-3 !p-4">
+              <PixelCard v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer', 'sort' ].includes(currentQuestion.type) && !isSliderQuestion" class="space-y-3 !p-4">
                 <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
 
                 <div class="space-y-2">
@@ -781,6 +834,78 @@ onUnmounted(cleanup);
                         {{ formatAcceptedSliderRange() }}
                       </div>
                     </PixelCard>
+                  </div>
+                </div>
+              </PixelCard>
+
+              <PixelCard v-else-if="isSortQuestion" class="space-y-4 !p-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
+                  <PixelBadge variant="secondary" class="text-xs">
+                    {{ answersReceived }} / {{ playerCount }} {{ t('gameControl.answered') }}
+                  </PixelBadge>
+                </div>
+
+                <div class="grid gap-4 lg:grid-cols-2">
+                  <div class="space-y-3">
+                    <h3 class="text-sm font-bold uppercase text-muted-foreground">
+                      {{ t('gameControl.correctOrder') }}
+                    </h3>
+                    <div class="space-y-2">
+                      <div
+                        v-for="(answerId, index) in correctSortOrderIds"
+                        :key="answerId"
+                        class="flex items-center gap-3 border-[3px] border-success bg-success/10 px-3 py-3"
+                      >
+                        <div class="w-8 h-8 bg-success text-white border-2 border-black flex items-center justify-center font-bold pixel-font">
+                          {{ index + 1 }}
+                        </div>
+                        <div class="font-bold text-base">
+                          {{ answerTextById.get(answerId) || '—' }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="space-y-3">
+                    <h3 class="text-sm font-bold uppercase text-muted-foreground">
+                      {{ t('gameControl.commonOrders') }}
+                    </h3>
+                    <div v-if="topSortAnswerEntries.length > 0" class="space-y-2">
+                      <div
+                        v-for="entry in topSortAnswerEntries"
+                        :key="entry.rawOrder"
+                        class="border-[3px] px-3 py-3 space-y-2"
+                        :class="entry.isCorrect ? 'border-success bg-success/10' : 'border-black bg-white'"
+                      >
+                        <div class="flex items-center justify-between gap-3">
+                          <PixelBadge :variant="entry.isCorrect ? 'success' : 'secondary'" class="text-[11px]">
+                            {{ entry.isCorrect ? t('gameControl.exactMatches') : t('gameControl.commonOrder') }}
+                          </PixelBadge>
+                          <div class="text-right">
+                            <span class="text-lg font-bold">{{ entry.count }}</span>
+                            <span class="text-xs text-muted-foreground ml-1">
+                              ({{ Math.round((entry.count / Math.max(totalDistributionAnswers, 1)) * 100) }}%)
+                            </span>
+                          </div>
+                        </div>
+                        <div class="space-y-1">
+                          <div
+                            v-for="(answerId, index) in entry.orderIds"
+                            :key="`${entry.rawOrder}-${answerId}-${index}`"
+                            class="flex items-center gap-2 text-sm"
+                          >
+                            <span class="w-6 h-6 border-2 border-black bg-muted flex items-center justify-center font-bold pixel-font text-xs">
+                              {{ index + 1 }}
+                            </span>
+                            <span class="font-medium">{{ answerTextById.get(answerId) || '—' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div v-else class="border-[3px] border-dashed border-border bg-muted/30 px-4 py-6 text-center text-muted-foreground">
+                      {{ t('gameControl.noSortSubmissions') }}
+                    </div>
                   </div>
                 </div>
               </PixelCard>

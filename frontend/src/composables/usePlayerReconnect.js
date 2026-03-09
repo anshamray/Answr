@@ -5,12 +5,32 @@ const SESSION_RECOVERY_ERROR_CODES = new Set([
   'SESSION_EXPIRED',
   'SESSION_NOT_FOUND'
 ]);
+const RECONNECT_RETRY_DELAY_MS = 1500;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function usePlayerReconnect({ socket, game, router }) {
   let shouldReconnect = !socket.connected;
   let reconnectPending = false;
+  let reconnectAttempts = 0;
+  let reconnectTimerId = null;
+
+  function clearReconnectTimer() {
+    if (reconnectTimerId) {
+      window.clearTimeout(reconnectTimerId);
+      reconnectTimerId = null;
+    }
+  }
+
+  function scheduleReconnectRetry() {
+    clearReconnectTimer();
+    reconnectTimerId = window.setTimeout(() => {
+      reconnectPending = false;
+      requestReconnect();
+    }, RECONNECT_RETRY_DELAY_MS);
+  }
 
   function resetToJoinPage() {
+    clearReconnectTimer();
     disconnectSocket();
     game.reset();
     router.replace('/play');
@@ -24,11 +44,13 @@ export function usePlayerReconnect({ socket, game, router }) {
       return;
     }
 
+    reconnectAttempts += 1;
     reconnectPending = true;
     socket.emit('player:reconnect', {
       sessionId: game.sessionId,
       oldPlayerId: game.playerId
     });
+    scheduleReconnectRetry();
   }
 
   function handleConnect() {
@@ -43,17 +65,25 @@ export function usePlayerReconnect({ socket, game, router }) {
   function handleJoined(data) {
     if (!reconnectPending) return;
 
+    clearReconnectTimer();
     reconnectPending = false;
     shouldReconnect = false;
+    reconnectAttempts = 0;
     game.setSession(data);
   }
 
   function handlePlayerError(data) {
     if (!reconnectPending) return;
 
+    clearReconnectTimer();
     reconnectPending = false;
 
     if (SESSION_RECOVERY_ERROR_CODES.has(data?.code)) {
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        scheduleReconnectRetry();
+        return;
+      }
+
       resetToJoinPage();
     }
   }
@@ -98,6 +128,7 @@ export function usePlayerReconnect({ socket, game, router }) {
     socket.off('disconnect', handleDisconnect);
     socket.off('player:joined', handleJoined);
     socket.off('player:error', handlePlayerError);
+    clearReconnectTimer();
     window.removeEventListener('focus', handlePageShow);
     window.removeEventListener('pageshow', handlePageShow);
     document.removeEventListener('visibilitychange', handleVisibilityChange);

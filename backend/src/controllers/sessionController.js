@@ -46,15 +46,12 @@ export async function createSession(req, res) {
 
     await session.save();
 
-    // Increment play count on source quiz if this is a cloned library quiz
-    if (quiz.clonedFrom) {
-      await Quiz.findByIdAndUpdate(quiz.clonedFrom, { $inc: { playCount: 1 } });
-    }
+    // Track plays for every quiz session, including private quizzes shown on the dashboard.
+    await Quiz.findByIdAndUpdate(quiz._id, { $inc: { playCount: 1 } });
 
-    // Increment play count on the quiz itself if it's published
-    if (quiz.isPublished) {
-      quiz.playCount = (quiz.playCount || 0) + 1;
-      await quiz.save();
+    // If this quiz was cloned from a library quiz, also credit the original source quiz.
+    if (quiz.clonedFrom && quiz.clonedFrom.toString() !== quiz._id.toString()) {
+      await Quiz.findByIdAndUpdate(quiz.clonedFrom, { $inc: { playCount: 1 } });
     }
 
     sendCreated(res, 'Session created', {
