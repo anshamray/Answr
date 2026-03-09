@@ -120,6 +120,10 @@ const sliderAverageValue = computed(() => {
   return Math.round((weightedTotal / totalDistributionAnswers.value) * 10) / 10;
 });
 
+const hasSliderAcceptedRangeWidth = computed(() =>
+  Math.abs(sliderAcceptedRange.value.max - sliderAcceptedRange.value.min) > 0.001
+);
+
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 
 // Use shared answer colors from constants
@@ -184,6 +188,14 @@ function formatSliderValue(value) {
 
 function formatSliderRangeValue(value) {
   return `${Math.round(value * 10) / 10}${sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : ''}`;
+}
+
+function formatAcceptedSliderRange() {
+  if (!hasSliderAcceptedRangeWidth.value) {
+    return formatSliderRangeValue(sliderAcceptedRange.value.min);
+  }
+
+  return `${formatSliderRangeValue(sliderAcceptedRange.value.min)} - ${formatSliderRangeValue(sliderAcceptedRange.value.max)}`;
 }
 
 function getCorrectAnswerLabel() {
@@ -712,6 +724,7 @@ onUnmounted(cleanup);
                 <div class="space-y-4">
                   <div class="relative px-2 pt-10 pb-8">
                     <div
+                      v-if="hasSliderAcceptedRangeWidth"
                       class="absolute top-1/2 h-4 -translate-y-1/2 border-2 border-success bg-success/20"
                       :style="{
                         left: `${getSliderPosition(sliderAcceptedRange.min)}%`,
@@ -735,7 +748,7 @@ onUnmounted(cleanup);
                           class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap"
                           :class="isSliderValueCorrect(entry.value) ? 'bg-success text-white' : 'bg-white text-foreground'"
                         >
-                          {{ entry.count }}x {{ formatSliderValue(entry.value) }}
+                          {{ entry.count }} x {{ formatSliderValue(entry.value) }}
                         </div>
                         <div
                           class="h-6 w-6 border-2 border-black rotate-45"
@@ -765,7 +778,7 @@ onUnmounted(cleanup);
                     <PixelCard class="text-center !p-3">
                       <div class="text-sm text-muted-foreground">{{ t('gameControl.acceptedRange') }}</div>
                       <div class="text-lg font-bold text-accent">
-                        {{ formatSliderRangeValue(sliderAcceptedRange.min) }} - {{ formatSliderRangeValue(sliderAcceptedRange.max) }}
+                        {{ formatAcceptedSliderRange() }}
                       </div>
                     </PixelCard>
                   </div>

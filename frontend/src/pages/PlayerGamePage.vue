@@ -583,13 +583,9 @@ onUnmounted(cleanup);
                   </div>
                 </div>
 
-                <div class="relative px-1 pt-3 pb-4">
+                <div class="relative px-1 pt-5 pb-4">
                   <div class="absolute inset-x-1 top-1/2 -translate-y-1/2">
                     <div class="h-4 border-2 border-black bg-muted relative overflow-hidden">
-                      <div
-                        class="absolute inset-y-0 left-0 bg-primary/25 border-r-2 border-primary"
-                        :style="{ width: `${sliderPosition}%` }"
-                      />
                       <div class="absolute inset-0 opacity-25 slider-pixel-grid"></div>
                     </div>
                   </div>
@@ -605,7 +601,11 @@ onUnmounted(cleanup);
                       class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-100"
                       :style="{ left: `${sliderPosition}%` }"
                     >
-                      <div class="w-7 h-7 bg-primary border-[3px] border-black rotate-45 pixel-shadow"></div>
+                      <div class="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 text-xs font-bold border-2 border-black whitespace-nowrap bg-success text-white">
+                        {{ sliderValue }}
+                        <span v-if="sliderConfig.unit"> {{ sliderConfig.unit }}</span>
+                      </div>
+                      <div class="w-7 h-7 bg-success border-[3px] border-black rotate-45 pixel-shadow"></div>
                     </div>
 
                     <input
@@ -619,10 +619,10 @@ onUnmounted(cleanup);
                   </div>
                 </div>
 
-                <div class="flex justify-between mt-1 text-xs sm:text-sm font-bold">
+                <div class="flex justify-between mt-2 text-xs sm:text-sm font-bold">
                   <span class="bg-black text-white px-2 py-1">{{ sliderConfig.min || 0 }}</span>
                   <span class="text-muted-foreground uppercase text-[10px] sm:text-xs flex items-center">
-                    {{ sliderConfig.unit || t('gameControl.sliderRange') }}
+                    {{ t('gameControl.sliderRange') }}
                   </span>
                   <span class="bg-black text-white px-2 py-1">{{ sliderConfig.max || 100 }}</span>
                 </div>
