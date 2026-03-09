@@ -765,6 +765,16 @@ function endGame() {
   }, 10000);
 }
 
+function handleEndButtonClick() {
+  // On the last question (reveal phase), go straight to results without showing the confirmation dialog
+  if (isLastQuestion.value && showCorrect.value) {
+    endGame();
+    return;
+  }
+
+  showEndConfirm.value = true;
+}
+
 onMounted(() => {
   loadGameSettings();
   fetchSession();
@@ -1202,7 +1212,7 @@ onUnmounted(cleanup);
                     <img
                       :src="pinQuestionMediaUrl"
                       :alt="currentQuestion.text"
-                      class="block max-h-[min(34rem,calc(100vh-26rem))] max-w-full object-contain"
+                      class="block max-h-[min(30rem,calc(100vh-24rem))] max-w-full object-contain"
                     />
 
                     <div
@@ -1394,9 +1404,9 @@ onUnmounted(cleanup);
         </PixelButton>
         <PixelButton
           variant="outline"
-          @click="showEndConfirm = true"
+          @click="handleEndButtonClick"
         >
-          {{ isLastQuestion ? t('gameControl.finishGame') : t('gameControl.endGame') }}
+          {{ isLastQuestion ? t('gameControl.showResults') : t('gameControl.endGame') }}
         </PixelButton>
       </footer>
     </template>

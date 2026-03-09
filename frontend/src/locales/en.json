@@ -379,6 +379,7 @@
     "accuracy": "Accuracy",
     "top5": "Top 5",
     "finishGame": "Finish Game",
+    "showResults": "Show Results",
     "sliderRange": "Range",
     "averageAnswer": "Average answer",
     "acceptedRange": "Accepted range",
