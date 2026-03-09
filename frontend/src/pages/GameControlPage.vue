@@ -313,14 +313,20 @@ function sendNextQuestion() {
 function endGame() {
   const socket = getSocket();
   if (socket) {
+    // Wait for server to confirm game ended (after persistence)
+    socket.once('game:end', () => {
+      router.push(`/session/${sessionId}/results`);
+    });
     socket.emit('moderator:end');
   }
   status.value = 'ended';
-  cleanup();
 
+  // Fallback redirect if game:end never arrives (e.g. socket disconnect)
   setTimeout(() => {
-    router.push(`/session/${sessionId}/results`);
-  }, TIMING.REDIRECT_DELAY);
+    if (status.value === 'ended') {
+      router.push(`/session/${sessionId}/results`);
+    }
+  }, 10000);
 }
 
 onMounted(() => {

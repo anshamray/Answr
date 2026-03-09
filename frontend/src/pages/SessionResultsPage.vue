@@ -17,8 +17,14 @@ const sessionId = route.params.id;
 const loading = ref(true);
 const error = ref('');
 const session = ref(null);
+const rankings = ref([]);
 
 const leaderboard = computed(() => {
+  // Prefer rankings from /results endpoint
+  if (rankings.value.length > 0) {
+    return rankings.value.map((p, i) => ({ ...p, position: p.rank || i + 1 }));
+  }
+  // Fallback to session.participants
   if (!session.value?.participants) return [];
   return [...session.value.participants]
     .sort((a, b) => (b.score || 0) - (a.score || 0))
@@ -50,6 +56,27 @@ async function fetchResults() {
       headers['Authorization'] = `Bearer ${auth.token}`;
     }
 
+    // Try the dedicated results endpoint first
+    if (auth.isAuthenticated) {
+      try {
+        const resultsRes = await fetch(apiUrl(`/api/sessions/${sessionId}/results`), { headers });
+        if (resultsRes.ok) {
+          const resultsJson = await resultsRes.json();
+          const data = resultsJson.data;
+          rankings.value = data?.rankings || [];
+          session.value = {
+            quizId: { title: data?.quizTitle },
+            status: data?.status,
+            finishedAt: data?.finishedAt
+          };
+          return;
+        }
+      } catch {
+        // Fall through to regular session endpoint
+      }
+    }
+
+    // Fallback: use the general session endpoint
     let url = apiUrl(`/api/sessions/${sessionId}`);
     if (guestToken) url += `?guestToken=${encodeURIComponent(guestToken)}`;
 
@@ -142,6 +169,36 @@ onMounted(fetchResults);
           </div>
         </div>
       </div>
+
+      <!-- Leaderboard for fewer than 3 players -->
+      <PixelCard v-if="leaderboard.length > 0 && leaderboard.length < 3" class="space-y-4">
+        <h2 class="text-2xl font-bold flex items-center gap-2">
+          <svg class="text-warning" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+            <path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+          </svg>
+          Final Rankings
+        </h2>
+
+        <div class="space-y-2">
+          <div
+            v-for="player in leaderboard"
+            :key="player.playerId || player.name"
+            class="flex items-center gap-3 p-3 bg-muted border-2 border-border"
+          >
+            <div class="w-10 h-10 bg-white border-2 border-black flex items-center justify-center font-bold">
+              {{ player.position }}
+            </div>
+            <span class="text-2xl">{{ player.avatar || getAvatar(player.position - 1) }}</span>
+            <div class="flex-1">
+              <div class="font-bold">{{ player.name || player.nickname || 'Player' }}</div>
+              <div class="text-sm text-muted-foreground">{{ (player.score || 0).toLocaleString() }} pts</div>
+            </div>
+          </div>
+        </div>
+      </PixelCard>
 
       <!-- Full Leaderboard + Stats -->
       <div class="grid lg:grid-cols-2 gap-6">
