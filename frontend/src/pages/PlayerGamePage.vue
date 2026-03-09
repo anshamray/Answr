@@ -7,7 +7,7 @@ import { connectSocket, getSocket } from '../lib/socket.js';
 import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
 import { apiUrl } from '../lib/api.js';
-import { useSliderQuestion } from '../composables/useSliderQuestion.js';
+import { useSliderQuestion, DEFAULT_SLIDER_CONFIG } from '../composables/useSliderQuestion.js';
 
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';

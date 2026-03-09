@@ -1,9 +1,10 @@
-/**
- * Client-side question validation that mirrors backend Question model pre-validate hook.
- * Returns an array of i18n keys (with params) for each validation error found.
- */
+import { getQuestionValidationErrors } from '../../shared/questionTypeSchema.js';
 
-const TEXT_OPTIONAL_TYPES = ['brainstorm', 'scale', 'nps-scale'];
+/**
+ * Client-side question validation that mirrors the shared
+ * `shared/questionTypeSchema.js` rules (also used by the backend model).
+ * Returns translated messages using the provided vue-i18n `t` function.
+ */
 
 /**
  * Validate a single question object.
@@ -13,102 +14,20 @@ const TEXT_OPTIONAL_TYPES = ['brainstorm', 'scale', 'nps-scale'];
  */
 export function validateQuestion(question, t) {
   const errors = [];
-  const type = question.type;
-  const answers = question.answers || [];
-  const answerCount = answers.length;
 
-  // 1. text required for most types
-  if (!TEXT_OPTIONAL_TYPES.includes(type)) {
-    if (!question.text || question.text.trim().length === 0) {
-      errors.push(t('questionValidation.textRequired', { type }));
-    }
-  }
+  const structuredErrors = getQuestionValidationErrors(question);
 
-  // 2. Per-type validation
-  switch (type) {
-    case 'multiple-choice': {
-      if (answerCount < 2 || answerCount > 6) {
-        errors.push(t('questionValidation.mcAnswerCount'));
-      }
-      if (!answers.some(a => a.isCorrect === true)) {
-        errors.push(t('questionValidation.mcNeedsCorrect'));
-      }
-      break;
+  for (const error of structuredErrors) {
+    const { code, params } = error;
+    if (code === 'textRequired') {
+      errors.push(t(`questionValidation.${code}`, { type: question.type, ...(params || {}) }));
+      continue;
     }
-    case 'true-false': {
-      if (answerCount !== 2) {
-        errors.push(t('questionValidation.tfAnswerCount'));
-      }
-      break;
-    }
-    case 'type-answer': {
-      if (answerCount < 1 || answerCount > 10) {
-        errors.push(t('questionValidation.taAnswerCount'));
-      }
-      if (answers.some(a => a.text && a.text.length > 20)) {
-        errors.push(t('questionValidation.taAnswerLength'));
-      }
-      break;
-    }
-    case 'sort': {
-      if (answerCount < 3 || answerCount > 4) {
-        errors.push(t('questionValidation.sortAnswerCount'));
-      }
-      break;
-    }
-    case 'quiz-audio': {
-      if (!question.audioLanguage) {
-        errors.push(t('questionValidation.audioLanguageRequired'));
-      }
-      break;
-    }
-    case 'slider': {
-      if (!question.sliderConfig || question.sliderConfig.min == null || question.sliderConfig.max == null) {
-        errors.push(t('questionValidation.sliderConfigRequired'));
-      } else if (question.sliderConfig.min >= question.sliderConfig.max) {
-        errors.push(t('questionValidation.sliderMinMax'));
-      }
-      break;
-    }
-    case 'pin-answer': {
-      if (!question.mediaUrl) {
-        errors.push(t('questionValidation.pinImageRequired'));
-      }
-      if (!question.pinConfig || question.pinConfig.x == null || question.pinConfig.y == null) {
-        errors.push(t('questionValidation.pinConfigRequired'));
-      }
-      break;
-    }
-    case 'poll': {
-      if (answerCount < 2 || answerCount > 6) {
-        errors.push(t('questionValidation.pollAnswerCount'));
-      }
-      break;
-    }
-    case 'brainstorm': {
-      if (!question.brainstormConfig || question.brainstormConfig.maxIdeas == null) {
-        errors.push(t('questionValidation.brainstormConfigRequired'));
-      }
-      break;
-    }
-    case 'drop-pin': {
-      if (!question.mediaUrl) {
-        errors.push(t('questionValidation.dropPinImageRequired'));
-      }
-      break;
-    }
-    case 'scale': {
-      if (!question.scaleConfig || !question.scaleConfig.scaleType) {
-        errors.push(t('questionValidation.scaleConfigRequired'));
-      }
-      break;
-    }
-    case 'nps-scale': {
-      if (!question.scaleConfig || !question.scaleConfig.scaleType) {
-        errors.push(t('questionValidation.npsScaleConfigRequired'));
-      }
-      break;
-    }
+
+    // Only use translation keys that exist in the frontend i18n bundle.
+    // Unknown codes fall back to the raw code for easier debugging.
+    const key = `questionValidation.${code}`;
+    errors.push(t(key, params || {}));
   }
 
   return errors;

@@ -19,7 +19,10 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads/media');
+const DEFAULT_UPLOAD_DIR = path.join(__dirname, '../../uploads/media');
+const UPLOAD_DIR = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : DEFAULT_UPLOAD_DIR;
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1080;
 const JPEG_QUALITY = 80;

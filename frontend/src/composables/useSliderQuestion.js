@@ -1,6 +1,6 @@
 import { computed } from 'vue';
 
-const DEFAULT_SLIDER_CONFIG = {
+export const DEFAULT_SLIDER_CONFIG = {
   min: 0,
   max: 100,
   correctValue: 50,

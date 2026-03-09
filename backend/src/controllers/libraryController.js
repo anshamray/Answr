@@ -4,6 +4,7 @@ import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
 import User from '../models/User.js';
+import { mapQuizToLibrarySummary } from '../utils/quizMapper.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 import {
   sendSuccess,
@@ -104,19 +105,9 @@ export async function browseLibrary(req, res) {
     sendSuccess(res, {
       message: 'Library retrieved',
       data: {
-        quizzes: quizzes.map(q => ({
-          id: q._id,
-          title: q.title,
-          description: q.description,
-          category: q.category,
-          tags: q.tags,
-          isOfficial: q.isOfficial,
-          playCount: q.playCount,
-          publishedAt: q.publishedAt,
-          author: q.moderatorId?.name || 'Unknown',
-          questionCount: q.questions?.length || 0,
-          isFavorited: userFavorites.has(q._id.toString())
-        })),
+        quizzes: quizzes.map(q =>
+          mapQuizToLibrarySummary(q, { isFavorited: userFavorites.has(q._id.toString()) })
+        ),
         pagination: {
           page: pageNum,
           limit: limitNum,
@@ -160,21 +151,13 @@ export async function getLibraryQuiz(req, res) {
       }
     }
 
+    const summary = mapQuizToLibrarySummary(quiz, { isFavorited });
+
     sendSuccess(res, {
       message: 'Library quiz retrieved',
       data: {
         quiz: {
-          id: quiz._id,
-          title: quiz.title,
-          description: quiz.description,
-          category: quiz.category,
-          tags: quiz.tags,
-          isOfficial: quiz.isOfficial,
-          playCount: quiz.playCount,
-          publishedAt: quiz.publishedAt,
-          author: quiz.moderatorId?.name || 'Unknown',
-          questionCount: quiz.questions.length,
-          isFavorited,
+          ...summary,
           questions: quiz.questions.map(q => ({
             id: q._id,
             type: q.type,

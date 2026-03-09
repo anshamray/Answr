@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
+import { getLeaderboardAvatar, getRankLabel } from '../lib/leaderboardHelpers.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -256,14 +257,16 @@ onMounted(fetchAnalytics);
                     class="border-b border-border hover:bg-muted/30"
                   >
                     <td class="p-3">
-                      <span class="w-8 h-8 inline-flex items-center justify-center font-bold"
-                            :class="index < 3 ? 'bg-warning text-warning-foreground' : 'bg-muted'">
-                        {{ index + 1 }}
+                      <span
+                        class="w-8 h-8 inline-flex items-center justify-center font-bold"
+                        :class="index < 3 ? 'bg-warning text-warning-foreground' : 'bg-muted'"
+                      >
+                        {{ getRankLabel(index + 1) }}
                       </span>
                     </td>
                     <td class="p-3">
                       <div class="flex items-center gap-2">
-                        <span class="text-xl">{{ player.avatar || '' }}</span>
+                        <span class="text-xl">{{ getLeaderboardAvatar(player.avatar, index + 1) }}</span>
                         <span class="font-medium">{{ player.name }}</span>
                       </div>
                     </td>
