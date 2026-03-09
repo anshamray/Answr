@@ -44,9 +44,12 @@ export function broadcastQuestion(io, sessionPin, questionData) {
     questionNumber: questionData.questionNumber,
     totalQuestions: questionData.totalQuestions,
     text: questionData.text,
+    type: questionData.type || 'multiple-choice',
     options: questionData.options,
     timeLimit: questionData.timeLimit,
-    allowMultipleAnswers: questionData.allowMultipleAnswers || false
+    allowMultipleAnswers: questionData.allowMultipleAnswers || false,
+    sliderConfig: questionData.sliderConfig || null,
+    mediaUrl: questionData.mediaUrl || null
   });
 }
 

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { getSocket } from '../lib/socket.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
+import { apiUrl } from '../lib/api.js';
 
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -38,8 +39,47 @@ let previousScore = 0;
 const question = computed(() => game.currentQuestion);
 const options = computed(() => question.value?.options || []);
 const isMultiAnswer = computed(() => question.value?.allowMultipleAnswers || false);
+const isSlider = computed(() => question.value?.type === 'slider');
+const isSort = computed(() => question.value?.type === 'sort');
+const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
+const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
+const sliderConfig = computed(() => question.value?.sliderConfig || { min: 0, max: 100 });
+
+// Slider state
+const sliderValue = ref(50);
+
+// Sort state
+const sortOrder = ref([]); // IDs in player-chosen order
+const availableItems = computed(() => {
+  const ordered = new Set(sortOrder.value);
+  return options.value.filter(o => !ordered.has(o.id));
+});
+const orderedItems = computed(() =>
+  sortOrder.value.map(id => options.value.find(o => o.id === id)).filter(Boolean)
+);
+
+// Pin-answer state
+const pinX = ref(null);
+const pinY = ref(null);
+const pinMediaUrl = computed(() => {
+  const url = question.value?.mediaUrl;
+  if (!url) return null;
+  const sessionPin = game.sessionId;
+  const full = apiUrl(url);
+  return sessionPin ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${sessionPin}` : full;
+});
+
+// Type-answer state
+const textAnswer = ref('');
 
 const wasCorrect = computed(() => {
+  // For non-MC types, use points earned from leaderboard
+  const qType = question.value?.type;
+  if (['slider', 'pin-answer', 'type-answer', 'sort'].includes(qType)) {
+    if (!submitted.value) return null;
+    if (pointsEarned.value == null) return null;
+    return pointsEarned.value > 0;
+  }
   if (correctAnswerIds.value.length === 0) return null;
   if (isMultiAnswer.value) {
     if (selectedAnswers.value.length === 0) return null;
@@ -142,6 +182,102 @@ function submitMultiAnswer() {
   });
 }
 
+function submitSliderAnswer() {
+  if (submitted.value || timedOut.value) return;
+  submitted.value = true;
+
+  const socket = getSocket();
+  if (!socket) return;
+
+  socket.emit('player:answer', {
+    questionId: question.value?.questionId,
+    answerId: String(sliderValue.value),
+    timeTaken: question.value?.timeLimit
+      ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
+      : 0
+  });
+}
+
+function addToSortOrder(optionId) {
+  if (submitted.value || timedOut.value) return;
+  if (!sortOrder.value.includes(optionId)) {
+    sortOrder.value.push(optionId);
+  }
+  // Auto-submit when all items are ordered
+  if (sortOrder.value.length === options.value.length) {
+    submitSortAnswer();
+  }
+}
+
+function removeFromSortOrder(optionId) {
+  if (submitted.value || timedOut.value) return;
+  sortOrder.value = sortOrder.value.filter(id => id !== optionId);
+}
+
+function submitSortAnswer() {
+  if (submitted.value || timedOut.value || sortOrder.value.length === 0) return;
+  submitted.value = true;
+
+  const socket = getSocket();
+  if (!socket) return;
+
+  socket.emit('player:answer', {
+    questionId: question.value?.questionId,
+    answerId: sortOrder.value,
+    timeTaken: question.value?.timeLimit
+      ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
+      : 0
+  });
+}
+
+function handlePinClick(event) {
+  if (submitted.value || timedOut.value) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  pinX.value = ((event.clientX - rect.left) / rect.width) * 100;
+  pinY.value = ((event.clientY - rect.top) / rect.height) * 100;
+}
+
+function handlePinTouch(event) {
+  if (submitted.value || timedOut.value) return;
+  event.preventDefault();
+  const touch = event.touches[0];
+  const rect = event.currentTarget.getBoundingClientRect();
+  pinX.value = ((touch.clientX - rect.left) / rect.width) * 100;
+  pinY.value = ((touch.clientY - rect.top) / rect.height) * 100;
+}
+
+function submitPinAnswer() {
+  if (submitted.value || timedOut.value || pinX.value == null) return;
+  submitted.value = true;
+
+  const socket = getSocket();
+  if (!socket) return;
+
+  socket.emit('player:answer', {
+    questionId: question.value?.questionId,
+    answerId: JSON.stringify({ x: Math.round(pinX.value * 10) / 10, y: Math.round(pinY.value * 10) / 10 }),
+    timeTaken: question.value?.timeLimit
+      ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
+      : 0
+  });
+}
+
+function submitTypeAnswer() {
+  if (submitted.value || timedOut.value || !textAnswer.value.trim()) return;
+  submitted.value = true;
+
+  const socket = getSocket();
+  if (!socket) return;
+
+  socket.emit('player:answer', {
+    questionId: question.value?.questionId,
+    answerId: textAnswer.value.trim(),
+    timeTaken: question.value?.timeLimit
+      ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
+      : 0
+  });
+}
+
 function startIntroCountdown() {
   stopIntroCountdown();
   introCountdown.value = 3;
@@ -176,6 +312,22 @@ function startTimer() {
       // Auto-submit multi-answer selections on timeout
       if (isMultiAnswer.value && !submitted.value && selectedAnswers.value.length > 0) {
         submitMultiAnswer();
+      }
+      // Auto-submit slider on timeout
+      if (isSlider.value && !submitted.value) {
+        submitSliderAnswer();
+      }
+      // Auto-submit sort on timeout
+      if (isSort.value && !submitted.value && sortOrder.value.length > 0) {
+        submitSortAnswer();
+      }
+      // Auto-submit pin on timeout
+      if (isPinAnswer.value && !submitted.value && pinX.value != null) {
+        submitPinAnswer();
+      }
+      // Auto-submit type-answer on timeout
+      if (isTypeAnswer.value && !submitted.value && textAnswer.value.trim()) {
+        submitTypeAnswer();
       }
     }
   }, 1000);
@@ -233,6 +385,15 @@ function setup() {
     correctAnswerIds.value = [];
     leaderboard.value = [];
     pointsEarned.value = null;
+    // Reset slider to midpoint of range
+    if (data?.sliderConfig) {
+      sliderValue.value = Math.round(((data.sliderConfig.min || 0) + (data.sliderConfig.max || 100)) / 2);
+    }
+    // Reset sort, pin, type-answer state
+    sortOrder.value = [];
+    pinX.value = null;
+    pinY.value = null;
+    textAnswer.value = '';
     // Don't start timer here - wait for game:questionStart after intro
   });
 
@@ -289,7 +450,7 @@ onUnmounted(cleanup);
   <div class="min-h-screen flex flex-col bg-background">
     <!-- Header (hidden during shape buttons mode in answering phase) -->
     <header
-      v-if="phase === 'intro' || game.playerSettings.showAnswerText || questionEnded"
+      v-if="phase === 'intro' || game.playerSettings.showAnswerText || questionEnded || isSlider || isSort || isPinAnswer || isTypeAnswer"
       class="px-4 py-3 border-b-[3px] border-black bg-white flex items-center justify-between"
     >
       <PixelBadge variant="primary">
@@ -334,8 +495,229 @@ onUnmounted(cleanup);
 
     <!-- ── Active question (answering phase) ────────────────────── -->
     <template v-else-if="!questionEnded && phase === 'answering'">
+
+      <!-- Slider mode -->
+      <template v-if="isSlider">
+        <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <PixelCard class="mb-6">
+            <h2 class="text-xl sm:text-2xl font-bold leading-tight">
+              {{ question?.text || t('playerGame.waitingForQuestion') }}
+            </h2>
+          </PixelCard>
+
+          <div v-if="timedOut && !submitted" class="mb-6 text-center">
+            <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
+          </div>
+          <div v-else-if="submitted" class="mb-6 text-center">
+            <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}: {{ sliderValue }}{{ sliderConfig.unit ? ' ' + sliderConfig.unit : '' }}</p>
+          </div>
+
+          <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center justify-center gap-8">
+            <div class="text-7xl sm:text-8xl font-bold pixel-font text-primary">
+              {{ sliderValue }}<span v-if="sliderConfig.unit" class="text-3xl text-muted-foreground ml-2">{{ sliderConfig.unit }}</span>
+            </div>
+
+            <div class="w-full max-w-md px-4">
+              <input
+                v-model.number="sliderValue"
+                type="range"
+                :min="sliderConfig.min || 0"
+                :max="sliderConfig.max || 100"
+                step="1"
+                class="w-full h-3 bg-muted rounded-none appearance-none cursor-pointer accent-primary"
+              />
+              <div class="flex justify-between text-sm text-muted-foreground mt-2 font-bold">
+                <span>{{ sliderConfig.min || 0 }}</span>
+                <span>{{ sliderConfig.max || 100 }}</span>
+              </div>
+            </div>
+
+            <button
+              class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none"
+              @click="submitSliderAnswer"
+            >
+              {{ t('playerGame.submitAnswer') }}
+            </button>
+          </div>
+
+          <div class="mt-6 text-center">
+            <div class="text-sm text-muted-foreground">
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Sort mode -->
+      <template v-else-if="isSort">
+        <div class="flex-1 flex flex-col px-4 py-4 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <PixelCard class="mb-4">
+            <h2 class="text-lg sm:text-xl font-bold leading-tight">
+              {{ question?.text || t('playerGame.waitingForQuestion') }}
+            </h2>
+          </PixelCard>
+
+          <div v-if="timedOut && !submitted" class="mb-4 text-center">
+            <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
+          </div>
+          <div v-else-if="submitted" class="mb-4 text-center">
+            <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}</p>
+          </div>
+
+          <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col gap-4 overflow-auto">
+            <!-- Ordered items -->
+            <div v-if="orderedItems.length > 0">
+              <p class="text-xs font-bold text-muted-foreground uppercase mb-2">{{ t('playerGame.yourOrder') }}</p>
+              <div class="space-y-2">
+                <button
+                  v-for="(item, i) in orderedItems"
+                  :key="'ordered-' + item.id"
+                  class="w-full p-3 border-[3px] border-success bg-success/10 text-left font-bold text-base flex items-center gap-3 active:scale-95 transition-transform"
+                  @click="removeFromSortOrder(item.id)"
+                >
+                  <span class="w-8 h-8 bg-success text-white border-2 border-black flex items-center justify-center font-bold pixel-font flex-shrink-0">
+                    {{ i + 1 }}
+                  </span>
+                  <span class="flex-1">{{ item.text }}</span>
+                  <span class="text-muted-foreground text-sm">✕</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Available items -->
+            <div v-if="availableItems.length > 0">
+              <p class="text-xs font-bold text-muted-foreground uppercase mb-2">{{ t('playerGame.tapToOrder') }}</p>
+              <div class="space-y-2">
+                <button
+                  v-for="item in availableItems"
+                  :key="'available-' + item.id"
+                  class="w-full p-3 border-[3px] border-black bg-white pixel-shadow text-left font-bold text-base flex items-center gap-3 active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+                  @click="addToSortOrder(item.id)"
+                >
+                  <span class="w-8 h-8 bg-muted border-2 border-black flex items-center justify-center font-bold pixel-font flex-shrink-0">
+                    ?
+                  </span>
+                  <span class="flex-1">{{ item.text }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 text-center">
+            <div class="text-sm text-muted-foreground">
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Pin-answer mode -->
+      <template v-else-if="isPinAnswer">
+        <div class="flex-1 flex flex-col px-4 py-4 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <PixelCard class="mb-4">
+            <h2 class="text-lg sm:text-xl font-bold leading-tight">
+              {{ question?.text || t('playerGame.waitingForQuestion') }}
+            </h2>
+          </PixelCard>
+
+          <div v-if="timedOut && !submitted" class="mb-4 text-center">
+            <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
+          </div>
+          <div v-else-if="submitted" class="mb-4 text-center">
+            <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}</p>
+          </div>
+
+          <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center gap-4">
+            <p class="text-sm text-muted-foreground font-bold">{{ t('playerGame.tapOnImage') }}</p>
+            <div
+              class="relative w-full max-w-md border-[3px] border-black cursor-crosshair select-none"
+              @click="handlePinClick"
+              @touchstart="handlePinTouch"
+            >
+              <img
+                v-if="pinMediaUrl"
+                :src="pinMediaUrl"
+                class="w-full h-auto block"
+                alt="Pin target"
+                draggable="false"
+              />
+              <div v-else class="w-full h-48 bg-muted flex items-center justify-center text-muted-foreground">
+                {{ t('playerGame.imageNotAvailable') }}
+              </div>
+              <!-- Pin marker -->
+              <div
+                v-if="pinX != null && pinY != null"
+                class="absolute w-6 h-6 -ml-3 -mt-3 pointer-events-none"
+                :style="{ left: pinX + '%', top: pinY + '%' }"
+              >
+                <div class="w-6 h-6 bg-destructive border-2 border-white rounded-full shadow-lg animate-pulse"></div>
+              </div>
+            </div>
+
+            <button
+              v-if="pinX != null"
+              class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none"
+              @click="submitPinAnswer"
+            >
+              {{ t('playerGame.submitAnswer') }}
+            </button>
+          </div>
+
+          <div class="mt-4 text-center">
+            <div class="text-sm text-muted-foreground">
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Type-answer mode -->
+      <template v-else-if="isTypeAnswer">
+        <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <PixelCard class="mb-6">
+            <h2 class="text-xl sm:text-2xl font-bold leading-tight">
+              {{ question?.text || t('playerGame.waitingForQuestion') }}
+            </h2>
+          </PixelCard>
+
+          <div v-if="timedOut && !submitted" class="mb-6 text-center">
+            <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
+          </div>
+          <div v-else-if="submitted" class="mb-6 text-center">
+            <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}: {{ textAnswer }}</p>
+          </div>
+
+          <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center justify-center gap-6">
+            <input
+              v-model="textAnswer"
+              type="text"
+              :placeholder="t('playerGame.typeYourAnswer')"
+              class="w-full max-w-md px-6 py-4 text-2xl font-bold text-center border-[3px] border-black pixel-shadow bg-white focus:outline-none focus:border-primary"
+              maxlength="50"
+              autocomplete="off"
+              @keyup.enter="submitTypeAnswer"
+            />
+
+            <button
+              class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl transition-all"
+              :class="textAnswer.trim() ? 'active:translate-x-1 active:translate-y-1 active:shadow-none' : 'opacity-50 cursor-not-allowed'"
+              :disabled="!textAnswer.trim()"
+              @click="submitTypeAnswer"
+            >
+              {{ t('playerGame.submitAnswer') }}
+            </button>
+          </div>
+
+          <div class="mt-6 text-center">
+            <div class="text-sm text-muted-foreground">
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+
       <!-- Shape buttons mode (no answer text) - Full screen grid -->
-      <template v-if="!game.playerSettings.showAnswerText">
+      <template v-else-if="!game.playerSettings.showAnswerText">
         <div
           class="flex-1 grid gap-2 p-2"
           :class="shapeButtonGridClass"
@@ -510,8 +892,9 @@ onUnmounted(cleanup);
             </div>
           </PixelCard>
 
-          <!-- Answer reveal -->
+          <!-- Answer reveal (MC/TF/Poll only) -->
           <div
+            v-if="options.length > 0 && !isSlider && !isSort && !isPinAnswer && !isTypeAnswer"
             class="grid gap-2 w-full"
             :class="options.length <= 2 ? 'grid-cols-1' : 'grid-cols-2'"
           >

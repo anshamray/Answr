@@ -195,15 +195,22 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         session.totalQuestions = firstQuestion.totalQuestions ?? 1;
         session.questionEnded = false;
         session.currentAllowMultipleAnswers = firstQuestion.allowMultipleAnswers || false;
+        session.currentQuestionType = firstQuestion.type || 'multiple-choice';
+        session.currentSliderConfig = firstQuestion.sliderConfig || null;
+        session.currentPinConfig = firstQuestion.pinConfig || null;
+        session.currentAcceptedAnswers = firstQuestion.acceptedAnswers || null;
 
         const questionPayload = {
           questionId: session.currentQuestionId,
           questionNumber: 1,
           totalQuestions: session.totalQuestions,
           text: firstQuestion.text,
+          type: session.currentQuestionType,
           options: firstQuestion.options,
           timeLimit: firstQuestion.timeLimit,
-          allowMultipleAnswers: session.currentAllowMultipleAnswers
+          allowMultipleAnswers: session.currentAllowMultipleAnswers,
+          sliderConfig: session.currentSliderConfig,
+          mediaUrl: firstQuestion.mediaUrl || null
         };
 
         broadcastQuestion(io, sessionPin, questionPayload);
@@ -271,15 +278,22 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       }
       session.questionEnded = false;
       session.currentAllowMultipleAnswers = question.allowMultipleAnswers || false;
+      session.currentQuestionType = question.type || 'multiple-choice';
+      session.currentSliderConfig = question.sliderConfig || null;
+      session.currentPinConfig = question.pinConfig || null;
+      session.currentAcceptedAnswers = question.acceptedAnswers || null;
 
       const questionPayload = {
         questionId: session.currentQuestionId,
         questionNumber: question.questionNumber ?? session.currentQuestionIndex,
         totalQuestions: session.totalQuestions || question.totalQuestions,
         text: question.text,
+        type: session.currentQuestionType,
         options: question.options,
         timeLimit: question.timeLimit,
-        allowMultipleAnswers: session.currentAllowMultipleAnswers
+        allowMultipleAnswers: session.currentAllowMultipleAnswers,
+        sliderConfig: session.currentSliderConfig,
+        mediaUrl: question.mediaUrl || null
       };
 
       broadcastQuestion(io, sessionPin, questionPayload);

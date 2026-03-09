@@ -135,9 +135,58 @@ function scoreCurrentQuestion(session) {
   }
 
   for (const [playerId, answer] of questionAnswers) {
-    // Determine correctness — handle both single answerId (string) and multi-answer (array)
+    // Determine correctness based on question type
     let isCorrect;
-    if (Array.isArray(answer.answerId)) {
+    const questionType = session.currentQuestionType || 'multiple-choice';
+
+    if (questionType === 'slider') {
+      // Slider: compare numeric value against correctValue with margin
+      const config = session.currentSliderConfig;
+      if (config && config.correctValue != null) {
+        const playerValue = parseFloat(answer.answerId);
+        const margins = { none: 0, low: 0.05, medium: 0.1, high: 0.2, max: 0.5 };
+        const marginPct = margins[config.margin] || 0;
+        const range = (config.max || 100) - (config.min || 0);
+        const tolerance = range * marginPct;
+        isCorrect = Math.abs(playerValue - config.correctValue) <= tolerance;
+      } else {
+        isCorrect = false;
+      }
+    } else if (questionType === 'sort') {
+      // Sort: compare submitted order array against correct order
+      if (Array.isArray(answer.answerId) && Array.isArray(session.currentCorrectAnswerIds)) {
+        isCorrect = answer.answerId.length === session.currentCorrectAnswerIds.length &&
+          answer.answerId.every((id, i) => id === session.currentCorrectAnswerIds[i]);
+      } else {
+        isCorrect = false;
+      }
+    } else if (questionType === 'pin-answer') {
+      // Pin: compare {x,y} coordinates against pinConfig within radius
+      const config = session.currentPinConfig;
+      if (config && config.x != null && config.y != null) {
+        let coords;
+        try { coords = typeof answer.answerId === 'string' ? JSON.parse(answer.answerId) : answer.answerId; } catch { coords = null; }
+        if (coords && coords.x != null && coords.y != null) {
+          const dx = coords.x - config.x;
+          const dy = coords.y - config.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          isCorrect = distance <= (config.radius || 10);
+        } else {
+          isCorrect = false;
+        }
+      } else {
+        isCorrect = false;
+      }
+    } else if (questionType === 'type-answer') {
+      // Type-answer: case-insensitive text match against accepted answers
+      const accepted = session.currentAcceptedAnswers;
+      if (Array.isArray(accepted) && typeof answer.answerId === 'string') {
+        const playerText = answer.answerId.trim().toLowerCase();
+        isCorrect = accepted.some(a => a.trim().toLowerCase() === playerText);
+      } else {
+        isCorrect = false;
+      }
+    } else if (Array.isArray(answer.answerId)) {
       // Multi-answer: player must select ALL correct answers and NO incorrect ones
       const selectedSet = new Set(answer.answerId);
       const allCorrectSelected = [...correctIds].every(id => selectedSet.has(id));

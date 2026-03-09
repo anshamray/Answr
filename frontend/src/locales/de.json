@@ -335,7 +335,12 @@
     "rank": "Rang",
     "topPlayers": "Top-Spieler",
     "waitingForNextQuestion": "Warte auf nächste Frage...",
-    "playingAs": "Spielst als"
+    "playingAs": "Spielst als",
+    "yourOrder": "Deine Reihenfolge",
+    "tapToOrder": "Tippe zum Einordnen",
+    "tapOnImage": "Tippe auf das Bild, um deinen Pin zu setzen",
+    "imageNotAvailable": "Bild nicht verfügbar",
+    "typeYourAnswer": "Deine Antwort eingeben..."
   },
   "sessionLobby": {
     "loadingSession": "Lade Sitzung...",

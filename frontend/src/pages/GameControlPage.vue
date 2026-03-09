@@ -100,6 +100,32 @@ function getCorrectCount() {
   return correctIds.reduce((sum, id) => sum + getCount(id), 0);
 }
 
+function getCorrectAnswerLabel() {
+  const q = currentQuestion.value;
+  if (!q) return '?';
+  const qType = q.type || 'multiple-choice';
+
+  if (qType === 'slider' && q.sliderConfig) {
+    return q.sliderConfig.correctValue + (q.sliderConfig.unit ? ' ' + q.sliderConfig.unit : '');
+  }
+  if (qType === 'sort') {
+    return (q.answers || [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map(a => a.text)
+      .join(' → ');
+  }
+  if (qType === 'pin-answer') {
+    const pc = q.pinConfig;
+    return pc ? `(${Math.round(pc.x)}%, ${Math.round(pc.y)}%)` : '📍';
+  }
+  if (qType === 'type-answer') {
+    return (q.answers || []).map(a => a.text).join(' / ');
+  }
+
+  return q.answers.map((a, i) => a.isCorrect ? barLabels[i] : null).filter(Boolean).join(', ') || '?';
+}
+
 // ─── Fetch session + quiz questions ─────────────────────────────────────
 
 async function fetchSession() {
@@ -244,16 +270,50 @@ function buildQuestionPayload(q) {
     .filter((a) => a.isCorrect)
     .map((a) => a._id);
 
-  return {
+  const qType = q.type || 'multiple-choice';
+
+  const payload = {
     questionId: q._id,
     questionNumber: questionNumber.value,
     totalQuestions: totalQuestions.value,
     text: q.text,
+    type: qType,
     options,
     timeLimit: q.timeLimit,
     correctAnswerIds,
-    allowMultipleAnswers: q.allowMultipleAnswers || correctAnswerIds.length > 1
+    allowMultipleAnswers: q.allowMultipleAnswers || correctAnswerIds.length > 1,
+    sliderConfig: q.sliderConfig || null
   };
+
+  // Sort: correctAnswerIds = IDs in correct order (by answer.order field)
+  if (qType === 'sort') {
+    payload.correctAnswerIds = [...(q.answers || [])]
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((a) => a._id);
+    // Shuffle options so players don't see the correct order
+    payload.options = shuffleArray([...payload.options]);
+  }
+
+  // Pin-answer: include mediaUrl for image display and pinConfig for scoring
+  if (qType === 'pin-answer') {
+    payload.mediaUrl = q.mediaUrl || null;
+    payload.pinConfig = q.pinConfig || null;
+  }
+
+  // Type-answer: send accepted answers for server scoring
+  if (qType === 'type-answer') {
+    payload.acceptedAnswers = (q.answers || []).map((a) => a.text);
+  }
+
+  return payload;
+}
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 function sendFirstQuestion() {
@@ -434,7 +494,8 @@ onUnmounted(cleanup);
                 {{ currentQuestion.text }}
               </h1>
 
-              <div class="grid grid-cols-2 gap-3">
+              <!-- MC / True-False / Poll: answer grid -->
+              <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && !['slider', 'pin-answer', 'type-answer'].includes(currentQuestion.type)" class="grid grid-cols-2 gap-3">
                 <div
                   v-for="(answer, i) in currentQuestion.answers"
                   :key="answer._id"
@@ -451,6 +512,21 @@ onUnmounted(cleanup);
                     <PixelUsers class="text-white/50" :size="20" />
                   </div>
                 </div>
+              </div>
+
+              <!-- Slider: show range info -->
+              <div v-else-if="currentQuestion.type === 'slider' && currentQuestion.sliderConfig" class="text-center text-lg text-muted-foreground">
+                {{ t('gameControl.sliderRange') || 'Range' }}: {{ currentQuestion.sliderConfig.min }} – {{ currentQuestion.sliderConfig.max }}{{ currentQuestion.sliderConfig.unit ? ' ' + currentQuestion.sliderConfig.unit : '' }}
+              </div>
+
+              <!-- Type-answer: show hint -->
+              <div v-else-if="currentQuestion.type === 'type-answer'" class="text-center text-lg text-muted-foreground">
+                ⌨️ {{ t('gameControl.playersTyping') || 'Players are typing their answers...' }}
+              </div>
+
+              <!-- Pin-answer: show image -->
+              <div v-else-if="currentQuestion.type === 'pin-answer'" class="text-center text-lg text-muted-foreground">
+                📍 {{ t('gameControl.playersPinning') || 'Players are placing their pins...' }}
               </div>
             </PixelCard>
           </div>
@@ -472,7 +548,7 @@ onUnmounted(cleanup);
           <div class="flex items-center justify-between flex-wrap gap-3">
             <PixelBadge variant="success" class="text-base px-4 py-2">
               <PixelCheck class="inline mr-2" :size="16" />
-              {{ t('gameControl.correctAnswer') }}: {{ currentQuestion.answers.map((a, i) => a.isCorrect ? barLabels[i] : null).filter(Boolean).join(', ') || '?' }}
+              {{ t('gameControl.correctAnswer') }}: {{ getCorrectAnswerLabel() }}
             </PixelBadge>
 
             <PixelButton
@@ -491,7 +567,7 @@ onUnmounted(cleanup);
           <div class="grid gap-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:grid-cols-3' : ''">
             <!-- Answer Distribution -->
             <div class="space-y-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:col-span-2' : ''">
-              <PixelCard class="space-y-3 !p-4">
+              <PixelCard v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && !['slider', 'pin-answer', 'type-answer'].includes(currentQuestion.type)" class="space-y-3 !p-4">
                 <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
 
                 <div class="space-y-2">
@@ -525,6 +601,12 @@ onUnmounted(cleanup);
                     </div>
                   </div>
                 </div>
+              </PixelCard>
+
+              <!-- Non-MC types: simple results summary -->
+              <PixelCard v-else class="space-y-3 !p-4">
+                <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
+                <p class="text-muted-foreground">{{ answersReceived }} / {{ playerCount }} {{ t('gameControl.answered') }}</p>
               </PixelCard>
 
               <div class="grid grid-cols-3 gap-3">

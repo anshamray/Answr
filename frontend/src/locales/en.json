@@ -335,7 +335,12 @@
     "rank": "Rank",
     "topPlayers": "Top Players",
     "waitingForNextQuestion": "Waiting for next question...",
-    "playingAs": "Playing as"
+    "playingAs": "Playing as",
+    "yourOrder": "Your order",
+    "tapToOrder": "Tap to add in order",
+    "tapOnImage": "Tap on the image to place your pin",
+    "imageNotAvailable": "Image not available",
+    "typeYourAnswer": "Type your answer..."
   },
   "sessionLobby": {
     "loadingSession": "Loading session...",
