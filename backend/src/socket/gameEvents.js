@@ -45,7 +45,8 @@ export function broadcastQuestion(io, sessionPin, questionData) {
     totalQuestions: questionData.totalQuestions,
     text: questionData.text,
     options: questionData.options,
-    timeLimit: questionData.timeLimit
+    timeLimit: questionData.timeLimit,
+    allowMultipleAnswers: questionData.allowMultipleAnswers || false
   });
 }
 
