@@ -113,16 +113,45 @@ function handlePaste(event) {
   const text = event.clipboardData?.getData('text');
   if (!text) return;
 
-  // Try to detect structured format with question + answers
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  if (lines.length < 3) return; // Need at least a header/question + 2 answers
+  if (lines.length < 2) return;
+
+  // Detect question type from header line
+  let detectedType = null;
+  const typePatterns = {
+    'multiple-choice': /Multiple\s*Choice/i,
+    'true-false': /True\s*[\/_-]\s*False/i,
+    'sort': /\bSort\b/i,
+    'slider': /\bSlider\b/i,
+    'type-answer': /Type\s*Answer/i,
+    'poll': /\bPoll\b|Umfrage/i,
+  };
+
+  for (const line of lines) {
+    if (/^\d+\.\s/.test(line)) {
+      for (const [type, pattern] of Object.entries(typePatterns)) {
+        if (pattern.test(line)) {
+          detectedType = type;
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  // Use detected type or fall back to current question type
+  const effectiveType = detectedType || localQuestion.value.type;
 
   let questionText = '';
   const answers = [];
+  let sliderMin = null;
+  let sliderMax = null;
+  let sliderCorrect = null;
+  let inAnswerSection = false;
 
   for (const line of lines) {
-    // Skip type header lines like "12. Multiple Choice"
-    if (/^\d+\.\s*(Multiple Choice|True\/False|Type Answer|Sort|Slider|Poll)/i.test(line)) continue;
+    // Skip type header lines
+    if (/^\d+\.\s*(Multiple\s*Choice|True\s*[\/_-]\s*False|Type\s*Answer|Sort|Slider|Poll|Umfrage)/i.test(line)) continue;
 
     // Extract question from "Frage: ..." or "Question: ..."
     const qMatch = line.match(/^(?:Frage|Question)\s*:\s*(.+)/i);
@@ -131,23 +160,80 @@ function handlePaste(event) {
       continue;
     }
 
-    // Skip "Antworten:" / "Answers:" header
-    if (/^(?:Antworten|Answers)\s*:?\s*$/i.test(line)) continue;
+    // Skip section headers and mark we're in the answer section
+    if (/^(?:Antworten|Answers|Antwort|Richtige Reihenfolge|Richtige Antwort)\s*:?\s*$/i.test(line)) {
+      inAnswerSection = true;
+      continue;
+    }
 
-    // Parse answer lines — detect ✅ or (correct) markers
+    // Slider range: "Slider Range: 5 – 15" or "Range: 5 - 15"
+    const rangeMatch = line.match(/(?:Slider\s*)?Range\s*:\s*(\d+)\s*[–\-]\s*(\d+)/i);
+    if (rangeMatch) {
+      sliderMin = parseInt(rangeMatch[1]);
+      sliderMax = parseInt(rangeMatch[2]);
+      inAnswerSection = true;
+      continue;
+    }
+
+    // Slider correct value (standalone number in answer section)
+    if (inAnswerSection && effectiveType === 'slider' && /^\d+$/.test(line)) {
+      sliderCorrect = parseInt(line);
+      continue;
+    }
+
+    // Parse answer lines
     const isCorrect = /✅|\(correct\)|\(richtig\)/i.test(line);
-    const answerText = line.replace(/[✅❌]|\(correct\)|\(richtig\)|\(wrong\)|\(falsch\)/gi, '').trim();
+    let answerText = line.replace(/[✅❌]|\(correct\)|\(richtig\)|\(wrong\)|\(falsch\)/gi, '').trim();
+
+    // For sort type, strip trailing year/number annotations like "(1972)"
+    if (effectiveType === 'sort') {
+      answerText = answerText.replace(/\s*\(\d+\)\s*$/, '').trim();
+    }
+
     if (answerText) {
       answers.push({ text: answerText, isCorrect });
     }
   }
 
-  if (questionText && answers.length >= 2) {
+  if (!questionText) return;
+
+  // Apply based on type
+  if (effectiveType === 'slider' && sliderMin != null && sliderMax != null) {
     event.preventDefault();
     localQuestion.value.text = questionText;
-    localQuestion.value.answers = answers;
+    localQuestion.value.sliderConfig = {
+      ...localQuestion.value.sliderConfig,
+      min: sliderMin,
+      max: sliderMax,
+      correctValue: sliderCorrect ?? Math.round((sliderMin + sliderMax) / 2)
+    };
     emitUpdate();
+    return;
   }
+
+  if (answers.length < 2 && effectiveType !== 'type-answer') return;
+  if (answers.length < 1) return;
+
+  event.preventDefault();
+  localQuestion.value.text = questionText;
+
+  if (effectiveType === 'sort') {
+    localQuestion.value.answers = answers.map((a, i) => ({ text: a.text, order: i }));
+  } else if (effectiveType === 'type-answer') {
+    localQuestion.value.answers = answers.map(a => ({ text: a.text }));
+  } else {
+    // multiple-choice, true-false, poll
+    localQuestion.value.answers = answers;
+    // Auto-enable "allow multiple answers" if more than one correct
+    if (effectiveType === 'multiple-choice') {
+      const correctCount = answers.filter(a => a.isCorrect).length;
+      if (correctCount > 1) {
+        localQuestion.value.allowMultipleAnswers = true;
+      }
+    }
+  }
+
+  emitUpdate();
 }
 
 // Trigger file input click
