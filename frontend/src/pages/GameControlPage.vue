@@ -252,7 +252,7 @@ function buildQuestionPayload(q) {
     options,
     timeLimit: q.timeLimit,
     correctAnswerIds,
-    allowMultipleAnswers: q.allowMultipleAnswers || false
+    allowMultipleAnswers: q.allowMultipleAnswers || correctAnswerIds.length > 1
   };
 }
 
@@ -466,7 +466,7 @@ onUnmounted(cleanup);
           <div class="flex items-center justify-between flex-wrap gap-3">
             <PixelBadge variant="success" class="text-base px-4 py-2">
               <PixelCheck class="inline mr-2" :size="16" />
-              {{ t('gameControl.correctAnswer') }}: {{ barLabels[currentQuestion.answers.findIndex(a => a.isCorrect)] || '?' }}
+              {{ t('gameControl.correctAnswer') }}: {{ currentQuestion.answers.map((a, i) => a.isCorrect ? barLabels[i] : null).filter(Boolean).join(', ') || '?' }}
             </PixelBadge>
 
             <PixelButton
