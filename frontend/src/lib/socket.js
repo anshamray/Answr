@@ -7,33 +7,48 @@ let socket = null;
 const defaultSocketUrl = apiBase || 'http://localhost:3000';
 
 function attachDebugListeners(activeSocket) {
+  activeSocket.on('connect', () => {
+    addDebugLog({
+      level: 'info',
+      source: 'socket',
+      message: 'Socket connected'
+    });
+  });
+
+  activeSocket.on('disconnect', (reason) => {
+    addDebugLog({
+      level: 'warning',
+      source: 'socket',
+      message: 'Socket disconnected',
+      details: reason || ''
+    });
+  });
+
   activeSocket.on('connect_error', (error) => {
     addDebugLog({
-      level: 'error',
+      level: 'warning',
       source: 'socket',
       message: error?.message || 'Socket connection failed',
-      stack: error?.stack || '',
-      fatal: true
+      details: error?.description ? String(error.description) : '',
+      stack: error?.stack || ''
     });
   });
 
   activeSocket.on('error', (error) => {
     addDebugLog({
-      level: 'error',
+      level: 'warning',
       source: 'socket',
       message: typeof error === 'string' ? error : error?.message || 'Socket error',
-      details: typeof error === 'object' && error ? JSON.stringify(error, null, 2) : '',
-      fatal: true
+      details: typeof error === 'object' && error ? JSON.stringify(error, null, 2) : ''
     });
   });
 
   activeSocket.on('player:error', (data) => {
     addDebugLog({
-      level: 'error',
+      level: 'warning',
       source: 'player',
       message: data?.message || 'Player error',
-      details: data?.code ? `Code: ${data.code}` : '',
-      fatal: true
+      details: data?.code ? `Code: ${data.code}` : ''
     });
   });
 }
@@ -50,8 +65,13 @@ export function connectSocket(url = defaultSocketUrl, opts = {}) {
   }
 
   socket = io(url, {
-    transports: ['websocket'],
+    transports: ['websocket', 'polling'],
     autoConnect: true,
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 15000,
     ...opts
   });
 
