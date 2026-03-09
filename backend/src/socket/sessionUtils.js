@@ -9,7 +9,7 @@ import { PLAYER_EVENTS, MODERATOR_EVENTS, ERROR_CODES } from './events.js';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-export const RECONNECT_WINDOW_MS = 30_000;
+export const RECONNECT_WINDOW_MS = 10 * 60_000;
 export const MAX_PLAYERS_PER_SESSION = 32;
 
 // ─── Error Emitters ─────────────────────────────────────────────────────────

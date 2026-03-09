@@ -1,33 +1,10 @@
 import { defineStore } from 'pinia';
 import { ref, reactive, watch } from 'vue';
-
-const PLAYER_SESSION_STORAGE_KEY = 'playerSession';
-
-function readPersistedPlayerSession() {
-  if (typeof window === 'undefined') return null;
-
-  try {
-    const raw = sessionStorage.getItem(PLAYER_SESSION_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writePersistedPlayerSession(data) {
-  if (typeof window === 'undefined') return;
-
-  try {
-    sessionStorage.setItem(PLAYER_SESSION_STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // Ignore storage write failures so gameplay is not interrupted.
-  }
-}
-
-function clearPersistedPlayerSession() {
-  if (typeof window === 'undefined') return;
-  sessionStorage.removeItem(PLAYER_SESSION_STORAGE_KEY);
-}
+import {
+  readPersistedPlayerSession,
+  writePersistedPlayerSession,
+  clearPersistedPlayerSession
+} from '../lib/playerSession.js';
 
 export const useGameStore = defineStore('game', () => {
   const persistedSession = readPersistedPlayerSession();

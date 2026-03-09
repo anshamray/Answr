@@ -58,13 +58,39 @@ export function usePlayerReconnect({ socket, game, router }) {
     }
   }
 
+  function requestReconnect() {
+    if (!game.sessionId || !game.playerId) return;
+
+    shouldReconnect = true;
+
+    if (!socket.connected) {
+      socket.connect();
+      return;
+    }
+
+    emitReconnect();
+  }
+
+  function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+      requestReconnect();
+    }
+  }
+
+  function handlePageShow() {
+    requestReconnect();
+  }
+
   socket.on('connect', handleConnect);
   socket.on('disconnect', handleDisconnect);
   socket.on('player:joined', handleJoined);
   socket.on('player:error', handlePlayerError);
+  window.addEventListener('focus', handlePageShow);
+  window.addEventListener('pageshow', handlePageShow);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
 
   function maybeRecoverSession() {
-    emitReconnect();
+    requestReconnect();
   }
 
   function cleanup() {
@@ -72,6 +98,9 @@ export function usePlayerReconnect({ socket, game, router }) {
     socket.off('disconnect', handleDisconnect);
     socket.off('player:joined', handleJoined);
     socket.off('player:error', handlePlayerError);
+    window.removeEventListener('focus', handlePageShow);
+    window.removeEventListener('pageshow', handlePageShow);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
   }
 
   return {

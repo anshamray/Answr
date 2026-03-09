@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
+import { getPersistedPlayerRoute, hasPersistedPlayerSession } from '../lib/playerSession.js';
 
 import LandingPage from '../pages/LandingPage.vue';
 import LoginPage from '../pages/LoginPage.vue';
@@ -71,6 +72,20 @@ const router = createRouter({
 // Routes with `requiresGuestOrAuth` also accept a guest session token
 // (stored in sessionStorage by LibraryDetailPage when starting as guest).
 router.beforeEach((to) => {
+  if (to.path === '/play' && hasPersistedPlayerSession()) {
+    const persistedRoute = getPersistedPlayerRoute();
+    if (persistedRoute && persistedRoute !== to.path) {
+      return { path: persistedRoute };
+    }
+  }
+
+  if ((to.path === '/play/profile' || to.path === '/play/lobby' || to.path === '/play/game' || to.path === '/play/results') && hasPersistedPlayerSession()) {
+    const persistedRoute = getPersistedPlayerRoute();
+    if (persistedRoute && persistedRoute !== to.path) {
+      return { path: persistedRoute };
+    }
+  }
+
   if (to.meta.requiresAuth) {
     const auth = useAuthStore();
     if (!auth.isAuthenticated) {
