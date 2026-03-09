@@ -596,6 +596,7 @@ onMounted(fetchQuizzes);
                   {{ t('dashboard.unpublish') }}
                 </PixelButton>
               </div>
+              </div>
             </div>
           </PixelCard>
         </template>
