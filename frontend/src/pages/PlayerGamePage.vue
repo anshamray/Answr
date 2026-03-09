@@ -749,10 +749,10 @@ onUnmounted(cleanup);
         <!-- Multi-answer submit button -->
         <div
           v-if="isMultiAnswer && !submitted && !timedOut && selectedAnswers.length > 0"
-          class="fixed bottom-4 left-1/2 -translate-x-1/2 z-10"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 z-20"
         >
           <button
-            class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none"
+            class="px-8 py-4 bg-black text-white border-[3px] border-white pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none shadow-lg"
             @click="submitMultiAnswer"
           >
             {{ t('playerGame.submitAnswer') }} ({{ selectedAnswers.length }})
