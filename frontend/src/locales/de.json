@@ -377,7 +377,9 @@
     "finishGame": "Spiel beenden",
     "sliderRange": "Bereich",
     "playersTyping": "Spieler geben ihre Antworten ein...",
-    "playersPinning": "Spieler setzen ihre Pins..."
+    "playersPinning": "Spieler setzen ihre Pins...",
+    "endGameConfirmTitle": "Spiel beenden?",
+    "endGameConfirmText": "Das Spiel wird für alle Spieler beendet und die Ergebnisse werden angezeigt."
   },
   "account": {
     "title": "Kontoeinstellungen",

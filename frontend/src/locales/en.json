@@ -377,7 +377,9 @@
     "finishGame": "Finish Game",
     "sliderRange": "Range",
     "playersTyping": "Players are typing their answers...",
-    "playersPinning": "Players are placing their pins..."
+    "playersPinning": "Players are placing their pins...",
+    "endGameConfirmTitle": "End Game?",
+    "endGameConfirmText": "This will end the game for all players and show the final results."
   },
   "account": {
     "title": "Account Settings",

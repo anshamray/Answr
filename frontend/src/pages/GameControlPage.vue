@@ -370,18 +370,19 @@ function sendNextQuestion() {
   });
 }
 
+const showEndConfirm = ref(false);
+
 function endGame() {
   const socket = getSocket();
   if (socket) {
-    // Wait for server to confirm game ended (after persistence)
     socket.once('game:end', () => {
       router.push(`/session/${sessionId}/results`);
     });
     socket.emit('moderator:end');
   }
   status.value = 'ended';
+  showEndConfirm.value = false;
 
-  // Fallback redirect if game:end never arrives (e.g. socket disconnect)
   setTimeout(() => {
     if (status.value === 'ended') {
       router.push(`/session/${sessionId}/results`);
@@ -456,7 +457,7 @@ onUnmounted(cleanup);
         </main>
 
         <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
-          <PixelButton variant="outline" @click="endGame">{{ t('gameControl.endGame') }}</PixelButton>
+          <PixelButton variant="outline" @click="showEndConfirm = true">{{ t('gameControl.endGame') }}</PixelButton>
         </footer>
       </template>
 
@@ -545,7 +546,7 @@ onUnmounted(cleanup);
         <!-- Controls -->
         <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
           <PixelButton variant="primary" @click="revealAnswer">{{ t('gameControl.revealAnswer') }}</PixelButton>
-          <PixelButton variant="outline" @click="endGame">{{ t('gameControl.endGame') }}</PixelButton>
+          <PixelButton variant="outline" @click="showEndConfirm = true">{{ t('gameControl.endGame') }}</PixelButton>
         </footer>
       </template>
     </template>
@@ -698,11 +699,24 @@ onUnmounted(cleanup);
         </PixelButton>
         <PixelButton
           variant="outline"
-          @click="endGame"
+          @click="showEndConfirm = true"
         >
           {{ isLastQuestion ? t('gameControl.finishGame') : t('gameControl.endGame') }}
         </PixelButton>
       </footer>
     </template>
+    <!-- End game confirmation dialog -->
+    <Teleport to="body">
+      <div v-if="showEndConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="showEndConfirm = false">
+        <PixelCard class="!p-6 max-w-sm w-full mx-4 space-y-4">
+          <h2 class="text-xl font-bold text-center">{{ t('gameControl.endGameConfirmTitle') }}</h2>
+          <p class="text-muted-foreground text-center">{{ t('gameControl.endGameConfirmText') }}</p>
+          <div class="flex gap-3 justify-center">
+            <PixelButton variant="outline" @click="showEndConfirm = false">{{ t('common.cancel') }}</PixelButton>
+            <PixelButton variant="destructive" @click="endGame">{{ t('gameControl.endGame') }}</PixelButton>
+          </div>
+        </PixelCard>
+      </div>
+    </Teleport>
   </div>
 </template>
