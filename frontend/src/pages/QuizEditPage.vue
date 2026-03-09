@@ -652,7 +652,7 @@ onUnmounted(() => {
           <div
             v-for="(question, index) in questions"
             :key="question._id"
-            class="group"
+            class="group cursor-pointer"
             draggable="true"
             @dragstart="onDragStart(index, $event)"
             @dragover="onDragOver(index, $event)"
@@ -660,7 +660,7 @@ onUnmounted(() => {
             @drop="onDrop(index)"
             @dragend="onDragEnd"
           >
-            <button
+            <div
               class="w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors"
               :class="{
                 'bg-primary/10 border-l-4 border-l-primary': selectedQuestionId === question._id,
@@ -716,7 +716,7 @@ onUnmounted(() => {
                   </svg>
                 </button>
               </div>
-            </button>
+            </div>
           </div>
         </div>
 

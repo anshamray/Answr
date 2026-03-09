@@ -545,37 +545,38 @@ onMounted(fetchQuizzes);
                 >{{ tag }}</span>
               </div>
 
-              <!-- Action buttons -->
-              <div class="flex items-center gap-2 flex-wrap pt-2">
-                <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click="startSession(quiz._id || quiz.id)">
-                  <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 3 19 12 5 21 5 3" />
-                  </svg>
-                  {{ t('common.start') }}
-                </PixelButton>
-                <button
-                  class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-secondary hover:bg-secondary/10 transition-colors"
-                  @click="editQuiz(quiz._id || quiz.id)"
-                  :title="t('common.edit')"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                </button>
-                <button
-                  class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-destructive hover:bg-destructive/10 transition-colors"
-                  @click="deleteQuiz(quiz._id || quiz.id)"
-                  :title="t('common.delete')"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
-              </div>
+              <!-- Action buttons — pinned to bottom -->
+              <div class="mt-auto space-y-2 pt-2">
+                <div class="flex items-center gap-2">
+                  <PixelButton variant="primary" size="sm" class="flex-1 min-w-0" @click="startSession(quiz._id || quiz.id)">
+                    <svg class="inline mr-1" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    {{ t('common.start') }}
+                  </PixelButton>
+                  <button
+                    class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-secondary hover:bg-secondary/10 transition-colors"
+                    @click="editQuiz(quiz._id || quiz.id)"
+                    :title="t('common.edit')"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    class="min-h-[44px] min-w-[44px] flex items-center justify-center border-[3px] border-black bg-white hover:border-destructive hover:bg-destructive/10 transition-colors"
+                    @click="deleteQuiz(quiz._id || quiz.id)"
+                    :title="t('common.delete')"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </button>
+                </div>
 
-              <!-- Publish/Unpublish -->
+                <!-- Publish/Unpublish -->
               <div class="pt-2 border-t-2 border-border">
                 <PixelButton
                   v-if="!quiz.isPublished"
