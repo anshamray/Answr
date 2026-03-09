@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
+import { clearPersistedPlayerSession } from '../lib/playerSession.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -80,7 +81,9 @@ function handlePinSubmit() {
     loading.value = false;
     cleanupSocket();
     disconnectSocket();
-    // Store PIN and redirect to profile page
+    // Starting a fresh join flow should drop any previous player session.
+    game.reset();
+    clearPersistedPlayerSession();
     game.pin = trimmed;
     router.push('/play/profile');
   });

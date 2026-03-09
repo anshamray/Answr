@@ -79,13 +79,6 @@ router.beforeEach((to) => {
     }
   }
 
-  if ((to.path === '/play/profile' || to.path === '/play/lobby' || to.path === '/play/game' || to.path === '/play/results') && hasPersistedPlayerSession()) {
-    const persistedRoute = getPersistedPlayerRoute();
-    if (persistedRoute && persistedRoute !== to.path) {
-      return { path: persistedRoute };
-    }
-  }
-
   if (to.meta.requiresAuth) {
     const auth = useAuthStore();
     if (!auth.isAuthenticated) {
