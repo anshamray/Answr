@@ -35,9 +35,12 @@ const timeRemaining = ref(0);
 const answerDistribution = ref({});
 const playerAnswers = ref({});
 const leaderboard = ref([]);
+let endGameRedirectTimer = null;
 
 // Intro phase: 'intro' (question only) -> 'answering' (answers visible) -> handled by status='reveal'
 const phase = ref('answering');
+const introCountdown = ref(3);
+let introInterval = null;
 
 // Game settings from lobby
 const gameSettings = ref({
@@ -68,6 +71,7 @@ const isSliderQuestion = computed(() =>
   (currentQuestion.value?.sliderConfig?.min != null && currentQuestion.value?.sliderConfig?.max != null)
 );
 const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
+const isPinAnswerQuestion = computed(() => currentQuestion.value?.type === 'pin-answer');
 const isTypeAnswerQuestion = computed(() => currentQuestion.value?.type === 'type-answer');
 const pinQuestionMediaUrl = computed(() => {
   const url = currentQuestion.value?.mediaUrl;
@@ -179,6 +183,38 @@ function normalizeTextAnswer(value) {
   return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 }
 
+function parsePinAnswer(answerId) {
+  if (answerId == null) return null;
+
+  let parsed = answerId;
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return null;
+    }
+  }
+
+  const x = Number(parsed?.x);
+  const y = Number(parsed?.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+
+  return {
+    x: Math.min(Math.max(x, 0), 100),
+    y: Math.min(Math.max(y, 0), 100)
+  };
+}
+
+function isPinAnswerCorrect(coords) {
+  const config = currentQuestion.value?.pinConfig;
+  if (!coords || config?.x == null || config?.y == null) return false;
+
+  const dx = coords.x - Number(config.x);
+  const dy = coords.y - Number(config.y);
+  const distance = Math.sqrt((dx ** 2) + (dy ** 2));
+  return distance <= Number(config.radius || 10);
+}
+
 function getSelectedAnswerIds(answerId) {
   if (answerId == null) return [];
   if (Array.isArray(answerId)) {
@@ -263,6 +299,24 @@ const textAnswerEntries = computed(() => {
     .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }));
 });
 
+const pinAnswerEntries = computed(() => {
+  if (!isPinAnswerQuestion.value) return [];
+
+  return Object.entries(playerAnswers.value)
+    .map(([playerId, answerId], index) => {
+      const coords = parsePinAnswer(answerId);
+      if (!coords) return null;
+
+      return {
+        playerId,
+        coords,
+        isCorrect: isPinAnswerCorrect(coords),
+        label: index + 1
+      };
+    })
+    .filter(Boolean);
+});
+
 function getCount(answerId) {
   return answerDistribution.value[answerId] || 0;
 }
@@ -301,6 +355,12 @@ function getCorrectCount() {
 
     return sortAnswerEntries.value.reduce((sum, entry) => (
       entry.isCorrect ? sum + entry.count : sum
+    ), 0);
+  }
+
+  if (qType === 'pin-answer') {
+    return pinAnswerEntries.value.reduce((sum, entry) => (
+      entry.isCorrect ? sum + 1 : sum
     ), 0);
   }
 
@@ -481,6 +541,25 @@ function handleModeratorQuestion(data) {
   }
 }
 
+function startIntroCountdown(seconds = 3) {
+  stopIntroCountdown();
+  introCountdown.value = seconds;
+
+  introInterval = window.setInterval(() => {
+    introCountdown.value--;
+    if (introCountdown.value <= 0) {
+      stopIntroCountdown();
+    }
+  }, 1000);
+}
+
+function stopIntroCountdown() {
+  if (introInterval) {
+    window.clearInterval(introInterval);
+    introInterval = null;
+  }
+}
+
 function ensureSocket(sessionPin) {
   return new Promise((resolve) => {
     let socket = getSocket();
@@ -516,17 +595,20 @@ function attachListeners(socket) {
   socket.off('game:questionStart');
   socket.off('game:questionEnd');
   socket.off('game:leaderboard');
+  socket.off('game:end', handleGameEnded);
   socket.off('lobby:update');
 
   socket.on('connect', rejoinModeratorSession);
 
   socket.on('game:question', handleModeratorQuestion);
 
-  socket.on('game:questionIntro', () => {
+  socket.on('game:questionIntro', (data) => {
     phase.value = 'intro';
+    startIntroCountdown(data?.countdownSeconds || 3);
   });
 
   socket.on('game:questionStart', () => {
+    stopIntroCountdown();
     phase.value = 'answering';
   });
 
@@ -558,6 +640,7 @@ function attachListeners(socket) {
   socket.on('game:timer', (data) => {
     if (data?.remaining != null) {
       if (phase.value === 'intro') {
+        stopIntroCountdown();
         phase.value = 'answering';
       }
       if (status.value === 'loading') {
@@ -568,6 +651,7 @@ function attachListeners(socket) {
   });
 
   socket.on('game:questionEnd', () => {
+    stopIntroCountdown();
     if (status.value === 'question') {
       status.value = 'reveal';
     }
@@ -577,12 +661,39 @@ function attachListeners(socket) {
     leaderboard.value = data?.leaderboard || [];
   });
 
+  socket.on('game:end', handleGameEnded);
+
   socket.on('lobby:update', (data) => {
     playerCount.value = data.playerCount || data.players?.length || 0;
   });
 }
 
+function clearEndGameRedirectTimer() {
+  if (endGameRedirectTimer) {
+    window.clearTimeout(endGameRedirectTimer);
+    endGameRedirectTimer = null;
+  }
+}
+
+function navigateToResults() {
+  if (router.currentRoute.value.path !== `/session/${sessionId}/control`) {
+    return;
+  }
+
+  clearEndGameRedirectTimer();
+  router.push(`/session/${sessionId}/results`);
+}
+
+function handleGameEnded() {
+  status.value = 'ended';
+  showEndConfirm.value = false;
+  navigateToResults();
+}
+
 function cleanup() {
+  clearEndGameRedirectTimer();
+  stopIntroCountdown();
+
   const socket = getSocket();
   if (socket) {
     socket.off('connect', rejoinModeratorSession);
@@ -594,6 +705,7 @@ function cleanup() {
     socket.off('game:questionStart');
     socket.off('game:questionEnd');
     socket.off('game:leaderboard');
+    socket.off('game:end', handleGameEnded);
     socket.off('lobby:update');
   }
 }
@@ -718,17 +830,15 @@ const showEndConfirm = ref(false);
 function endGame() {
   const socket = getSocket();
   if (socket) {
-    socket.once('game:end', () => {
-      router.push(`/session/${sessionId}/results`);
-    });
     socket.emit('moderator:end');
   }
   status.value = 'ended';
   showEndConfirm.value = false;
 
-  setTimeout(() => {
+  clearEndGameRedirectTimer();
+  endGameRedirectTimer = window.setTimeout(() => {
     if (status.value === 'ended') {
-      router.push(`/session/${sessionId}/results`);
+      navigateToResults();
     }
   }, 10000);
 }
@@ -793,8 +903,16 @@ onUnmounted(cleanup);
               </h1>
             </PixelCard>
 
-            <div class="text-2xl text-muted-foreground animate-pulse">
-              {{ t('gameControl.getReady') }}
+            <div class="space-y-3">
+              <div
+                class="text-7xl lg:text-9xl font-bold pixel-font transition-all duration-300"
+                :class="introCountdown > 0 ? 'text-primary scale-100' : 'text-success scale-110'"
+              >
+                {{ introCountdown > 0 ? introCountdown : 'GO!' }}
+              </div>
+              <div class="text-2xl text-muted-foreground animate-pulse">
+                {{ t('gameControl.getReady') }}
+              </div>
             </div>
           </div>
         </main>
@@ -806,10 +924,16 @@ onUnmounted(cleanup);
 
       <!-- Answering Phase: Show question + answers + timer -->
       <template v-else>
-        <main class="flex-1 p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-secondary/10">
-          <div class="max-w-7xl mx-auto space-y-4">
+        <main
+          class="flex-1 p-3 sm:p-4 bg-gradient-to-br from-primary/10 to-secondary/10"
+          :class="currentQuestion.type === 'pin-answer' ? 'overflow-hidden' : ''"
+        >
+          <div
+            class="max-w-7xl mx-auto space-y-4"
+            :class="currentQuestion.type === 'pin-answer' ? 'flex h-full flex-col' : ''"
+          >
             <!-- Question Header -->
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between" :class="currentQuestion.type === 'pin-answer' ? 'shrink-0' : ''">
               <PixelBadge variant="primary" class="text-base px-4 py-2">
                 {{ t('gameControl.questionOf', { current: questionNumber, total: totalQuestions }) }}
               </PixelBadge>
@@ -833,7 +957,10 @@ onUnmounted(cleanup);
             </div>
 
             <!-- Question -->
-            <PixelCard class="space-y-4 !p-4 lg:!p-6">
+            <PixelCard
+              class="space-y-4 !p-4 lg:!p-6"
+              :class="currentQuestion.type === 'pin-answer' ? 'flex min-h-0 flex-1 flex-col overflow-hidden !p-3 lg:!p-4' : ''"
+            >
               <h1 class="text-2xl lg:text-3xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
@@ -895,16 +1022,16 @@ onUnmounted(cleanup);
               </div>
 
               <!-- Pin-answer: show image -->
-              <div v-else-if="currentQuestion.type === 'pin-answer'" class="space-y-4 py-4">
+              <div v-else-if="currentQuestion.type === 'pin-answer'" class="flex min-h-0 flex-1 flex-col space-y-3 py-1">
                 <div class="text-center text-lg text-muted-foreground">
                   📍 {{ t('gameControl.playersPinning') }}
                 </div>
-                <div class="mx-auto w-full max-w-3xl border-[3px] border-black bg-white overflow-hidden">
+                <div class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 items-center justify-center overflow-hidden border-[3px] border-black bg-white">
                   <img
                     v-if="pinQuestionMediaUrl"
                     :src="pinQuestionMediaUrl"
                     :alt="currentQuestion.text"
-                    class="block max-h-[28rem] w-full object-contain"
+                    class="block h-full max-h-[min(24rem,calc(100vh-19rem))] w-full object-contain"
                   />
                   <div v-else class="flex min-h-48 items-center justify-center px-6 py-10 text-center text-muted-foreground">
                     {{ t('playerGame.imageNotAvailable') }}
@@ -1128,6 +1255,76 @@ onUnmounted(cleanup);
                       {{ t('gameControl.noSortSubmissions') }}
                     </div>
                   </div>
+                </div>
+              </PixelCard>
+
+              <PixelCard v-else-if="isPinAnswerQuestion" class="space-y-4 !p-4">
+                <div class="flex items-center justify-between gap-3 flex-wrap">
+                  <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
+                  <PixelBadge variant="secondary" class="text-xs">
+                    {{ answersReceived }} / {{ playerCount }} {{ t('gameControl.answered') }}
+                  </PixelBadge>
+                </div>
+
+                <div class="flex flex-wrap gap-2 text-xs font-bold">
+                  <PixelBadge variant="success" class="text-[11px]">
+                    {{ t('gameControl.correctArea') }}
+                  </PixelBadge>
+                  <PixelBadge variant="secondary" class="text-[11px]">
+                    {{ t('gameControl.playerPins') }}: {{ pinAnswerEntries.length }}
+                  </PixelBadge>
+                </div>
+
+                <div class="border-[3px] border-black bg-white p-2 sm:p-3">
+                  <div v-if="pinQuestionMediaUrl" class="relative mx-auto w-fit max-w-full">
+                    <img
+                      :src="pinQuestionMediaUrl"
+                      :alt="currentQuestion.text"
+                      class="block max-h-[min(34rem,calc(100vh-26rem))] max-w-full object-contain"
+                    />
+
+                    <div
+                      v-if="currentQuestion.pinConfig"
+                      class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-success bg-success/20 shadow-[0_0_0_3px_rgba(255,255,255,0.8)]"
+                      :style="{
+                        left: `${currentQuestion.pinConfig.x}%`,
+                        top: `${currentQuestion.pinConfig.y}%`,
+                        width: `${(currentQuestion.pinConfig.radius || 10) * 2}%`,
+                        height: `${(currentQuestion.pinConfig.radius || 10) * 2}%`
+                      }"
+                    ></div>
+                    <div
+                      v-if="currentQuestion.pinConfig"
+                      class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                      :style="{ left: `${currentQuestion.pinConfig.x}%`, top: `${currentQuestion.pinConfig.y}%` }"
+                    >
+                      <div class="flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-white bg-success text-sm font-bold text-white shadow-lg">
+                        ✓
+                      </div>
+                    </div>
+
+                    <div
+                      v-for="entry in pinAnswerEntries"
+                      :key="entry.playerId"
+                      class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                      :style="{ left: `${entry.coords.x}%`, top: `${entry.coords.y}%` }"
+                    >
+                      <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-white text-xs font-bold text-white shadow-lg"
+                        :class="entry.isCorrect ? 'bg-success' : 'bg-destructive'"
+                      >
+                        {{ entry.label }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-else class="flex min-h-48 items-center justify-center px-6 py-10 text-center text-muted-foreground">
+                    {{ t('playerGame.imageNotAvailable') }}
+                  </div>
+                </div>
+
+                <div v-if="pinAnswerEntries.length === 0" class="border-[3px] border-dashed border-border bg-muted/30 px-4 py-6 text-center text-muted-foreground">
+                  {{ t('gameControl.noPinSubmissions') }}
                 </div>
               </PixelCard>
 

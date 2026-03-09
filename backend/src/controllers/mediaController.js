@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 import Media from '../models/Media.js';
+import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
 import {
@@ -227,13 +228,24 @@ async function checkMediaAccess(media, user, sessionPin) {
     return true;
   }
 
-  // 2. Media not attached to quiz yet - only owner can access
-  if (!media.quizId) {
+  // Older media rows may not have been back-linked to the quiz yet.
+  // Fall back to the question that references this media URL.
+  let quizId = media.quizId;
+  if (!quizId) {
+    const linkedQuestion = await Question.findOne({
+      mediaUrl: `/media/${media._id}`
+    }).select('quizId');
+
+    quizId = linkedQuestion?.quizId || null;
+  }
+
+  // 2. Media not attached to any quiz yet - only owner can access
+  if (!quizId) {
     return false;
   }
 
   // 3. Quiz is published - anyone can access
-  const quiz = await Quiz.findById(media.quizId);
+  const quiz = await Quiz.findById(quizId);
   if (quiz && quiz.isPublished) {
     return true;
   }
@@ -242,7 +254,7 @@ async function checkMediaAccess(media, user, sessionPin) {
   if (sessionPin) {
     const session = await Session.findOne({
       pin: sessionPin,
-      quizId: media.quizId
+      quizId
     });
     if (session && session.status !== 'finished') {
       return true;

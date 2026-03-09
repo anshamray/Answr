@@ -57,12 +57,13 @@ export function broadcastQuestion(io, sessionPin, questionData) {
  * Broadcast question intro (signals start of intro countdown)
  * @param {Server} io - Socket.io server instance
  * @param {string} sessionPin - The session PIN
- * @param {Object} data - { questionNumber, totalQuestions }
+ * @param {Object} data - { questionNumber, totalQuestions, countdownSeconds }
  */
 export function broadcastQuestionIntro(io, sessionPin, data) {
   io.to(sessionPin).emit(GAME_EVENTS.QUESTION_INTRO, {
     questionNumber: data.questionNumber,
-    totalQuestions: data.totalQuestions
+    totalQuestions: data.totalQuestions,
+    countdownSeconds: data.countdownSeconds
   });
 }
 

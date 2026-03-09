@@ -407,9 +407,20 @@ function submitPendingAnswerOnTimeout() {
   }
 }
 
-function startIntroCountdown() {
+function handleTimeout() {
+  if (submitted.value) return;
+
+  stopTimer();
+  submitPendingAnswerOnTimeout();
+
+  // Preserve the submitted state for partially completed answers that were
+  // auto-sent on timeout; only show a pure timeout state when nothing was sent.
+  timedOut.value = !submitted.value;
+}
+
+function startIntroCountdown(seconds = 3) {
   stopIntroCountdown();
-  introCountdown.value = 3;
+  introCountdown.value = seconds;
   phase.value = 'intro';
 
   introInterval = setInterval(() => {
@@ -436,9 +447,7 @@ function startTimer() {
   timerInterval = setInterval(() => {
     timeRemaining.value--;
     if (timeRemaining.value <= 0) {
-      stopTimer();
-      timedOut.value = true;
-      submitPendingAnswerOnTimeout();
+      handleTimeout();
     }
   }, 1000);
 }
@@ -469,9 +478,9 @@ function setup() {
   // Start intro countdown for initial question
   startIntroCountdown();
 
-  socket.on('game:questionIntro', () => {
+  socket.on('game:questionIntro', (data) => {
     // Start the intro countdown (3-2-1-Go!)
-    startIntroCountdown();
+    startIntroCountdown(data?.countdownSeconds || 3);
   });
 
   socket.on('game:questionStart', () => {
@@ -489,9 +498,7 @@ function setup() {
       }
       timeRemaining.value = data.remaining;
       if (data.remaining <= 0 && !submitted.value) {
-        timedOut.value = true;
-        stopTimer();
-        submitPendingAnswerOnTimeout();
+        handleTimeout();
       }
     }
   });
@@ -782,7 +789,7 @@ onUnmounted(cleanup);
 
       <!-- Pin-answer mode -->
       <template v-else-if="isPinAnswer">
-        <div class="flex-1 flex flex-col px-4 py-4 bg-gradient-to-br from-primary/10 to-secondary/10">
+        <div class="flex-1 min-h-0 flex flex-col px-4 py-4 bg-gradient-to-br from-primary/10 to-secondary/10">
           <PixelCard class="mb-4">
             <h2 class="text-lg sm:text-xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
@@ -796,7 +803,7 @@ onUnmounted(cleanup);
             <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}</p>
           </div>
 
-          <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center gap-4">
+          <div v-if="!submitted && !timedOut" class="flex-1 min-h-0 flex flex-col items-center gap-4 overflow-y-auto">
             <p class="text-sm text-muted-foreground font-bold">{{ t('playerGame.tapOnImage') }}</p>
             <div
               class="relative w-full max-w-md border-[3px] border-black cursor-crosshair select-none"
@@ -824,13 +831,17 @@ onUnmounted(cleanup);
               </div>
             </div>
 
-            <button
+            <div
               v-if="pinX != null"
-              class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none"
-              @click="submitPinAnswer"
+              class="sticky bottom-0 z-10 w-full max-w-md bg-gradient-to-t from-background via-background/95 to-transparent px-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
             >
-              {{ t('playerGame.submitAnswer') }}
-            </button>
+              <button
+                class="w-full px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none"
+                @click="submitPinAnswer"
+              >
+                {{ t('playerGame.submitAnswer') }}
+              </button>
+            </div>
           </div>
 
           <div class="mt-4 text-center">

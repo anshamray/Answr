@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
@@ -23,6 +23,7 @@ const resultStats = ref({
   totalQuestions: null,
   avgScore: null
 });
+let isDisposed = false;
 
 const leaderboard = computed(() => {
   // Prefer rankings from /results endpoint
@@ -66,8 +67,96 @@ const avgScore = computed(() => {
   return Math.round(sum / leaderboard.value.length);
 });
 
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
+
+async function fetchJson(url, options = {}) {
+  const res = await fetch(url, options);
+  const json = await res.json().catch(() => null);
+
+  return { res, json };
+}
+
+function applyDedicatedResults(data) {
+  rankings.value = data?.rankings || [];
+  resultStats.value = {
+    totalPlayers: data?.stats?.totalPlayers ?? data?.totalParticipants ?? rankings.value.length,
+    totalQuestions: data?.stats?.totalQuestions ?? data?.totalQuestions ?? 0,
+    avgScore: data?.stats?.avgScore ?? data?.avgScore ?? 0
+  };
+  session.value = {
+    quizId: { title: data?.quizTitle },
+    status: data?.status,
+    finishedAt: data?.finishedAt
+  };
+}
+
+function applySessionFallback(sessionData) {
+  session.value = sessionData;
+  resultStats.value = {
+    totalPlayers: sessionData?.participants?.length ?? null,
+    totalQuestions: sessionData?.quizId?.questions?.length ?? null,
+    avgScore: null
+  };
+}
+
+async function fetchDedicatedResults(headers) {
+  const maxAttempts = 6;
+
+  for (let attempt = 0; attempt < maxAttempts && !isDisposed; attempt++) {
+    const { res, json } = await fetchJson(apiUrl(`/api/sessions/${sessionId}/results`), { headers });
+
+    if (res.ok) {
+      applyDedicatedResults(json?.data);
+      return true;
+    }
+
+    const message = json?.message || json?.error || '';
+    const shouldRetry = res.status === 400 && /not finished/i.test(message);
+
+    if (!shouldRetry || attempt === maxAttempts - 1) {
+      return false;
+    }
+
+    await wait(1000);
+  }
+
+  return false;
+}
+
+async function fetchSessionFallback(headers, guestToken) {
+  const maxAttempts = 6;
+
+  for (let attempt = 0; attempt < maxAttempts && !isDisposed; attempt++) {
+    let url = apiUrl(`/api/sessions/${sessionId}`);
+    if (guestToken) {
+      url += `?guestToken=${encodeURIComponent(guestToken)}`;
+    }
+
+    const { res, json } = await fetchJson(url, { headers });
+    if (!res.ok) {
+      throw new Error(json?.message || json?.error || 'Failed to load results');
+    }
+
+    const sessionData = json?.data?.session;
+    const isFinished = sessionData?.status === 'finished';
+
+    if (isFinished || attempt === maxAttempts - 1) {
+      applySessionFallback(sessionData);
+      return;
+    }
+
+    await wait(1000);
+  }
+}
+
 async function fetchResults() {
   loading.value = true;
+  error.value = '';
+
   try {
     const headers = {};
     const authToken = auth.token || localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
@@ -77,49 +166,20 @@ async function fetchResults() {
       headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    // Try the dedicated results endpoint first
     if (authToken) {
-      try {
-        const resultsRes = await fetch(apiUrl(`/api/sessions/${sessionId}/results`), { headers });
-        if (resultsRes.ok) {
-          const resultsJson = await resultsRes.json();
-          const data = resultsJson.data;
-          rankings.value = data?.rankings || [];
-          resultStats.value = {
-            totalPlayers: data?.stats?.totalPlayers ?? data?.totalParticipants ?? rankings.value.length,
-            totalQuestions: data?.stats?.totalQuestions ?? data?.totalQuestions ?? 0,
-            avgScore: data?.stats?.avgScore ?? data?.avgScore ?? 0
-          };
-          session.value = {
-            quizId: { title: data?.quizTitle },
-            status: data?.status,
-            finishedAt: data?.finishedAt
-          };
-          return;
-        }
-      } catch {
-        // Fall through to regular session endpoint
+      const loadedDedicatedResults = await fetchDedicatedResults(headers);
+      if (loadedDedicatedResults || isDisposed) {
+        return;
       }
     }
 
-    // Fallback: use the general session endpoint
-    let url = apiUrl(`/api/sessions/${sessionId}`);
-    if (guestToken) url += `?guestToken=${encodeURIComponent(guestToken)}`;
-
-    const res = await fetch(url, { headers });
-    if (!res.ok) throw new Error('Failed to load results');
-
-    const json = await res.json();
-    session.value = json.data?.session;
-    resultStats.value = {
-      totalPlayers: json.data?.session?.participants?.length ?? null,
-      totalQuestions: json.data?.session?.quizId?.questions?.length ?? null,
-      avgScore: null
-    };
+    await fetchSessionFallback(headers, guestToken);
   } catch (err) {
     error.value = err.message;
   } finally {
-    loading.value = false;
+    if (!isDisposed) {
+      loading.value = false;
+    }
   }
 }
 
@@ -128,6 +188,9 @@ function getAvatar(index) {
 }
 
 onMounted(fetchResults);
+onUnmounted(() => {
+  isDisposed = true;
+});
 </script>
 
 <template>

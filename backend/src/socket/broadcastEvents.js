@@ -23,7 +23,7 @@ import { calculateScore, DEFAULT_SCORING_CONFIG, getStreakBonus } from '../utils
  * Start the server-side question timer with an intro phase.
  *
  * Flow:
- * 1. Emits `game:questionIntro` immediately (host shows question only, players see countdown)
+ * 1. Emits `game:questionIntro` immediately (host and players see intro countdown)
  * 2. After INTRO_DURATION (3s), emits `game:questionStart` (answers can be shown)
  * 3. Starts the actual answer timer, emitting `game:timer` every second
  * 4. Auto-ends the question when timer reaches 0
@@ -41,7 +41,8 @@ export function startQuestionTimer(io, sessionPin, session) {
   // Emit intro event immediately
   broadcastQuestionIntro(io, sessionPin, {
     questionNumber: (session.currentQuestionIndex ?? 0) + 1,
-    totalQuestions: session.totalQuestions || 1
+    totalQuestions: session.totalQuestions || 1,
+    countdownSeconds: Math.ceil(INTRO_DURATION / 1000)
   });
 
   // After intro duration, signal that answers can be shown and start the timer
