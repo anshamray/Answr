@@ -7,6 +7,7 @@ import { connectSocket, getSocket } from '../lib/socket.js';
 import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
 import { apiUrl } from '../lib/api.js';
+import { useSliderQuestion } from '../composables/useSliderQuestion.js';
 
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -38,8 +39,6 @@ let timerInterval = null;
 let previousScore = 0;
 let cleanupReconnect = () => {};
 
-const DEFAULT_SLIDER_CONFIG = { min: 0, max: 100 };
-
 const question = computed(() => game.currentQuestion);
 const options = computed(() => question.value?.options || []);
 const isMultiAnswer = computed(() => question.value?.allowMultipleAnswers || false);
@@ -50,19 +49,12 @@ const isSlider = computed(() =>
 const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
-const sliderConfig = computed(() => question.value?.sliderConfig || DEFAULT_SLIDER_CONFIG);
-const sliderPosition = computed(() => {
-  const min = Number(sliderConfig.value.min ?? DEFAULT_SLIDER_CONFIG.min);
-  const max = Number(sliderConfig.value.max ?? DEFAULT_SLIDER_CONFIG.max);
-  const range = max - min;
-
-  if (!Number.isFinite(min) || !Number.isFinite(max) || range <= 0) {
-    return 50;
-  }
-
-  const clamped = Math.min(Math.max(sliderValue.value, min), max);
-  return ((clamped - min) / range) * 100;
+const sliderConfigSource = computed(() => question.value?.sliderConfig || null);
+const { sliderConfig, getSliderPosition } = useSliderQuestion({
+  configRef: sliderConfigSource
 });
+
+const sliderPosition = computed(() => getSliderPosition(sliderValue.value));
 
 // Slider state
 const sliderValue = ref(50);

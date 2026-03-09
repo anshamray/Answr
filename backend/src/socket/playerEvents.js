@@ -39,7 +39,8 @@ import {
   getConnectedPlayers,
   validateJoinPayload,
   checkSessionState,
-  createPlayerEntry
+  createPlayerEntry,
+  replaySessionStateToSocket
 } from './sessionUtils.js';
 import { broadcastLobbyUpdate } from './gameEvents.js';
 import {
@@ -48,59 +49,6 @@ import {
   computeLeaderboard,
   computeFinalResults
 } from './broadcastEvents.js';
-
-function restoreReconnectedPlayerState(socket, session) {
-  if (!session?.status || session.status === 'lobby') {
-    return;
-  }
-
-  if (session.status === 'finished') {
-    socket.emit(GAME_EVENTS.END, computeFinalResults(session));
-    return;
-  }
-
-  socket.emit(GAME_EVENTS.STARTED, {
-    status: session.status
-  });
-
-  if (session.currentQuestionPayload) {
-    socket.emit(GAME_EVENTS.QUESTION, session.currentQuestionPayload);
-  }
-
-  if (session.questionEnded) {
-    socket.emit(GAME_EVENTS.QUESTION_END, {
-      correctAnswerIds: session.currentCorrectAnswerIds || []
-    });
-    socket.emit(GAME_EVENTS.LEADERBOARD, {
-      leaderboard: computeLeaderboard(session)
-    });
-    return;
-  }
-
-  if (session.introTimer && session.currentQuestionPayload) {
-    socket.emit(GAME_EVENTS.QUESTION_INTRO, {
-      questionNumber: session.currentQuestionPayload.questionNumber,
-      totalQuestions: session.currentQuestionPayload.totalQuestions
-    });
-    return;
-  }
-
-  if (session.status === 'paused') {
-    socket.emit(GAME_EVENTS.PAUSED, {
-      status: 'paused'
-    });
-  }
-
-  if (session.currentQuestionPayload) {
-    socket.emit(GAME_EVENTS.QUESTION_START, {});
-  }
-
-  if (typeof session.questionTimeRemaining === 'number') {
-    socket.emit(GAME_EVENTS.TIMER, {
-      remaining: session.questionTimeRemaining
-    });
-  }
-}
 
 /**
  * Register all player-related Socket.io event handlers (WS-2)
@@ -412,7 +360,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       }));
 
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
-      restoreReconnectedPlayerState(socket, session);
+      replaySessionStateToSocket(socket, session);
     } catch (error) {
       console.error('Error in player:reconnect handler:', error);
       emitPlayerError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while reconnecting.');

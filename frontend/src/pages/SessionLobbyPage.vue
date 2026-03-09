@@ -6,6 +6,7 @@ import { useAuthStore } from '../stores/authStore.js';
 import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
 import { TIMING, STORAGE_KEYS, AVATARS } from '../constants/index.js';
+import { useGameSettings } from '../composables/useGameSettings.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -29,10 +30,29 @@ const players = ref([]);
 const starting = ref(false);
 const copied = ref(false);
 
-// Quick Settings
-const showLeaderboard = ref(false);
-const musicEnabled = ref(true);
-const allowLateJoins = ref(false);
+// Quick Settings (shared with GameControlPage)
+const { gameSettings, loadGameSettings, saveGameSettings } = useGameSettings();
+
+const showLeaderboard = computed({
+  get: () => gameSettings.value.showLeaderboard,
+  set: (value) => {
+    gameSettings.value.showLeaderboard = value;
+  }
+});
+
+const musicEnabled = computed({
+  get: () => gameSettings.value.musicEnabled,
+  set: (value) => {
+    gameSettings.value.musicEnabled = value;
+  }
+});
+
+const allowLateJoins = computed({
+  get: () => gameSettings.value.allowLateJoins,
+  set: (value) => {
+    gameSettings.value.allowLateJoins = value;
+  }
+});
 
 const sessionId = route.params.id;
 
@@ -121,12 +141,8 @@ function cleanup() {
 
 function startGame() {
   starting.value = true;
-  // Save settings to sessionStorage for use in GameControlPage
-  sessionStorage.setItem(STORAGE_KEYS.GAME_SETTINGS, JSON.stringify({
-    showLeaderboard: showLeaderboard.value,
-    musicEnabled: musicEnabled.value,
-    allowLateJoins: allowLateJoins.value
-  }));
+  // Persist settings for use in GameControlPage
+  saveGameSettings();
   router.push(`/session/${sessionId}/control`);
 }
 
@@ -150,7 +166,10 @@ function copyPin() {
   setTimeout(() => { copied.value = false; }, TIMING.COPY_FEEDBACK_DURATION);
 }
 
-onMounted(fetchSession);
+onMounted(() => {
+  loadGameSettings();
+  fetchSession();
+});
 
 onUnmounted(() => {
   cleanup();

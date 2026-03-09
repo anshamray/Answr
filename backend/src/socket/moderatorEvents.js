@@ -17,7 +17,8 @@ import { MODERATOR_EVENTS, GAME_EVENTS, PLAYER_EVENTS, ERROR_CODES } from './eve
 import {
   emitModeratorError,
   getConnectedPlayers,
-  assertIsHost
+  assertIsHost,
+  replaySessionStateToSocket
 } from './sessionUtils.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 
@@ -39,59 +40,6 @@ import {
 import Session from '../models/Session.js';
 import Participant from '../models/Participant.js';
 import Submission from '../models/Submission.js';
-
-function restoreReconnectedModeratorState(socket, session) {
-  if (!session?.status || session.status === 'lobby') {
-    return;
-  }
-
-  if (session.status === 'finished') {
-    socket.emit(GAME_EVENTS.END, computeFinalResults(session));
-    return;
-  }
-
-  socket.emit(GAME_EVENTS.STARTED, {
-    status: session.status
-  });
-
-  if (session.currentQuestionPayload) {
-    socket.emit(GAME_EVENTS.QUESTION, session.currentQuestionPayload);
-  }
-
-  if (session.questionEnded) {
-    socket.emit(GAME_EVENTS.QUESTION_END, {
-      correctAnswerIds: session.currentCorrectAnswerIds || []
-    });
-    socket.emit(GAME_EVENTS.LEADERBOARD, {
-      leaderboard: computeLeaderboard(session)
-    });
-    return;
-  }
-
-  if (session.introTimer && session.currentQuestionPayload) {
-    socket.emit(GAME_EVENTS.QUESTION_INTRO, {
-      questionNumber: session.currentQuestionPayload.questionNumber,
-      totalQuestions: session.currentQuestionPayload.totalQuestions
-    });
-    return;
-  }
-
-  if (session.status === 'paused') {
-    socket.emit(GAME_EVENTS.PAUSED, {
-      status: 'paused'
-    });
-  }
-
-  if (session.currentQuestionPayload) {
-    socket.emit(GAME_EVENTS.QUESTION_START, {});
-  }
-
-  if (typeof session.questionTimeRemaining === 'number') {
-    socket.emit(GAME_EVENTS.TIMER, {
-      remaining: session.questionTimeRemaining
-    });
-  }
-}
 
 /**
  * Register all moderator-related Socket.io event handlers (WS-3)
@@ -190,7 +138,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       }));
 
       broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
-      restoreReconnectedModeratorState(socket, session);
+      replaySessionStateToSocket(socket, session);
     } catch (error) {
       console.error('Error in moderator:join handler:', error);
       emitModeratorError(socket, ERROR_CODES.INTERNAL_ERROR, 'An unexpected error occurred while joining.');

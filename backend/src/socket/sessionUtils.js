@@ -5,7 +5,8 @@
  * Eliminates code duplication and provides consistent behavior.
  */
 
-import { PLAYER_EVENTS, MODERATOR_EVENTS, ERROR_CODES } from './events.js';
+import { PLAYER_EVENTS, MODERATOR_EVENTS, GAME_EVENTS, ERROR_CODES } from './events.js';
+import { computeLeaderboard, computeFinalResults } from './broadcastEvents.js';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -185,4 +186,65 @@ export function createPlayerEntry(name, socketId, avatar) {
   };
 
   return { id: playerId, player };
+}
+
+/**
+ * Replay the current session state to a reconnecting socket.
+ * Used by both moderator and player reconnect flows to restore
+ * game phase, question, leaderboard and timer in a consistent way.
+ *
+ * @param {import('socket.io').Socket} socket
+ * @param {object} session
+ */
+export function replaySessionStateToSocket(socket, session) {
+  if (!session?.status || session.status === 'lobby') {
+    return;
+  }
+
+  if (session.status === 'finished') {
+    socket.emit(GAME_EVENTS.END, computeFinalResults(session));
+    return;
+  }
+
+  socket.emit(GAME_EVENTS.STARTED, {
+    status: session.status
+  });
+
+  if (session.currentQuestionPayload) {
+    socket.emit(GAME_EVENTS.QUESTION, session.currentQuestionPayload);
+  }
+
+  if (session.questionEnded) {
+    socket.emit(GAME_EVENTS.QUESTION_END, {
+      correctAnswerIds: session.currentCorrectAnswerIds || []
+    });
+    socket.emit(GAME_EVENTS.LEADERBOARD, {
+      leaderboard: computeLeaderboard(session)
+    });
+    return;
+  }
+
+  if (session.introTimer && session.currentQuestionPayload) {
+    socket.emit(GAME_EVENTS.QUESTION_INTRO, {
+      questionNumber: session.currentQuestionPayload.questionNumber,
+      totalQuestions: session.currentQuestionPayload.totalQuestions
+    });
+    return;
+  }
+
+  if (session.status === 'paused') {
+    socket.emit(GAME_EVENTS.PAUSED, {
+      status: 'paused'
+    });
+  }
+
+  if (session.currentQuestionPayload) {
+    socket.emit(GAME_EVENTS.QUESTION_START, {});
+  }
+
+  if (typeof session.questionTimeRemaining === 'number') {
+    socket.emit(GAME_EVENTS.TIMER, {
+      remaining: session.questionTimeRemaining
+    });
+  }
 }

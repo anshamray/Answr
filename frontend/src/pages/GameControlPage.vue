@@ -6,6 +6,8 @@ import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
 import { STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
+import { useSliderQuestion } from '../composables/useSliderQuestion.js';
+import { useGameSettings } from '../composables/useGameSettings.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -42,24 +44,8 @@ const phase = ref('answering');
 const introCountdown = ref(3);
 let introInterval = null;
 
-// Game settings from lobby
-const gameSettings = ref({
-  showLeaderboard: true,
-  musicEnabled: true,
-  allowLateJoins: false
-});
-
-// Load settings from sessionStorage
-function loadSettings() {
-  try {
-    const stored = sessionStorage.getItem(STORAGE_KEYS.GAME_SETTINGS);
-    if (stored) {
-      gameSettings.value = { ...gameSettings.value, ...JSON.parse(stored) };
-    }
-  } catch {
-    // Settings not found or invalid, use defaults
-  }
-}
+// Game settings from lobby (shared with SessionLobbyPage)
+const { gameSettings, loadGameSettings } = useGameSettings();
 
 const currentQuestion = computed(() => {
   if (currentIndex.value < 0 || currentIndex.value >= questions.value.length) return null;
@@ -90,53 +76,22 @@ const totalDistributionAnswers = computed(() =>
   Object.values(answerDistribution.value).reduce((s, c) => s + c, 0)
 );
 
-const sliderConfig = computed(() => currentQuestion.value?.sliderConfig || {
-  min: 0,
-  max: 100,
-  correctValue: 50,
-  margin: 'medium',
-  unit: ''
+const sliderConfigSource = computed(() => currentQuestion.value?.sliderConfig || null);
+
+const {
+  sliderConfig,
+  sliderAcceptedRange,
+  hasSliderAcceptedRangeWidth,
+  sliderEntries,
+  sliderAverageValue,
+  getSliderPosition,
+  isSliderValueCorrect,
+  formatSliderValue,
+  formatAcceptedSliderRange
+} = useSliderQuestion({
+  configRef: sliderConfigSource,
+  distributionRef: answerDistribution
 });
-
-const sliderEntries = computed(() =>
-  Object.entries(answerDistribution.value)
-    .map(([rawValue, count]) => ({
-      rawValue,
-      value: Number(rawValue),
-      count
-    }))
-    .filter((entry) => Number.isFinite(entry.value) && entry.count > 0)
-    .sort((a, b) => a.value - b.value)
-);
-
-const sliderAcceptedRange = computed(() => {
-  const config = sliderConfig.value;
-  const margins = {
-    none: 0,
-    low: 0.05,
-    medium: 0.1,
-    high: 0.2,
-    max: 0.5
-  };
-  const range = Math.max(1, (config.max ?? 100) - (config.min ?? 0));
-  const tolerance = range * (margins[config.margin] || 0);
-
-  return {
-    min: Math.max(config.min ?? 0, (config.correctValue ?? 0) - tolerance),
-    max: Math.min(config.max ?? 100, (config.correctValue ?? 0) + tolerance)
-  };
-});
-
-const sliderAverageValue = computed(() => {
-  if (sliderEntries.value.length === 0 || totalDistributionAnswers.value === 0) return null;
-
-  const weightedTotal = sliderEntries.value.reduce((sum, entry) => sum + (entry.value * entry.count), 0);
-  return Math.round((weightedTotal / totalDistributionAnswers.value) * 10) / 10;
-});
-
-const hasSliderAcceptedRangeWidth = computed(() =>
-  Math.abs(sliderAcceptedRange.value.max - sliderAcceptedRange.value.min) > 0.001
-);
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 const answerTextById = computed(() => new Map(
@@ -407,39 +362,6 @@ function getAccuracyPercentage() {
   const total = answersReceived.value || totalDistributionAnswers.value;
   if (total === 0) return 0;
   return Math.round((getCorrectCount() / total) * 100);
-}
-
-function getSliderPosition(value) {
-  const min = sliderConfig.value.min ?? 0;
-  const max = sliderConfig.value.max ?? 100;
-  const range = max - min;
-
-  if (range <= 0) return 50;
-
-  const clamped = Math.min(Math.max(value, min), max);
-  return ((clamped - min) / range) * 100;
-}
-
-function isSliderValueCorrect(value) {
-  const accepted = sliderAcceptedRange.value;
-  return value >= accepted.min && value <= accepted.max;
-}
-
-function formatSliderValue(value) {
-  const unit = sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : '';
-  return `${value}${unit}`;
-}
-
-function formatSliderRangeValue(value) {
-  return `${Math.round(value * 10) / 10}${sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : ''}`;
-}
-
-function formatAcceptedSliderRange() {
-  if (!hasSliderAcceptedRangeWidth.value) {
-    return formatSliderRangeValue(sliderAcceptedRange.value.min);
-  }
-
-  return `${formatSliderRangeValue(sliderAcceptedRange.value.min)} - ${formatSliderRangeValue(sliderAcceptedRange.value.max)}`;
 }
 
 function getSortOrderText(orderIds) {
@@ -844,7 +766,7 @@ function endGame() {
 }
 
 onMounted(() => {
-  loadSettings();
+  loadGameSettings();
   fetchSession();
 });
 onUnmounted(cleanup);
