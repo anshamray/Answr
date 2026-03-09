@@ -900,8 +900,8 @@ onUnmounted(cleanup);
             :class="[
               answerBg[i % answerBg.length],
               isMultiAnswer
-                ? (selectedAnswers.includes(option.id) ? 'ring-4 ring-white/50 scale-95' : '')
-                : (selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : ''),
+                ? (selectedAnswers.includes(option.id) ? 'ring-4 ring-white/50 scale-90' : '')
+                : (selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-90' : ''),
               !isMultiAnswer && submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
               (!isMultiAnswer && submitted) || timedOut ? 'pointer-events-none' : 'active:scale-95'
             ]"
@@ -968,8 +968,8 @@ onUnmounted(cleanup);
               :class="[
                 answerBg[i % answerBg.length],
                 isMultiAnswer
-                  ? (selectedAnswers.includes(option.id) ? 'ring-4 ring-white/50 scale-95' : '')
-                  : (selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : ''),
+                  ? (selectedAnswers.includes(option.id) ? 'ring-4 ring-white/50 scale-90' : '')
+                  : (selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-90' : ''),
                 !isMultiAnswer && submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
                 (!isMultiAnswer && submitted) || timedOut ? 'pointer-events-none' : 'active:translate-x-1 active:translate-y-1 active:shadow-none'
               ]"
