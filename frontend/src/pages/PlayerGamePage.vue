@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
@@ -36,14 +36,19 @@ let introInterval = null;
 let timerInterval = null;
 let previousScore = 0;
 
+const DEFAULT_SLIDER_CONFIG = { min: 0, max: 100 };
+
 const question = computed(() => game.currentQuestion);
 const options = computed(() => question.value?.options || []);
 const isMultiAnswer = computed(() => question.value?.allowMultipleAnswers || false);
-const isSlider = computed(() => question.value?.type === 'slider' || !!question.value?.sliderConfig);
+const isSlider = computed(() =>
+  question.value?.type === 'slider' ||
+  (question.value?.sliderConfig?.min != null && question.value?.sliderConfig?.max != null)
+);
 const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
-const sliderConfig = computed(() => question.value?.sliderConfig || { min: 0, max: 100 });
+const sliderConfig = computed(() => question.value?.sliderConfig || DEFAULT_SLIDER_CONFIG);
 
 // Slider state
 const sliderValue = ref(50);
@@ -278,6 +283,64 @@ function submitTypeAnswer() {
   });
 }
 
+function getSliderMidpoint(config) {
+  const min = Number(config?.min ?? DEFAULT_SLIDER_CONFIG.min);
+  const max = Number(config?.max ?? DEFAULT_SLIDER_CONFIG.max);
+
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max) {
+    return Math.round((DEFAULT_SLIDER_CONFIG.min + DEFAULT_SLIDER_CONFIG.max) / 2);
+  }
+
+  return Math.round((min + max) / 2);
+}
+
+function initializeQuestionState(data = question.value) {
+  if (!data) return;
+
+  selectedAnswer.value = null;
+  selectedAnswers.value = [];
+  submitted.value = false;
+  questionEnded.value = false;
+  timedOut.value = false;
+  correctAnswerIds.value = [];
+  leaderboard.value = [];
+  pointsEarned.value = null;
+  sliderValue.value = getSliderMidpoint(data.sliderConfig);
+  sortOrder.value = [];
+  pinX.value = null;
+  pinY.value = null;
+  textAnswer.value = '';
+  timeRemaining.value = data.timeLimit ?? null;
+}
+
+function submitPendingAnswerOnTimeout() {
+  if (submitted.value) return;
+
+  if (isMultiAnswer.value && selectedAnswers.value.length > 0) {
+    submitMultiAnswer();
+    return;
+  }
+
+  if (isSlider.value) {
+    submitSliderAnswer();
+    return;
+  }
+
+  if (isSort.value && sortOrder.value.length > 0) {
+    submitSortAnswer();
+    return;
+  }
+
+  if (isPinAnswer.value && pinX.value != null) {
+    submitPinAnswer();
+    return;
+  }
+
+  if (isTypeAnswer.value && textAnswer.value.trim()) {
+    submitTypeAnswer();
+  }
+}
+
 function startIntroCountdown() {
   stopIntroCountdown();
   introCountdown.value = 3;
@@ -309,26 +372,7 @@ function startTimer() {
     if (timeRemaining.value <= 0) {
       stopTimer();
       timedOut.value = true;
-      // Auto-submit multi-answer selections on timeout
-      if (isMultiAnswer.value && !submitted.value && selectedAnswers.value.length > 0) {
-        submitMultiAnswer();
-      }
-      // Auto-submit slider on timeout
-      if (isSlider.value && !submitted.value) {
-        submitSliderAnswer();
-      }
-      // Auto-submit sort on timeout
-      if (isSort.value && !submitted.value && sortOrder.value.length > 0) {
-        submitSortAnswer();
-      }
-      // Auto-submit pin on timeout
-      if (isPinAnswer.value && !submitted.value && pinX.value != null) {
-        submitPinAnswer();
-      }
-      // Auto-submit type-answer on timeout
-      if (isTypeAnswer.value && !submitted.value && textAnswer.value.trim()) {
-        submitTypeAnswer();
-      }
+      submitPendingAnswerOnTimeout();
     }
   }, 1000);
 }
@@ -339,6 +383,12 @@ function stopTimer() {
     timerInterval = null;
   }
 }
+
+watch(question, (newQuestion, oldQuestion) => {
+  if (!newQuestion) return;
+  if (newQuestion.questionId === oldQuestion?.questionId) return;
+  initializeQuestionState(newQuestion);
+}, { immediate: true });
 
 function setup() {
   const socket = getSocket();
@@ -364,10 +414,15 @@ function setup() {
 
   socket.on('game:timer', (data) => {
     if (data?.remaining != null) {
+      if (phase.value === 'intro') {
+        stopIntroCountdown();
+        phase.value = 'answering';
+      }
       timeRemaining.value = data.remaining;
       if (data.remaining <= 0 && !submitted.value) {
         timedOut.value = true;
         stopTimer();
+        submitPendingAnswerOnTimeout();
       }
     }
   });
@@ -377,23 +432,6 @@ function setup() {
       previousScore = myEntry.value.score;
     }
     game.currentQuestion = data;
-    selectedAnswer.value = null;
-    selectedAnswers.value = [];
-    submitted.value = false;
-    questionEnded.value = false;
-    timedOut.value = false;
-    correctAnswerIds.value = [];
-    leaderboard.value = [];
-    pointsEarned.value = null;
-    // Reset slider to midpoint of range
-    if (data?.sliderConfig) {
-      sliderValue.value = Math.round(((data.sliderConfig.min || 0) + (data.sliderConfig.max || 100)) / 2);
-    }
-    // Reset sort, pin, type-answer state
-    sortOrder.value = [];
-    pinX.value = null;
-    pinY.value = null;
-    textAnswer.value = '';
     // Don't start timer here - wait for game:questionStart after intro
   });
 
@@ -924,12 +962,16 @@ onUnmounted(cleanup);
                 class="flex items-center gap-2 px-2 py-1.5 border-2"
                 :class="entry.playerId === game.playerId ? 'border-primary bg-primary/10' : 'border-border'"
               >
-                <span class="text-sm font-bold w-5 text-center"
-                      :class="entry.position <= 3 ? 'text-warning' : 'text-muted-foreground'">
+                <span
+                  class="text-sm font-bold w-5 text-center"
+                  :class="entry.position <= 3 ? 'text-warning' : 'text-muted-foreground'"
+                >
                   {{ entry.position <= 3 ? AVATARS.MEDALS[entry.position - 1] : entry.position }}
                 </span>
-                <span class="flex-1 text-sm font-medium truncate"
-                      :class="entry.playerId === game.playerId ? 'text-primary' : 'text-foreground'">
+                <span
+                  class="flex-1 text-sm font-medium truncate"
+                  :class="entry.playerId === game.playerId ? 'text-primary' : 'text-foreground'"
+                >
                   {{ entry.playerId === game.playerId ? t('game.you') : entry.nickname }}
                 </span>
                 <span class="text-xs font-mono text-muted-foreground">{{ entry.score }}</span>

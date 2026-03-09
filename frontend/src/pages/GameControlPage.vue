@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
-import { TIMING, STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
+import { STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -62,6 +62,11 @@ const currentQuestion = computed(() => {
   return questions.value[currentIndex.value];
 });
 
+const isSliderQuestion = computed(() =>
+  currentQuestion.value?.type === 'slider' ||
+  (currentQuestion.value?.sliderConfig?.min != null && currentQuestion.value?.sliderConfig?.max != null)
+);
+
 const isLastQuestion = computed(() => currentIndex.value >= questions.value.length - 1);
 const questionNumber = computed(() => currentIndex.value + 1);
 const totalQuestions = computed(() => questions.value.length);
@@ -105,7 +110,7 @@ function getCorrectAnswerLabel() {
   if (!q) return '?';
   const qType = q.type || 'multiple-choice';
 
-  if (qType === 'slider' && q.sliderConfig) {
+  if (isSliderQuestion.value && q.sliderConfig) {
     return q.sliderConfig.correctValue + (q.sliderConfig.unit ? ' ' + q.sliderConfig.unit : '');
   }
   if (qType === 'sort') {
@@ -496,7 +501,7 @@ onUnmounted(cleanup);
               </h1>
 
               <!-- MC / True-False / Poll: answer grid -->
-              <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && !['slider', 'pin-answer', 'type-answer'].includes(currentQuestion.type)" class="grid grid-cols-2 gap-3">
+              <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer' ].includes(currentQuestion.type) && !isSliderQuestion" class="grid grid-cols-2 gap-3">
                 <div
                   v-for="(answer, i) in currentQuestion.answers"
                   :key="answer._id"
@@ -516,7 +521,7 @@ onUnmounted(cleanup);
               </div>
 
               <!-- Slider: show visual slider on presenter screen -->
-              <div v-else-if="currentQuestion.type === 'slider'" class="flex flex-col items-center gap-4 py-4">
+              <div v-else-if="isSliderQuestion" class="flex flex-col items-center gap-4 py-4">
                 <div class="text-5xl lg:text-7xl font-bold pixel-font text-primary">?</div>
                 <div class="w-full max-w-lg px-4">
                   <div class="w-full h-4 bg-muted border-2 border-black rounded-none relative">
@@ -578,7 +583,7 @@ onUnmounted(cleanup);
           <div class="grid gap-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:grid-cols-3' : ''">
             <!-- Answer Distribution -->
             <div class="space-y-4" :class="gameSettings.showLeaderboard && top5.length > 0 ? 'lg:col-span-2' : ''">
-              <PixelCard v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && !['slider', 'pin-answer', 'type-answer'].includes(currentQuestion.type)" class="space-y-3 !p-4">
+              <PixelCard v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer' ].includes(currentQuestion.type) && !isSliderQuestion" class="space-y-3 !p-4">
                 <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
 
                 <div class="space-y-2">
