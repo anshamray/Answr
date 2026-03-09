@@ -464,6 +464,26 @@
     "deleteConfirm": "Bist du sicher, dass du diese Frage löschen möchtest?",
     "leaveConfirm": "Du hast ungespeicherte Änderungen. Möchtest du wirklich gehen?"
   },
+  "questionValidation": {
+    "textRequired": "Fragetext ist erforderlich für Typ \"{type}\"",
+    "mcAnswerCount": "Multiple Choice benötigt 2–6 Antworten",
+    "mcNeedsCorrect": "Multiple Choice benötigt mindestens 1 richtige Antwort",
+    "tfAnswerCount": "Wahr/Falsch benötigt genau 2 Antworten",
+    "taAnswerCount": "Antwort eingeben benötigt 1–4 akzeptierte Antworten",
+    "taAnswerLength": "Antwort eingeben: jede Antwort darf maximal 20 Zeichen lang sein",
+    "sortAnswerCount": "Sortieren benötigt 3–4 Antworten",
+    "audioLanguageRequired": "Quiz-Audio benötigt eine Sprache",
+    "sliderConfigRequired": "Slider benötigt Min- und Max-Werte",
+    "sliderMinMax": "Slider-Minimum muss kleiner als Maximum sein",
+    "pinImageRequired": "Pin-Antwort benötigt ein Bild",
+    "pinConfigRequired": "Pin-Antwort benötigt Pin-Koordinaten",
+    "pollAnswerCount": "Umfrage benötigt 2–6 Antwortmöglichkeiten",
+    "brainstormConfigRequired": "Brainstorming benötigt eine Max-Ideen-Einstellung",
+    "dropPinImageRequired": "Drop-Pin benötigt ein Bild",
+    "scaleConfigRequired": "Skala benötigt einen Skalentyp",
+    "npsScaleConfigRequired": "NPS-Skala benötigt einen Skalentyp",
+    "questionNum": "Frage {num}"
+  },
   "analytics": {
     "title": "Sitzungsanalyse",
     "subtitle": "Überprüfe Leistungsdaten deiner Quiz-Sitzungen",

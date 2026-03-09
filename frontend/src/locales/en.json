@@ -464,6 +464,26 @@
     "deleteConfirm": "Are you sure you want to delete this question?",
     "leaveConfirm": "You have unsaved changes. Are you sure you want to leave?"
   },
+  "questionValidation": {
+    "textRequired": "Question text is required for type \"{type}\"",
+    "mcAnswerCount": "Multiple choice requires 2–6 answers",
+    "mcNeedsCorrect": "Multiple choice requires at least 1 correct answer",
+    "tfAnswerCount": "True/false requires exactly 2 answers",
+    "taAnswerCount": "Type answer requires 1–4 accepted answers",
+    "taAnswerLength": "Type answer: each answer must be 20 characters or fewer",
+    "sortAnswerCount": "Sort requires 3–4 answers",
+    "audioLanguageRequired": "Quiz audio requires a language",
+    "sliderConfigRequired": "Slider requires min and max values",
+    "sliderMinMax": "Slider min must be less than max",
+    "pinImageRequired": "Pin answer requires an image",
+    "pinConfigRequired": "Pin answer requires pin coordinates",
+    "pollAnswerCount": "Poll requires 2–6 answer options",
+    "brainstormConfigRequired": "Brainstorm requires max ideas setting",
+    "dropPinImageRequired": "Drop pin requires an image",
+    "scaleConfigRequired": "Scale requires a scale type",
+    "npsScaleConfigRequired": "NPS Scale requires a scale type",
+    "questionNum": "Question {num}"
+  },
   "analytics": {
     "title": "Session Analytics",
     "subtitle": "Review performance data from your quiz sessions",

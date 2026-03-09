@@ -224,12 +224,12 @@ function getIcon(iconName) {
           placeholder="Enter your question here..."
           class="w-full px-4 py-3 border-2 border-border bg-white text-lg focus:border-primary focus:outline-none resize-none"
           rows="3"
-          maxlength="120"
+          maxlength="300"
           @input="emitUpdate"
         ></textarea>
         <div class="flex justify-between mt-2">
-          <span class="text-xs text-muted-foreground">Maximum 120 characters</span>
-          <span class="text-xs text-muted-foreground">{{ localQuestion.text?.length || 0 }}/120</span>
+          <span class="text-xs text-muted-foreground">Maximum 300 characters</span>
+          <span class="text-xs text-muted-foreground">{{ localQuestion.text?.length || 0 }}/300</span>
         </div>
       </div>
 

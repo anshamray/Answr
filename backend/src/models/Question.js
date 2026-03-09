@@ -23,7 +23,7 @@ export const QUESTION_TYPES = [
   'nps-scale'
 ];
 
-/** Types where `text` is optional (all others: required, max 120 chars). */
+/** Types where `text` is optional (all others: required, max 300 chars). */
 const TEXT_OPTIONAL_TYPES = ['brainstorm', 'scale', 'nps-scale'];
 
 /** Types that award points (0 / 1000 / 2000). Opinion types are always 0. */
@@ -94,13 +94,13 @@ const questionSchema = new mongoose.Schema({
     type: String,
     default: '',
     trim: true,
-    maxlength: 120
+    maxlength: 300
   },
   textToReadAloud: {
     type: String,
     default: '',
     trim: true,
-    maxlength: 120
+    maxlength: 300
   },
   mediaUrl: {
     type: String,

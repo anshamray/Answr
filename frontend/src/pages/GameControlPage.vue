@@ -381,7 +381,7 @@ onUnmounted(cleanup);
             </PixelBadge>
 
             <PixelCard class="!p-8 lg:!p-12">
-              <h1 class="text-3xl lg:text-5xl font-bold leading-tight">
+              <h1 class="text-2xl lg:text-4xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
             </PixelCard>

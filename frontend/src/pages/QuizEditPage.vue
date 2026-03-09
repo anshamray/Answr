@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
 import { QUESTION_TYPES } from '../lib/questionTypes.js';
+import { validateAllQuestions } from '../lib/validateQuestion.js';
 import { TIMING } from '../constants/index.js';
 
 import PixelButton from '../components/PixelButton.vue';
@@ -38,9 +39,68 @@ const saving = ref(false);
 const error = ref('');
 const saveStatus = ref(''); // 'saved', 'saving', 'error'
 
+// Animated saving dots
+const saveDots = ref(0);
+let saveDotsInterval = null;
+
+function startSaveDots() {
+  saveDots.value = 1;
+  saveDotsInterval = setInterval(() => {
+    saveDots.value = (saveDots.value % 3) + 1;
+  }, 400);
+}
+
+function stopSaveDots() {
+  clearInterval(saveDotsInterval);
+  saveDotsInterval = null;
+  saveDots.value = 0;
+}
+
+const saveButtonText = computed(() => {
+  if (saving.value) {
+    return t('quizEditor.saveQuiz') + '.'.repeat(saveDots.value);
+  }
+  return t('quizEditor.saveQuiz');
+});
+
 // Track changes for "unsaved" indicator
 const hasUnsavedChanges = ref(false);
 const deletedQuestionIds = ref([]); // Track questions to delete on save
+
+// Drag-and-drop reordering
+const dragIndex = ref(null);
+const dropTargetIndex = ref(null);
+
+function onDragStart(index, event) {
+  dragIndex.value = index;
+  event.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(index, event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  dropTargetIndex.value = index;
+}
+
+function onDragLeave() {
+  dropTargetIndex.value = null;
+}
+
+function onDrop(index) {
+  const from = dragIndex.value;
+  if (from !== null && from !== index) {
+    const moved = questions.value.splice(from, 1)[0];
+    questions.value.splice(index, 0, moved);
+    hasUnsavedChanges.value = true;
+  }
+  dragIndex.value = null;
+  dropTargetIndex.value = null;
+}
+
+function onDragEnd() {
+  dragIndex.value = null;
+  dropTargetIndex.value = null;
+}
 
 // Computed
 const isNewQuiz = computed(() => route.params.id === 'new');
@@ -352,7 +412,20 @@ function duplicateQuestion(questionId) {
 async function saveAll() {
   saving.value = true;
   saveStatus.value = 'saving';
+  startSaveDots();
   error.value = '';
+
+  // Client-side validation
+  const validation = validateAllQuestions(questions.value, t);
+  if (!validation.valid) {
+    const firstError = validation.errors[0];
+    selectedQuestionId.value = firstError.questionId;
+    const label = t('questionValidation.questionNum', { num: firstError.index + 1 });
+    error.value = `${label}: ${firstError.errors[0]}`;
+    saveStatus.value = 'error';
+    saving.value = false;
+    return;
+  }
 
   try {
     // Step 1: Create quiz if it doesn't exist
@@ -449,6 +522,7 @@ async function saveAll() {
     saveStatus.value = 'error';
   } finally {
     saving.value = false;
+    stopSaveDots();
   }
 }
 
@@ -476,6 +550,10 @@ function goBack() {
 onMounted(() => {
   fetchQuiz();
 });
+
+onUnmounted(() => {
+  stopSaveDots();
+});
 </script>
 
 <template>
@@ -483,7 +561,7 @@ onMounted(() => {
     <div class="min-h-screen bg-background flex flex-col">
       <!-- Header -->
       <header class="border-b-[3px] border-black bg-white sticky top-0 z-50">
-        <div class="px-4 sm:px-6 lg:px-8 flex items-center gap-4 h-16">
+        <div class="px-4 sm:px-6 lg:px-8 flex items-center gap-3 h-16 overflow-hidden">
           <!-- Back button -->
           <button
             @click="goBack"
@@ -504,16 +582,15 @@ onMounted(() => {
           />
 
           <!-- Right side controls -->
-          <div class="flex items-center gap-3 shrink-0">
-            <span v-if="hasUnsavedChanges" class="text-xs text-warning font-medium hidden sm:inline">
+          <div class="flex items-center gap-2 shrink-0">
+            <span v-if="hasUnsavedChanges && !saving" class="text-xs text-warning font-medium hidden sm:inline whitespace-nowrap">
               {{ t('quizEditor.unsavedChanges') }}
             </span>
 
-            <span v-if="saveStatus === 'saving'" class="text-sm text-muted-foreground hidden sm:inline">{{ t('quizEditor.saving') }}</span>
-            <span v-else-if="saveStatus === 'saved'" class="text-sm text-success hidden sm:inline">{{ t('quizEditor.saved') }}</span>
-            <span v-else-if="saveStatus === 'error'" class="text-sm text-destructive hidden sm:inline">{{ t('quizEditor.saveFailed') }}</span>
+            <span v-if="saveStatus === 'saved'" class="text-sm text-success hidden sm:inline whitespace-nowrap">{{ t('quizEditor.saved') }}</span>
+            <span v-else-if="saveStatus === 'error'" class="text-sm text-destructive hidden sm:inline whitespace-nowrap">{{ t('quizEditor.saveFailed') }}</span>
 
-            <PixelBadge variant="secondary">
+            <PixelBadge variant="secondary" class="whitespace-nowrap">
               {{ questionCount }} {{ questionCount === 1 ? t('quizEditor.question') : t('quizEditor.questions') }}
             </PixelBadge>
 
@@ -523,11 +600,7 @@ onMounted(() => {
               :disabled="saving"
               @click="saveAll"
             >
-              <svg v-if="saving" class="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {{ saving ? t('quizEditor.saving') : t('quizEditor.saveQuiz') }}
+              {{ saveButtonText }}
             </PixelButton>
           </div>
         </div>
@@ -580,17 +653,30 @@ onMounted(() => {
             v-for="(question, index) in questions"
             :key="question._id"
             class="group"
+            draggable="true"
+            @dragstart="onDragStart(index, $event)"
+            @dragover="onDragOver(index, $event)"
+            @dragleave="onDragLeave"
+            @drop="onDrop(index)"
+            @dragend="onDragEnd"
           >
             <button
               class="w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors"
               :class="{
                 'bg-primary/10 border-l-4 border-l-primary': selectedQuestionId === question._id,
-                'border-l-4 border-l-warning': isTemporaryId(question._id) && selectedQuestionId !== question._id
+                'border-l-4 border-l-warning': isTemporaryId(question._id) && selectedQuestionId !== question._id,
+                'opacity-50': dragIndex === index,
+                'border-t-2 border-t-primary': dropTargetIndex === index && dragIndex !== index
               }"
               @click="selectedQuestionId = question._id"
             >
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-muted-foreground min-w-[24px]">
+              <div class="flex items-start gap-2">
+                <svg class="shrink-0 mt-1 text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="8" cy="4" r="2"/><circle cx="16" cy="4" r="2"/>
+                  <circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>
+                  <circle cx="8" cy="20" r="2"/><circle cx="16" cy="20" r="2"/>
+                </svg>
+                <span class="text-sm font-bold text-muted-foreground min-w-[20px]">
                   {{ index + 1 }}
                 </span>
                 <div class="flex-1 min-w-0">
