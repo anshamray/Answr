@@ -248,7 +248,7 @@ function getAvatar(index) {
                   :key="player.id"
                   class="flex items-center gap-2 p-2 bg-white border-2 border-border hover:border-primary transition-all"
                 >
-                  <span class="text-2xl">{{ getAvatar(index) }}</span>
+                  <span class="text-2xl">{{ player.avatar || getAvatar(index) }}</span>
                   <div class="flex-1 min-w-0">
                     <div class="font-bold text-sm truncate">{{ player.nickname || player.name || 'Player' }}</div>
                   </div>

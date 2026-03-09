@@ -251,7 +251,8 @@ function buildQuestionPayload(q) {
     text: q.text,
     options,
     timeLimit: q.timeLimit,
-    correctAnswerIds
+    correctAnswerIds,
+    allowMultipleAnswers: q.allowMultipleAnswers || false
   };
 }
 
@@ -318,11 +319,7 @@ function endGame() {
   cleanup();
 
   setTimeout(() => {
-    if (auth.isAuthenticated) {
-      router.push('/dashboard');
-    } else {
-      router.push('/');
-    }
+    router.push(`/session/${sessionId}/results`);
   }, TIMING.REDIRECT_DELAY);
 }
 

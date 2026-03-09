@@ -135,7 +135,18 @@ function scoreCurrentQuestion(session) {
   }
 
   for (const [playerId, answer] of questionAnswers) {
-    const isCorrect = correctIds.has(answer.answerId);
+    // Determine correctness — handle both single answerId (string) and multi-answer (array)
+    let isCorrect;
+    if (Array.isArray(answer.answerId)) {
+      // Multi-answer: player must select ALL correct answers and NO incorrect ones
+      const selectedSet = new Set(answer.answerId);
+      const allCorrectSelected = [...correctIds].every(id => selectedSet.has(id));
+      const noIncorrectSelected = answer.answerId.every(id => correctIds.has(id));
+      isCorrect = allCorrectSelected && noIncorrectSelected;
+    } else {
+      // Single answer: for single-correct questions
+      isCorrect = correctIds.has(answer.answerId);
+    }
 
     // Get current streak for player
     let currentStreak = session.playerStreaks.get(playerId) || 0;

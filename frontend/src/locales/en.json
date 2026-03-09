@@ -322,6 +322,8 @@
     "getReadyToAnswer": "Get ready to answer!",
     "waitingForQuestion": "Waiting for question...",
     "answerSubmitted": "Answer submitted!",
+    "submitAnswer": "Submit Answer",
+    "selectMultiple": "Select all correct answers, then submit",
     "timesUp": "Time's up!",
     "correct": "Correct!",
     "niceWork": "Nice work!",

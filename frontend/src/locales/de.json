@@ -322,6 +322,8 @@
     "getReadyToAnswer": "Mach dich bereit zu antworten!",
     "waitingForQuestion": "Warte auf Frage...",
     "answerSubmitted": "Antwort abgeschickt!",
+    "submitAnswer": "Antwort absenden",
+    "selectMultiple": "Wähle alle richtigen Antworten, dann absenden",
     "timesUp": "Zeit abgelaufen!",
     "correct": "Richtig!",
     "niceWork": "Gut gemacht!",

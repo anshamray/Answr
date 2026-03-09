@@ -108,7 +108,7 @@ onMounted(fetchResults);
         <!-- 2nd Place -->
         <div class="flex flex-col items-center">
           <div class="mb-4 text-center">
-            <div class="text-4xl lg:text-6xl mb-2">{{ getAvatar(1) }}</div>
+            <div class="text-4xl lg:text-6xl mb-2">{{ topThree[0]?.avatar || getAvatar(1) }}</div>
             <div class="text-lg lg:text-xl font-bold truncate max-w-[120px]">{{ topThree[0]?.name || 'Player' }}</div>
             <div class="text-lg lg:text-2xl font-bold text-muted-foreground">{{ (topThree[0]?.score || 0).toLocaleString() }}</div>
           </div>
@@ -121,7 +121,7 @@ onMounted(fetchResults);
         <div class="flex flex-col items-center mb-8">
           <PixelStar class="text-warning animate-spin mb-4" :size="48" style="animation-duration: 3s;" />
           <div class="mb-4 text-center">
-            <div class="text-5xl lg:text-7xl mb-2">{{ getAvatar(0) }}</div>
+            <div class="text-5xl lg:text-7xl mb-2">{{ topThree[1]?.avatar || getAvatar(0) }}</div>
             <div class="text-xl lg:text-2xl font-bold truncate max-w-[140px]">{{ topThree[1]?.name || 'Player' }}</div>
             <div class="text-2xl lg:text-3xl font-bold text-warning">{{ (topThree[1]?.score || 0).toLocaleString() }}</div>
           </div>
@@ -133,7 +133,7 @@ onMounted(fetchResults);
         <!-- 3rd Place -->
         <div class="flex flex-col items-center">
           <div class="mb-4 text-center">
-            <div class="text-4xl lg:text-6xl mb-2">{{ getAvatar(2) }}</div>
+            <div class="text-4xl lg:text-6xl mb-2">{{ topThree[2]?.avatar || getAvatar(2) }}</div>
             <div class="text-lg lg:text-xl font-bold truncate max-w-[120px]">{{ topThree[2]?.name || 'Player' }}</div>
             <div class="text-lg lg:text-2xl font-bold text-accent">{{ (topThree[2]?.score || 0).toLocaleString() }}</div>
           </div>
@@ -165,7 +165,7 @@ onMounted(fetchResults);
               <div class="w-10 h-10 bg-white border-2 border-black flex items-center justify-center font-bold">
                 {{ player.position }}
               </div>
-              <span class="text-2xl">{{ getAvatar(player.position - 1) }}</span>
+              <span class="text-2xl">{{ player.avatar || getAvatar(player.position - 1) }}</span>
               <div class="flex-1">
                 <div class="font-bold">{{ player.name || player.nickname || 'Player' }}</div>
                 <div class="text-sm text-muted-foreground">{{ (player.score || 0).toLocaleString() }} pts</div>

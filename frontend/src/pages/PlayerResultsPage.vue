@@ -71,7 +71,7 @@ function getAvatar(index) {
         <!-- 2nd Place - animates first (delay 0s) -->
         <div class="flex flex-col items-center animate-podium-rise-2">
           <div class="mb-2 sm:mb-4 text-center">
-            <div class="text-3xl sm:text-4xl lg:text-6xl mb-1 sm:mb-2">{{ getAvatar(1) }}</div>
+            <div class="text-3xl sm:text-4xl lg:text-6xl mb-1 sm:mb-2">{{ topThree[0]?.avatar || getAvatar(1) }}</div>
             <div class="text-sm sm:text-lg lg:text-xl font-bold truncate max-w-[80px] sm:max-w-[120px]">{{ topThree[0]?.nickname || 'Player' }}</div>
             <div class="text-sm sm:text-lg lg:text-2xl font-bold text-muted-foreground">{{ topThree[0]?.score?.toLocaleString() }}</div>
           </div>
@@ -84,7 +84,7 @@ function getAvatar(index) {
         <div class="flex flex-col items-center mb-4 sm:mb-8 animate-podium-rise-1">
           <PixelStar class="text-warning animate-spin mb-2 sm:mb-4" :size="36" style="animation-duration: 3s;" />
           <div class="mb-2 sm:mb-4 text-center">
-            <div class="text-4xl sm:text-5xl lg:text-7xl mb-1 sm:mb-2">{{ getAvatar(0) }}</div>
+            <div class="text-4xl sm:text-5xl lg:text-7xl mb-1 sm:mb-2">{{ topThree[1]?.avatar || getAvatar(0) }}</div>
             <div class="text-base sm:text-xl lg:text-2xl font-bold truncate max-w-[100px] sm:max-w-[140px]">{{ topThree[1]?.nickname || 'Player' }}</div>
             <div class="text-xl sm:text-2xl lg:text-3xl font-bold text-warning">{{ topThree[1]?.score?.toLocaleString() }}</div>
           </div>
@@ -96,7 +96,7 @@ function getAvatar(index) {
         <!-- 3rd Place - animates second (delay 0.2s) -->
         <div class="flex flex-col items-center animate-podium-rise-3">
           <div class="mb-2 sm:mb-4 text-center">
-            <div class="text-3xl sm:text-4xl lg:text-6xl mb-1 sm:mb-2">{{ getAvatar(2) }}</div>
+            <div class="text-3xl sm:text-4xl lg:text-6xl mb-1 sm:mb-2">{{ topThree[2]?.avatar || getAvatar(2) }}</div>
             <div class="text-sm sm:text-lg lg:text-xl font-bold truncate max-w-[80px] sm:max-w-[120px]">{{ topThree[2]?.nickname || 'Player' }}</div>
             <div class="text-sm sm:text-lg lg:text-2xl font-bold text-accent">{{ topThree[2]?.score?.toLocaleString() }}</div>
           </div>
@@ -128,7 +128,7 @@ function getAvatar(index) {
             <div class="w-10 h-10 bg-white border-2 border-black flex items-center justify-center font-bold">
               {{ player.position }}
             </div>
-            <span class="text-2xl">{{ getAvatar(player.position - 1) }}</span>
+            <span class="text-2xl">{{ player.avatar || getAvatar(player.position - 1) }}</span>
             <div class="flex-1">
               <div class="font-bold" :class="player.playerId === game.playerId ? 'text-primary' : ''">
                 {{ player.playerId === game.playerId ? 'You' : player.nickname }}

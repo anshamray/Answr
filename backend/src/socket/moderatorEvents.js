@@ -194,6 +194,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           : [];
         session.totalQuestions = firstQuestion.totalQuestions ?? 1;
         session.questionEnded = false;
+        session.currentAllowMultipleAnswers = firstQuestion.allowMultipleAnswers || false;
 
         const questionPayload = {
           questionId: session.currentQuestionId,
@@ -201,7 +202,8 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           totalQuestions: session.totalQuestions,
           text: firstQuestion.text,
           options: firstQuestion.options,
-          timeLimit: firstQuestion.timeLimit
+          timeLimit: firstQuestion.timeLimit,
+          allowMultipleAnswers: session.currentAllowMultipleAnswers
         };
 
         broadcastQuestion(io, sessionPin, questionPayload);
@@ -268,6 +270,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         session.totalQuestions = question.totalQuestions;
       }
       session.questionEnded = false;
+      session.currentAllowMultipleAnswers = question.allowMultipleAnswers || false;
 
       const questionPayload = {
         questionId: session.currentQuestionId,
@@ -275,7 +278,8 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         totalQuestions: session.totalQuestions || question.totalQuestions,
         text: question.text,
         options: question.options,
-        timeLimit: question.timeLimit
+        timeLimit: question.timeLimit,
+        allowMultipleAnswers: session.currentAllowMultipleAnswers
       };
 
       broadcastQuestion(io, sessionPin, questionPayload);

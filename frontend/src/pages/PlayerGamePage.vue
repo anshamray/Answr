@@ -18,6 +18,7 @@ const router = useRouter();
 const game = useGameStore();
 
 const selectedAnswer = ref(null);
+const selectedAnswers = ref([]); // For multi-answer questions
 const submitted = ref(false);
 const timeRemaining = ref(null);
 const timedOut = ref(false);
@@ -36,9 +37,18 @@ let previousScore = 0;
 
 const question = computed(() => game.currentQuestion);
 const options = computed(() => question.value?.options || []);
+const isMultiAnswer = computed(() => question.value?.allowMultipleAnswers || false);
 
 const wasCorrect = computed(() => {
-  if (!selectedAnswer.value || correctAnswerIds.value.length === 0) return null;
+  if (correctAnswerIds.value.length === 0) return null;
+  if (isMultiAnswer.value) {
+    if (selectedAnswers.value.length === 0) return null;
+    const selectedSet = new Set(selectedAnswers.value);
+    const allCorrect = correctAnswerIds.value.every(id => selectedSet.has(id));
+    const noWrong = selectedAnswers.value.every(id => correctAnswerIds.value.includes(id));
+    return allCorrect && noWrong;
+  }
+  if (!selectedAnswer.value) return null;
   return correctAnswerIds.value.includes(selectedAnswer.value.id);
 });
 
@@ -88,6 +98,19 @@ const answerLabels = ANSWER_COLORS.LABELS;
 
 function selectAnswer(optionId, index) {
   if (submitted.value || timedOut.value) return;
+
+  if (isMultiAnswer.value) {
+    // Toggle selection for multi-answer
+    const idx = selectedAnswers.value.indexOf(optionId);
+    if (idx >= 0) {
+      selectedAnswers.value.splice(idx, 1);
+    } else {
+      selectedAnswers.value.push(optionId);
+    }
+    return;
+  }
+
+  // Single answer — select and submit immediately
   selectedAnswer.value = { id: optionId, index };
   submitted.value = true;
 
@@ -97,6 +120,22 @@ function selectAnswer(optionId, index) {
   socket.emit('player:answer', {
     questionId: question.value?.questionId,
     answerId: optionId,
+    timeTaken: question.value?.timeLimit
+      ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
+      : 0
+  });
+}
+
+function submitMultiAnswer() {
+  if (submitted.value || timedOut.value || selectedAnswers.value.length === 0) return;
+  submitted.value = true;
+
+  const socket = getSocket();
+  if (!socket) return;
+
+  socket.emit('player:answer', {
+    questionId: question.value?.questionId,
+    answerId: selectedAnswers.value,
     timeTaken: question.value?.timeLimit
       ? (question.value.timeLimit - (timeRemaining.value || 0)) * 1000
       : 0
@@ -134,6 +173,10 @@ function startTimer() {
     if (timeRemaining.value <= 0) {
       stopTimer();
       timedOut.value = true;
+      // Auto-submit multi-answer selections on timeout
+      if (isMultiAnswer.value && !submitted.value && selectedAnswers.value.length > 0) {
+        submitMultiAnswer();
+      }
     }
   }, 1000);
 }
@@ -183,6 +226,7 @@ function setup() {
     }
     game.currentQuestion = data;
     selectedAnswer.value = null;
+    selectedAnswers.value = [];
     submitted.value = false;
     questionEnded.value = false;
     timedOut.value = false;
@@ -302,11 +346,13 @@ onUnmounted(cleanup);
             class="flex items-center justify-center border-[3px] border-black transition-all duration-200"
             :class="[
               answerBg[i % answerBg.length],
-              selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
-              submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
-              submitted || timedOut ? 'pointer-events-none' : 'active:scale-95'
+              isMultiAnswer
+                ? (selectedAnswers.includes(option.id) ? 'ring-4 ring-white/50 scale-95' : '')
+                : (selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : ''),
+              !isMultiAnswer && submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
+              (!isMultiAnswer && submitted) || timedOut ? 'pointer-events-none' : 'active:scale-95'
             ]"
-            :disabled="submitted || timedOut"
+            :disabled="(!isMultiAnswer && submitted) || timedOut"
             @click="selectAnswer(option.id, i)"
           >
             <span
@@ -315,6 +361,19 @@ onUnmounted(cleanup);
             >
               {{ answerLabels[i] }}
             </span>
+          </button>
+        </div>
+
+        <!-- Multi-answer submit button -->
+        <div
+          v-if="isMultiAnswer && !submitted && !timedOut && selectedAnswers.length > 0"
+          class="fixed bottom-4 left-1/2 -translate-x-1/2 z-10"
+        >
+          <button
+            class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl active:translate-x-1 active:translate-y-1 active:shadow-none"
+            @click="submitMultiAnswer"
+          >
+            {{ t('playerGame.submitAnswer') }} ({{ selectedAnswers.length }})
           </button>
         </div>
 
@@ -354,20 +413,36 @@ onUnmounted(cleanup);
               class="group relative p-6 min-h-[56px] border-[3px] border-black pixel-shadow text-left font-bold text-lg transition-all duration-200"
               :class="[
                 answerBg[i % answerBg.length],
-                selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : '',
-                submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
-                submitted || timedOut ? 'pointer-events-none' : 'active:translate-x-1 active:translate-y-1 active:shadow-none'
+                isMultiAnswer
+                  ? (selectedAnswers.includes(option.id) ? 'ring-4 ring-white/50 scale-95' : '')
+                  : (selectedAnswer?.index === i ? 'ring-4 ring-white/50 scale-95' : ''),
+                !isMultiAnswer && submitted && selectedAnswer?.index !== i ? 'opacity-30' : '',
+                (!isMultiAnswer && submitted) || timedOut ? 'pointer-events-none' : 'active:translate-x-1 active:translate-y-1 active:shadow-none'
               ]"
-              :disabled="submitted || timedOut"
+              :disabled="(!isMultiAnswer && submitted) || timedOut"
               @click="selectAnswer(option.id, i)"
             >
               <div class="flex items-center gap-3">
                 <span class="w-12 h-12 bg-white/20 border-2 border-white flex items-center justify-center text-xl font-bold pixel-font flex-shrink-0">
-                  {{ answerLabels[i] }}
+                  <template v-if="isMultiAnswer && selectedAnswers.includes(option.id)">✓</template>
+                  <template v-else>{{ answerLabels[i] }}</template>
                 </span>
                 <span class="flex-1 text-2xl font-bold">{{ option.text }}</span>
               </div>
             </button>
+          </div>
+
+          <!-- Multi-answer submit button -->
+          <div v-if="isMultiAnswer && !submitted && !timedOut" class="mt-4">
+            <button
+              class="w-full py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl transition-all"
+              :class="selectedAnswers.length > 0 ? 'active:translate-x-1 active:translate-y-1 active:shadow-none' : 'opacity-50 cursor-not-allowed'"
+              :disabled="selectedAnswers.length === 0"
+              @click="submitMultiAnswer"
+            >
+              {{ t('playerGame.submitAnswer') }} ({{ selectedAnswers.length }})
+            </button>
+            <p class="text-sm text-muted-foreground text-center mt-2">{{ t('playerGame.selectMultiple') }}</p>
           </div>
 
           <!-- Footer -->

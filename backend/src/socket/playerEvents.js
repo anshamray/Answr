@@ -176,7 +176,21 @@ export function registerPlayerEvents(io, socket, activeSessions) {
         questionId = session?.currentQuestionId;
       }
 
-      if (!questionId || !answerId || typeof answerId !== 'string') {
+      // answerId can be a string (single answer) or array of strings (multi-answer)
+      if (!questionId || !answerId) {
+        emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'answerId is required.');
+        return;
+      }
+
+      // Normalize answerId: accept string or array
+      const normalizedAnswerId = Array.isArray(answerId) ? answerId : answerId;
+
+      if (Array.isArray(normalizedAnswerId)) {
+        if (normalizedAnswerId.length === 0 || !normalizedAnswerId.every(id => typeof id === 'string')) {
+          emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'answerId is required.');
+          return;
+        }
+      } else if (typeof normalizedAnswerId !== 'string') {
         emitPlayerError(socket, ERROR_CODES.VALIDATION_ERROR, 'answerId is required.');
         return;
       }
@@ -208,7 +222,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       questionAnswers.set(playerId, {
         playerId,
         questionId,
-        answerId,
+        answerId: normalizedAnswerId,
         timeTaken: numericTimeTaken,
         submittedAt: now
       });
