@@ -24,7 +24,7 @@ function updateAnswer(index, text) {
 }
 
 function addAnswer() {
-  if (localAnswers.value.length >= 4) return;
+  if (localAnswers.value.length >= 10) return;
   localAnswers.value.push({ text: '' });
   emit('update:answers', localAnswers.value);
 }
@@ -78,14 +78,14 @@ function removeAnswer(index) {
     </div>
 
     <button
-      v-if="localAnswers.length < 4"
+      v-if="localAnswers.length < 10"
       @click="addAnswer"
       class="w-full py-3 border-2 border-dashed border-border text-muted-foreground hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
       </svg>
-      Add Alternative Answer ({{ localAnswers.length }}/4)
+      Add Alternative Answer ({{ localAnswers.length }}/10)
     </button>
 
     <div class="bg-muted/50 p-4 border-2 border-border">

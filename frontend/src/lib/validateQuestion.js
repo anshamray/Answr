@@ -42,7 +42,7 @@ export function validateQuestion(question, t) {
       break;
     }
     case 'type-answer': {
-      if (answerCount < 1 || answerCount > 4) {
+      if (answerCount < 1 || answerCount > 10) {
         errors.push(t('questionValidation.taAnswerCount'));
       }
       if (answers.some(a => a.text && a.text.length > 20)) {

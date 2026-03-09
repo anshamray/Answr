@@ -510,16 +510,14 @@ onMounted(fetchQuizzes);
 
             <!-- Details section -->
             <div class="mt-4 pt-4 border-t-2 border-border space-y-4 flex-1 flex flex-col">
-              <!-- Description -->
-              <div v-if="quiz.description" class="text-sm text-muted-foreground line-clamp-2">
-                {{ quiz.description }}
-              </div>
-              <div v-else class="text-sm text-muted-foreground italic">
-                {{ t('common.noDescription') }}
+              <!-- Description — fixed height for 2 lines -->
+              <div class="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+                <span v-if="quiz.description">{{ quiz.description }}</span>
+                <span v-else class="italic">{{ t('common.noDescription') }}</span>
               </div>
 
               <!-- Metadata row -->
-              <div class="flex flex-wrap gap-4 text-sm">
+              <div class="flex flex-wrap gap-4 text-sm min-h-[1.25rem]">
                 <div v-if="quiz.category" class="flex items-center gap-1">
                   <svg class="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
@@ -536,10 +534,10 @@ onMounted(fetchQuizzes);
                 </div>
               </div>
 
-              <!-- Tags -->
-              <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+              <!-- Tags — fixed height for one row -->
+              <div class="flex flex-wrap gap-2 min-h-[1.75rem]">
                 <span
-                  v-for="tag in quiz.tags"
+                  v-for="tag in (quiz.tags || [])"
                   :key="tag"
                   class="px-2 py-1 bg-primary/10 text-primary text-xs font-medium"
                 >{{ tag }}</span>

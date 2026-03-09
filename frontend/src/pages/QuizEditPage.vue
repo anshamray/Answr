@@ -277,7 +277,7 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         timeLimit: 30,
-        answers: [{ text: 'Answer' }]
+        answers: [{ text: '' }]
       };
     case 'sort':
       return {

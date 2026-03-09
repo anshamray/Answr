@@ -233,8 +233,8 @@ function getIcon(iconName) {
         </div>
       </div>
 
-      <!-- Media Upload (collapsible) -->
-      <div class="bg-white border-[3px] border-black pixel-shadow">
+      <!-- Media Upload (collapsible) — hidden for types with built-in image handling -->
+      <div v-if="localQuestion.type !== 'pin-answer' && localQuestion.type !== 'drop-pin'" class="bg-white border-[3px] border-black pixel-shadow">
         <button
           type="button"
           class="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"

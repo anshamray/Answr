@@ -1,5 +1,7 @@
 <script setup>
 import { ref, watch, computed, onMounted, onUnmounted } from 'vue';
+import { uploadMedia } from '../../lib/mediaService.js';
+import { apiUrl } from '../../lib/api.js';
 
 const props = defineProps({
   mediaUrl: {
@@ -21,6 +23,13 @@ const emit = defineEmits(['update:mediaUrl', 'update:pinConfig']);
 // Local state
 const localMediaUrl = ref(props.mediaUrl);
 const localPinConfig = ref({ ...props.pinConfig });
+
+// Upload state
+const fileInputRef = ref(null);
+const isUploading = ref(false);
+const uploadProgress = ref(0);
+const fileError = ref('');
+const isDragOver = ref(false);
 
 // Image container ref for click positioning
 const imageContainer = ref(null);
@@ -74,6 +83,58 @@ const radiusOptions = [5, 10, 15, 20, 25, 30];
 function updateMediaUrl(url) {
   localMediaUrl.value = url;
   emit('update:mediaUrl', url);
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click();
+}
+
+async function handleFile(file) {
+  if (!file) return;
+  fileError.value = '';
+
+  if (!file.type.startsWith('image/')) {
+    fileError.value = 'Please select an image file';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    fileError.value = 'Image must be less than 5MB';
+    return;
+  }
+
+  isUploading.value = true;
+  uploadProgress.value = 0;
+  try {
+    const result = await uploadMedia(file, (progress) => {
+      uploadProgress.value = progress;
+    });
+    updateMediaUrl(result.url);
+  } catch (err) {
+    fileError.value = err.message || 'Upload failed';
+  } finally {
+    isUploading.value = false;
+  }
+}
+
+function handleFileSelect(event) {
+  handleFile(event.target.files[0]);
+  event.target.value = '';
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  isDragOver.value = false;
+  const file = event.dataTransfer?.files?.[0];
+  if (file) handleFile(file);
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  isDragOver.value = true;
+}
+
+function handleDragLeave() {
+  isDragOver.value = false;
 }
 
 function updatePinConfig() {
@@ -204,15 +265,36 @@ onUnmounted(() => {
     <!-- Image Upload -->
     <div>
       <label class="block text-sm font-medium mb-2">Image (required)</label>
+      <input
+        ref="fileInputRef"
+        type="file"
+        accept="image/*"
+        class="hidden"
+        @change="handleFileSelect"
+      />
+
+      <!-- Uploading state -->
+      <div v-if="isUploading" class="border-2 border-dashed border-primary p-8 text-center">
+        <svg class="mx-auto mb-3 text-primary animate-pulse" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+        </svg>
+        <p class="text-sm text-muted-foreground mb-2">Uploading...</p>
+        <div class="w-full max-w-xs mx-auto bg-border h-2">
+          <div class="bg-primary h-full transition-all duration-200" :style="{ width: `${uploadProgress}%` }"></div>
+        </div>
+        <p class="text-xs text-muted-foreground mt-1">{{ uploadProgress }}%</p>
+      </div>
+
+      <!-- Image loaded — interactive pin placement -->
       <div
-        v-if="localMediaUrl"
+        v-else-if="localMediaUrl"
         ref="imageContainer"
         class="relative border-2 border-border cursor-crosshair overflow-hidden"
         @click="handleImageClick"
       >
         <img
           ref="imageElement"
-          :src="localMediaUrl"
+          :src="apiUrl(localMediaUrl)"
           alt="Pin answer image"
           class="w-full max-h-96 object-contain"
           @load="updateImageDimensions"
@@ -248,17 +330,22 @@ onUnmounted(() => {
         </button>
       </div>
 
-      <div v-else class="border-2 border-dashed border-border p-8 text-center">
+      <!-- Empty state — upload zone -->
+      <div
+        v-else
+        class="border-2 border-dashed p-8 text-center cursor-pointer transition-colors"
+        :class="isDragOver ? 'border-primary bg-primary/5' : 'border-border hover:border-primary'"
+        @click="triggerFileInput"
+        @drop="handleDrop"
+        @dragover="handleDragOver"
+        @dragleave="handleDragLeave"
+      >
         <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
         </svg>
-        <p class="text-sm text-muted-foreground mb-3">Upload an image to mark the correct location</p>
-        <input
-          type="text"
-          placeholder="Paste image URL"
-          class="w-full max-w-sm mx-auto px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
-          @blur="updateMediaUrl($event.target.value)"
-        />
+        <p class="text-sm text-muted-foreground mb-1">Drag and drop an image, or click to browse</p>
+        <p class="text-xs text-muted-foreground">JPG, PNG or GIF — max 5 MB</p>
+        <p v-if="fileError" class="text-sm text-destructive mt-2">{{ fileError }}</p>
       </div>
     </div>
 

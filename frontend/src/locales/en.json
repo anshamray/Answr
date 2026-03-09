@@ -469,7 +469,7 @@
     "mcAnswerCount": "Multiple choice requires 2–6 answers",
     "mcNeedsCorrect": "Multiple choice requires at least 1 correct answer",
     "tfAnswerCount": "True/false requires exactly 2 answers",
-    "taAnswerCount": "Type answer requires 1–4 accepted answers",
+    "taAnswerCount": "Type answer requires 1–10 accepted answers",
     "taAnswerLength": "Type answer: each answer must be 20 characters or fewer",
     "sortAnswerCount": "Sort requires 3–4 answers",
     "audioLanguageRequired": "Quiz audio requires a language",

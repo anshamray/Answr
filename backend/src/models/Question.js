@@ -227,8 +227,8 @@ questionSchema.pre('validate', function (next) {
 
     // ─── type-answer ───────────────────────────────────────────────────
     case 'type-answer': {
-      if (answerCount < 1 || answerCount > 4) {
-        errors.push('Type-answer requires 1–4 accepted answers');
+      if (answerCount < 1 || answerCount > 10) {
+        errors.push('Type-answer requires 1–10 accepted answers');
       }
       // Enforce 20-char max for type-answer answers
       const tooLong = this.answers?.filter(a => a.text && a.text.length > 20);

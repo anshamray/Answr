@@ -469,7 +469,7 @@
     "mcAnswerCount": "Multiple Choice benötigt 2–6 Antworten",
     "mcNeedsCorrect": "Multiple Choice benötigt mindestens 1 richtige Antwort",
     "tfAnswerCount": "Wahr/Falsch benötigt genau 2 Antworten",
-    "taAnswerCount": "Antwort eingeben benötigt 1–4 akzeptierte Antworten",
+    "taAnswerCount": "Antwort eingeben benötigt 1–10 akzeptierte Antworten",
     "taAnswerLength": "Antwort eingeben: jede Antwort darf maximal 20 Zeichen lang sein",
     "sortAnswerCount": "Sortieren benötigt 3–4 Antworten",
     "audioLanguageRequired": "Quiz-Audio benötigt eine Sprache",
