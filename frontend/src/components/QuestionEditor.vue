@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { apiUrl, authMediaUrl } from '../lib/api.js';
 import { useAuthStore } from '../stores/authStore.js';
-import { uploadMedia, isDataUrl } from '../lib/mediaService.js';
+import { uploadMedia, isDataUrl, isExternalVideoUrl, getExternalVideoEmbedUrl } from '../lib/mediaService.js';
 import MultipleChoiceEditor from './editors/MultipleChoiceEditor.vue';
 import TrueFalseEditor from './editors/TrueFalseEditor.vue';
 import TypeAnswerEditor from './editors/TypeAnswerEditor.vue';
@@ -109,6 +109,17 @@ function updateMediaUrl(url) {
   localQuestion.value.mediaUrl = url;
   emitUpdate();
 }
+
+const mediaKind = computed(() => {
+  const url = localQuestion.value.mediaUrl;
+  if (!url) return null;
+  if (isExternalVideoUrl(url)) return 'externalVideo';
+  return 'image';
+});
+
+const externalVideoEmbedUrl = computed(() =>
+  getExternalVideoEmbedUrl(localQuestion.value.mediaUrl || '')
+);
 
 // Parse pasted structured question text
 function handlePaste(event) {
@@ -376,7 +387,7 @@ function getIcon(iconName) {
         >
           <span class="text-sm font-medium">
             Media (optional)
-            <span v-if="localQuestion.mediaUrl" class="text-muted-foreground font-normal">— 1 image</span>
+            <span v-if="localQuestion.mediaUrl" class="text-muted-foreground font-normal">— 1 media item</span>
           </span>
           <svg
             width="20"
@@ -415,9 +426,25 @@ function getIcon(iconName) {
               </div>
               <p class="text-xs text-muted-foreground">{{ uploadProgress }}%</p>
             </div>
-            <!-- Image preview -->
-            <div v-else-if="localQuestion.mediaUrl" class="relative">
+            <!-- Media preview -->
+            <div v-else-if="localQuestion.mediaUrl" class="relative space-y-3">
+              <div v-if="mediaKind === 'externalVideo'" class="max-w-xl mx-auto">
+                <div class="aspect-video border-2 border-black bg-black">
+                  <iframe
+                    v-if="externalVideoEmbedUrl"
+                    :src="externalVideoEmbedUrl"
+                    class="w-full h-full"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+                <p class="mt-2 text-xs text-muted-foreground break-all">
+                  {{ localQuestion.mediaUrl }}
+                </p>
+              </div>
               <img
+                v-else
                 :src="authMediaUrl(localQuestion.mediaUrl, auth.token)"
                 alt="Question media"
                 class="max-h-48 mx-auto object-contain"

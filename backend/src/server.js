@@ -73,8 +73,32 @@ app.use(errorHandler);
 // Initialize WebSocket handler
 const { activeSessions } = initializeSocket(io);
 
-// Set up health check session counter
-setActiveSessionsGetter(() => activeSessions.size);
+// Set up health check socket/session stats
+setActiveSessionsGetter(() => {
+  const activeSessionsCount = activeSessions.size;
+
+  let activePlayersCount = 0;
+  for (const session of activeSessions.values()) {
+    if (session.players && session.players.size > 0) {
+      for (const player of session.players.values()) {
+        if (player.isConnected) {
+          activePlayersCount += 1;
+        }
+      }
+    }
+  }
+
+  const sockets =
+    (io.engine && typeof io.engine.clientsCount === 'number'
+      ? io.engine.clientsCount
+      : io.of('/').sockets.size);
+
+  return {
+    activeSessions: activeSessionsCount,
+    activePlayers: activePlayersCount,
+    sockets
+  };
+});
 
 // Start server
 const PORT = process.env.PORT || 3000;

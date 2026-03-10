@@ -11,7 +11,8 @@
     "lint": "eslint \"src/**/*.{js,jsx,mjs,cjs}\"",
     "lint:fix": "eslint \"src/**/*.{js,jsx,mjs,cjs}\" --fix",
     "format": "prettier \"src/**/*.{js,jsx,mjs,cjs,json,md}\" --check",
-    "format:fix": "prettier \"src/**/*.{js,jsx,mjs,cjs,json,md}\" --write"
+    "format:fix": "prettier \"src/**/*.{js,jsx,mjs,cjs,json,md}\" --write",
+    "loadtest": "NODE_ENV=production node scripts/wsLoadTest.js"
   },
   "keywords": [
     "quiz",
@@ -35,7 +36,8 @@
     "passport-google-oauth20": "^2.0.0",
     "sharp": "^0.34.5",
     "socket.io": "^4.6.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "socket.io-client": "^4.6.1"
   },
   "devDependencies": {
     "eslint": "^9.0.0",

@@ -16,6 +16,9 @@ import {
   INTRO_DURATION
 } from './gameEvents.js';
 import { calculateScore, DEFAULT_SCORING_CONFIG, getStreakBonus } from '../utils/scoring.js';
+import Session from '../models/Session.js';
+import Participant from '../models/Participant.js';
+import Submission from '../models/Submission.js';
 
 // ─── Timer ──────────────────────────────────────────────────────────────
 
@@ -96,6 +99,11 @@ export function endCurrentQuestion(io, sessionPin, session) {
 
   // 1. Score all submitted answers for this question
   scoreCurrentQuestion(session);
+
+  // 1b. Persist results for this question so analytics survives restarts
+  persistQuestionResults(sessionPin, session).catch((err) => {
+    console.error('Failed to persist question results:', err);
+  });
 
   // 2. Tell every client which answers were correct
   broadcastQuestionEnd(io, sessionPin, {
@@ -240,6 +248,95 @@ function scoreCurrentQuestion(session) {
       player.currentStreak = currentStreak;
       player.maxStreak = Math.max(player.maxStreak || 0, currentStreak);
     }
+  }
+}
+
+// ─── Persistence Helpers ──────────────────────────────────────────────────
+
+/**
+ * Persist submissions for the current question to the database.
+ * This is called every time a question ends so analytics data is durable
+ * even if the server restarts before the session finishes.
+ *
+ * @param {string} sessionPin
+ * @param {object} session
+ */
+async function persistQuestionResults(sessionPin, session) {
+  try {
+    const questionId = session.currentQuestionId;
+    if (!questionId || !session.answers) return;
+
+    const questionAnswers = session.answers.get(questionId);
+    if (!questionAnswers || questionAnswers.size === 0) return;
+
+    const dbSession = await Session.findOne({ pin: sessionPin });
+    if (!dbSession) {
+      console.warn(`Session ${sessionPin} not found in DB for question persistence`);
+      return;
+    }
+
+    const sessionId = dbSession._id;
+
+    // Map in‑memory player ids to Participant documents.
+    const playerIdToParticipantId = new Map();
+
+    if (session.players) {
+      for (const [playerId, player] of session.players) {
+        if (!player) continue;
+
+        let participant = await Participant.findOne({
+          sessionId,
+          name: player.nickname
+        });
+
+        if (!participant) {
+          participant = new Participant({
+            sessionId,
+            name: player.nickname,
+            avatar: player.avatar || '',
+            score: player.score || 0,
+            isConnected: player.isConnected
+          });
+          await participant.save();
+        } else {
+          // Keep participant score roughly in sync during the game
+          participant.score = player.score || participant.score || 0;
+          participant.isConnected = player.isConnected;
+          await participant.save();
+        }
+
+        playerIdToParticipantId.set(playerId, participant._id);
+      }
+
+      // Ensure the session has up‑to‑date participant references
+      dbSession.participants = Array.from(playerIdToParticipantId.values());
+      await dbSession.save();
+    }
+
+    // Upsert one submission per (participant, question)
+    const questionType = session.currentQuestionType || 'multiple-choice';
+
+    for (const [playerId, answer] of questionAnswers) {
+      const participantId = playerIdToParticipantId.get(playerId);
+      if (!participantId) continue;
+
+      await Submission.findOneAndUpdate(
+        { participantId, questionId },
+        {
+          $set: {
+            sessionId,
+            questionType: answer.questionType || questionType,
+            answerId: answer.answerId,
+            timeTaken: answer.timeTaken || 0,
+            pointsAwarded: answer.pointsAwarded || 0,
+            isCorrect: typeof answer.isCorrect === 'boolean' ? answer.isCorrect : null
+          }
+        },
+        { upsert: true, new: true }
+      );
+    }
+  } catch (error) {
+    console.error('persistQuestionResults error:', error);
   }
 }
 

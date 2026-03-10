@@ -110,3 +110,64 @@ export async function deleteMedia(mediaId) {
     throw new Error(json.message || 'Failed to delete media');
   }
 }
+
+/**
+ * Detect if a URL is a supported external video (YouTube or Vimeo).
+ *
+ * @param {string} url
+ * @returns {boolean}
+ */
+export function isExternalVideoUrl(url) {
+  return !!getExternalVideoEmbedUrl(url);
+}
+
+/**
+ * Convert a YouTube or Vimeo URL into an embeddable URL suitable for iframes.
+ *
+ * @param {string} url
+ * @returns {string|null}
+ */
+export function getExternalVideoEmbedUrl(url) {
+  if (typeof url !== 'string' || !url) return null;
+
+  let parsed;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+
+  const host = parsed.hostname.toLowerCase();
+
+  // YouTube (watch, share, shorts)
+  if (host.includes('youtube.com') || host.includes('youtu.be')) {
+    let videoId = '';
+
+    if (host.includes('youtu.be')) {
+      // https://youtu.be/{id}
+      videoId = parsed.pathname.split('/').filter(Boolean)[0] || '';
+    } else if (parsed.pathname.startsWith('/shorts/')) {
+      // https://www.youtube.com/shorts/{id}
+      videoId = parsed.pathname.split('/').filter(Boolean)[1] || '';
+    } else if (parsed.searchParams.get('v')) {
+      // https://www.youtube.com/watch?v={id}
+      videoId = parsed.searchParams.get('v') || '';
+    } else if (parsed.pathname.startsWith('/embed/')) {
+      // Already an embed URL
+      videoId = parsed.pathname.split('/').filter(Boolean)[1] || '';
+    }
+
+    if (!videoId) return null;
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+
+  // Vimeo
+  if (host.includes('vimeo.com')) {
+    const segments = parsed.pathname.split('/').filter(Boolean);
+    const videoId = segments[segments.length - 1];
+    if (!videoId || !/^\d+$/.test(videoId)) return null;
+    return `https://player.vimeo.com/video/${videoId}`;
+  }
+
+  return null;
+}

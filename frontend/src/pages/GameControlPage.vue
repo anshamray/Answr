@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 import { apiUrl, authMediaUrl } from '../lib/api.js';
+import { isExternalVideoUrl, getExternalVideoEmbedUrl } from '../lib/mediaService.js';
 import { STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
 import {
   questionAllowsMultipleAnswers,
@@ -72,6 +73,11 @@ const questionMediaUrl = computed(() => {
   const url = currentQuestion.value?.mediaUrl;
   if (!url) return null;
   return authMediaUrl(url, auth.token);
+});
+const questionMediaEmbedUrl = computed(() => {
+  const url = currentQuestion.value?.mediaUrl;
+  if (!url || !isExternalVideoUrl(url)) return null;
+  return getExternalVideoEmbedUrl(url);
 });
 const pinQuestionMediaUrl = computed(() => {
   const url = currentQuestion.value?.mediaUrl;
@@ -882,7 +888,18 @@ onUnmounted(cleanup);
               <h1 class="text-2xl lg:text-4xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
-              <div v-if="questionMediaUrl" class="mt-2 flex justify-center">
+              <div v-if="questionMediaEmbedUrl" class="mt-4 flex justify-center">
+                <div class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden">
+                  <iframe
+                    :src="questionMediaEmbedUrl"
+                    class="w-full h-full"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+              <div v-else-if="questionMediaUrl" class="mt-2 flex justify-center">
                 <img
                   :src="questionMediaUrl"
                   :alt="currentQuestion.text"
@@ -950,7 +967,21 @@ onUnmounted(cleanup);
                 {{ currentQuestion.text }}
               </h1>
               <div
-                v-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
+                v-if="questionMediaEmbedUrl && currentQuestion.type !== 'pin-answer'"
+                class="mt-3 flex justify-center"
+              >
+                <div class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden">
+                  <iframe
+                    :src="questionMediaEmbedUrl"
+                    class="w-full h-full"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+              <div
+                v-else-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
                 class="mt-1 flex justify-center"
               >
                 <img

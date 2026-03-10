@@ -7,6 +7,7 @@ import { connectSocket, getSocket } from '../lib/socket.js';
 import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
 import { apiUrl } from '../lib/api.js';
+import { isLocalMediaUrl, isExternalVideoUrl, getExternalVideoEmbedUrl } from '../lib/mediaService.js';
 import { useSliderQuestion, DEFAULT_SLIDER_CONFIG } from '../composables/useSliderQuestion.js';
 import { getStreakLabel, getStreakMultiplier } from '../lib/streakHelpers.js';
 
@@ -53,9 +54,18 @@ const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
 const questionMediaUrl = computed(() => {
   const url = question.value?.mediaUrl;
   if (!url) return null;
+  // External videos/images: don't rewrite or append sessionPin
+  if (!url.startsWith('/') || isExternalVideoUrl(url)) {
+    return url;
+  }
   const full = apiUrl(url);
   const sessionPin = game.pin;
   return sessionPin ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${sessionPin}` : full;
+});
+const questionMediaEmbedUrl = computed(() => {
+  const url = question.value?.mediaUrl;
+  if (!url || !isExternalVideoUrl(url)) return null;
+  return getExternalVideoEmbedUrl(url);
 });
 const sliderConfigSource = computed(() => question.value?.sliderConfig || null);
 const { sliderConfig, getSliderPosition } = useSliderQuestion({
@@ -594,7 +604,18 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
+              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
+                <iframe
+                  :src="questionMediaEmbedUrl"
+                  class="w-full h-full"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            </div>
+            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
                 <img
                   :src="questionMediaUrl"
@@ -683,7 +704,18 @@ onUnmounted(cleanup);
             <h2 class="text-lg sm:text-xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
+              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
+                <iframe
+                  :src="questionMediaEmbedUrl"
+                  class="w-full h-full"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            </div>
+            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
                 <img
                   :src="questionMediaUrl"
@@ -851,7 +883,18 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
+              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
+                <iframe
+                  :src="questionMediaEmbedUrl"
+                  class="w-full h-full"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            </div>
+            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
                 <img
                   :src="questionMediaUrl"
@@ -962,7 +1005,18 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
+              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
+                <iframe
+                  :src="questionMediaEmbedUrl"
+                  class="w-full h-full"
+                  frameborder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            </div>
+            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
                 <img
                   :src="questionMediaUrl"

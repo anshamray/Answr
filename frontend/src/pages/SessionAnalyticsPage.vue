@@ -187,9 +187,9 @@ onMounted(fetchAnalytics);
               </svg>
               {{ t('gameControl.top5') }}
             </h3>
-            <div class="space-y-2">
+            <div class="space-y-2 max-h-80 overflow-y-auto">
               <div
-                v-for="(player, index) in participants.slice(0, 5)"
+                v-for="(player, index) in participants"
                 :key="player.id"
                 class="flex items-center gap-3 p-2 border-2 border-border"
               >
@@ -197,11 +197,13 @@ onMounted(fetchAnalytics);
                      :class="index < 3 ? 'bg-warning text-warning-foreground' : 'bg-muted'">
                   {{ index + 1 }}
                 </div>
-                <div class="flex-1">
-                  <div class="font-medium">{{ player.name }}</div>
-                  <div class="text-xs text-muted-foreground">{{ player.accuracy }}% {{ t('analytics.accuracy') }}</div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium truncate">{{ player.name }}</div>
+                  <div class="text-xs text-muted-foreground">
+                    {{ player.correctCount }} / {{ player.totalQuestions || player.totalAnswered }} ({{ player.accuracy }}% {{ t('analytics.accuracy') }})
+                  </div>
                 </div>
-                <div class="text-lg font-bold">{{ player.score }}</div>
+                <div class="text-lg font-bold text-right whitespace-nowrap">{{ player.score }}</div>
               </div>
             </div>
           </PixelCard>
@@ -214,9 +216,9 @@ onMounted(fetchAnalytics);
               </svg>
               {{ t('analytics.questionAccuracy') }}
             </h3>
-            <div class="space-y-3">
+            <div class="space-y-3 max-h-80 overflow-y-auto">
               <div
-                v-for="(q, index) in questions.slice(0, 5)"
+                v-for="(q, index) in questions"
                 :key="q.questionId"
                 class="space-y-1"
               >
@@ -271,7 +273,9 @@ onMounted(fetchAnalytics);
                       </div>
                     </td>
                     <td class="p-3 text-right font-bold">{{ player.score }}</td>
-                    <td class="p-3 text-right">{{ player.correctCount }} / {{ player.totalAnswered }}</td>
+                    <td class="p-3 text-right">
+                      {{ player.correctCount }} / {{ player.totalQuestions || summary?.totalQuestions || player.totalAnswered }}
+                    </td>
                     <td class="p-3 text-right">
                       <span :class="getAccuracyColor(player.accuracy)" class="font-bold">
                         {{ player.accuracy }}%

@@ -324,13 +324,22 @@ export async function getSessionAnalytics(req, res) {
     }
 
     // Build participant details
+    const participantQuizQuestionIds = Array.isArray(session.quizId?.questions)
+      ? session.quizId.questions
+      : [];
+    const totalQuizQuestions = participantQuizQuestionIds.length;
+
     const participantDetails = participants.map(p => {
       const playerSubmissions = submissions.filter(
         s => s.participantId.toString() === p._id.toString()
       );
       const correctCount = playerSubmissions.filter(submissionCountsAsCorrect).length;
-      const accuracy = playerSubmissions.length > 0
-        ? Math.round((correctCount / playerSubmissions.length) * 100)
+
+      // Per-player accuracy is measured against total quiz questions so
+      // "50% accuracy" clearly means "answered half of all questions correctly".
+      const denominator = totalQuizQuestions || playerSubmissions.length;
+      const accuracy = denominator > 0
+        ? Math.round((correctCount / denominator) * 100)
         : 0;
 
       return {
@@ -340,6 +349,7 @@ export async function getSessionAnalytics(req, res) {
         score: p.score || 0,
         correctCount,
         totalAnswered: playerSubmissions.length,
+        totalQuestions: totalQuizQuestions,
         accuracy
       };
     }).sort((a, b) => b.score - a.score);
