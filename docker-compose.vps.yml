@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: answr-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    # Expose only inside the compose network by default
+    ports:
+      - "27017:27017"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: answr-app
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # Internal MongoDB connection string (container-to-container)
+      MONGODB_URI: mongodb://mongo:27017/answr
+      # TODO: change this to a strong secret in production
+      JWT_SECRET: change-me-in-production
+      # Set to your public frontend origin (for example https://quiz.example.com)
+      CORS_ORIGIN: https://your-domain.example
+    ports:
+      # Map host port 3000 to container port 3000.
+      # Change left-hand side (e.g. to 80) if you want plain HTTP on port 80.
+      - "3000:3000"
+
+volumes:
+  mongo-data:
+

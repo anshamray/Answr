@@ -40,20 +40,29 @@ const { googleEnabled, githubEnabled } = initializePassport(app);
 if (googleEnabled) logger.info('Google OAuth enabled');
 if (githubEnabled) logger.info('GitHub OAuth enabled');
 
-// Basic route
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Answr API Server',
-    version: '0.1.0',
-    status: 'running'
-  });
-});
-
 // API Routes
 app.use('/api', apiRouter);
 
 // Media file serving (access-controlled, not static)
 app.use('/media', mediaServeRoutes);
+
+// Serve built frontend (if present) — used in Docker all-in-one image and
+// optionally when building frontend locally.
+const clientDistEnv = process.env.CLIENT_DIST_PATH;
+const defaultClientDist = path.resolve(__dirname, '../../frontend/dist');
+const dockerClientDist = path.resolve(__dirname, '../frontend-dist');
+const clientDistPath = clientDistEnv || dockerClientDist || defaultClientDist;
+
+app.use(express.static(clientDistPath));
+
+// SPA fallback: send index.html for all non-API/media routes
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api') || req.path.startsWith('/media')) {
+    return next();
+  }
+
+  res.sendFile(path.join(clientDistPath, 'index.html'));
+});
 
 // Upload error handler
 app.use(handleUploadError);

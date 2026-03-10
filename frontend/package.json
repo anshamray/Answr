@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "serve -s dist",
+    "test": "vitest",
     "lint": "eslint \"src/**/*.{js,vue}\"",
     "lint:fix": "eslint \"src/**/*.{js,vue}\" --fix",
     "format": "prettier \"src/**/*.{js,vue,ts,json,md}\" --check",
@@ -21,9 +22,11 @@
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.30.0",
+    "jsdom": "^28.1.0",
     "prettier": "^3.2.0",
     "tailwindcss": "^4.1.18",
     "vite": "^5.0.0",
+    "vitest": "^4.0.18",
     "vue-eslint-parser": "^9.4.3"
   },
   "dependencies": {

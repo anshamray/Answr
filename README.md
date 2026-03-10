@@ -15,7 +15,9 @@ answr/
 ├── backend/          # Node.js/Express Server + Socket.io
 ├── frontend/         # Vue 3 client app (Vite)
 ├── docs/             # Documentation
-├── docker-compose.yml# Docker Compose (MongoDB + Backend)
+├── docker-compose.yml      # Docker Compose (MongoDB + backend, dev)
+├── docker-compose.vps.yml  # Docker Compose (MongoDB + app, VPS)
+├── Dockerfile               # All-in-one app image (tests + build)
 ```
 
 ## 🚀 Quick Start
@@ -92,6 +94,59 @@ npm run dev        # http://localhost:5173
 ```bash
 docker compose down
 ```
+
+### Option C: VPS deployment (single container app + MongoDB)
+
+For a small VPS (e.g. Hetzner/DigitalOcean), you can run **backend, built frontend and MongoDB** together using Docker.
+
+#### 1. Build & run locally with the all-in-one Dockerfile
+
+From the project root:
+
+```bash
+# Build the image (runs backend + frontend tests during build)
+docker build -t answr-app .
+
+# Run the app container, using an external MongoDB instance
+docker run -d \
+  --name answr-app \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e PORT=3000 \
+  -e MONGODB_URI="mongodb://your-mongo-host:27017/answr" \
+  -e JWT_SECRET="your-strong-secret" \
+  answr-app
+```
+
+- The image uses the root `Dockerfile`:
+  - Installs dependencies for `backend` and `frontend`
+  - Runs **`npm test`** in `backend` and `frontend` (build fails if tests fail)
+  - Builds the frontend (`npm run build`) and copies the assets into the image
+- The backend (`backend/src/server.js`) also serves the compiled frontend:
+  - API under `/api/*`
+  - Media under `/media/*`
+  - SPA fallback (`index.html`) for all other routes
+
+#### 2. VPS with Docker Compose (MongoDB + app on one server)
+
+On your VPS, after cloning the repo and installing Docker + Docker Compose:
+
+```bash
+docker compose -f docker-compose.vps.yml up --build -d
+```
+
+This will:
+- Start **MongoDB** (`mongo` service) with a persisted volume `mongo-data`
+- Build and start the **app** service using the root `Dockerfile`
+  - Runs backend + frontend tests during image build
+  - Connects to MongoDB via `MONGODB_URI=mongodb://mongo:27017/answr`
+  - Exposes the app on `http://<your-vps>:3000`
+
+You should customize the environment variables in `docker-compose.vps.yml`:
+
+- `JWT_SECRET`: set to a long, random secret
+- `CORS_ORIGIN`: set to your public origin (e.g. `https://quiz.example.com`)
+- Port mapping `3000:3000`: change the left-hand side to `80:3000` or `443:3000` if you put a reverse proxy (nginx/Caddy/Traefik) in front of the app
 
 ### Code quality (linting & formatting)
 
