@@ -1,99 +1,101 @@
 # Answr 🎮
 
-Eine Open-Source Quiz-Plattform als datenschutzfreundliche Alternative zu Kahoot.
+Answr is an **open-source real-time quiz platform**, built as a privacy-friendly alternative to Kahoot for schools, companies, and private games.
 
-## 🎯 Projektziel
+> Answr is under active development and **not production-ready yet**.
 
-Entwicklung einer webbasierten Echtzeit-Quizplattform für Bildungseinrichtungen, Unternehmen und private Anwendungen mit Fokus auf Datenschutz und Anpassbarkeit.
+## 🎯 Project Goal
 
-## 🏗️ Projektstruktur
+Build a web-based real-time quiz platform for educational, corporate, and private use with a strong focus on **privacy**, **customizability**, and **transparent architecture**.
+
+## 🏗️ Project Structure
 
 ```
 answr/
 ├── backend/          # Node.js/Express Server + Socket.io
-├── frontend/         # Vue 3 Client-Anwendung (Vite)
-├── docs/             # Dokumentation
+├── frontend/         # Vue 3 client app (Vite)
+├── docs/             # Documentation
 ├── docker-compose.yml# Docker Compose (MongoDB + Backend)
 ```
 
 ## 🚀 Quick Start
 
-### Variante A: Lokale Entwicklung (ohne Docker)
+### Option A: Local development (without Docker)
 
-#### Voraussetzungen
+#### Prerequisites
 
 - Node.js >= 18.x
 - npm >= 9.x
-- MongoDB >= 6.x (lokal oder Docker)
+- MongoDB >= 6.x (locally or via Docker)
 
 #### Installation
 
 ```bash
-# Repository klonen
+# Clone repository
 git clone https://github.com/anshamray/Answr.git
 cd Answr
 
-# Backend installieren
+# Install backend
 cd backend
 npm install
 
-# Frontend installieren
+# Install frontend
 cd ../frontend
 npm install
 ```
 
-#### Entwicklung starten
+#### Start development
 
 ```bash
-# Terminal 1 - Backend starten
+# Terminal 1 - start backend
 cd backend
 npm run dev
 
-# Terminal 2 - Frontend starten
+# Terminal 2 - start frontend
 cd frontend
 npm run dev
 ```
 
-Backend läuft auf: `http://localhost:3000`  
-Frontend läuft auf: `http://localhost:5173`
+Backend: `http://localhost:3000`  
+Frontend: `http://localhost:5173`
 
-### Variante B: Mit Docker (MongoDB + Backend)
+### Option B: With Docker (MongoDB + backend)
 
-Wenn du nur einen Befehl für Datenbank + Backend verwenden möchtest, kannst du Docker Compose nutzen.
+If you want to spin up database + backend with a single command, you can use Docker Compose.
 
-#### Voraussetzungen
+#### Prerequisites
 
 - Docker
 - Docker Compose (`docker compose` CLI)
 
-#### Starten
+#### Start
 
-Im Projektroot:
+From the project root:
 
 ```bash
 docker compose up --build
 ```
 
-- Startet **MongoDB** (Container `answr-mongo`)
-- Startet das **Backend** (Container `answr-backend`) auf `http://localhost:3000`
+- Starts **MongoDB** (container `answr-mongo`)
+- Starts **backend** (container `answr-backend`) on `http://localhost:3000`
 
-Das Frontend läuft weiterhin lokal über Vite:
+The frontend still runs locally via Vite:
 
 ```bash
 cd frontend
-npm install        # einmalig
+npm install        # once
 npm run dev        # http://localhost:5173
 ```
 
-#### Stoppen
+#### Stop containers
 
 ```bash
 docker compose down
 ```
 
-### Code-Qualität (Linting & Formatting)
+### Code quality (linting & formatting)
 
-Im Projekt sind ESLint und Prettier für Backend und Frontend konfiguriert.
+ESLint and Prettier are configured for both backend and frontend.
 
 ```bash
 # Backend
@@ -113,49 +115,69 @@ npm run format:fix
 
 ## 📋 Features
 
-### MVP – Backend (Stand: implementiert)
-- ✅ Moderator-Authentifizierung (JWT)
-- ✅ Quiz CRUD API (`/api/quizzes`)
-- ✅ Datenmodelle: Quiz, Question, Session, Participant, Submission
-- ✅ Multiple-Choice + True/False Fragen (mit Validierung)
-- ✅ Session-Management API mit 6-stelliger PIN (`/api/sessions`)
-- ✅ Echtzeit-Spielablauf (Socket.io WebSocket-Events)
-- ✅ Session TTL (automatischer Ablauf nach 2 Stunden)
+### Current capabilities
+- ✅ Moderator authentication (JWT)
+- ✅ Quiz management (CRUD API at `/api/quizzes`)
+- ✅ Data models for quizzes, questions, sessions, participants & submissions
+- ✅ Multiple question types (e.g. multiple-choice, true/false – see `docs/QuestionTypes.md`)
+- ✅ Session management with 6‑digit PINs (`/api/sessions`)
+- ✅ Real-time gameplay via Socket.io (lobby, questions, answers, leaderboard)
+- ✅ Server-side scoring with time bonus (score calculator)
+- ✅ Session TTL (automatic cleanup after expiry)
 
-### MVP – Noch offen
-- ⏳ Question CRUD API Endpoints
-- ⏳ Frontend-Oberfläche (Vue)
-- ⏳ Punktesystem mit Zeitbonus (Score-Calculator)
-- ⏳ Live-Rangliste im Frontend
-
-### Version 1.1 (Should-Have)
-- ⏳ Bilder in Fragen
-- ⏳ Variable Zeitlimits
-- ⏳ Erweiterte Statistiken
-- ⏳ Session Pause/Resume im Frontend
-
-### Future (Could-Have)
-- 💡 Weitere Fragetypen (Slider, Sort, Word Cloud, etc.)
-- 💡 Hintergrundmusik & Soundeffekte
-- 💡 Export/Import von Quizzen
+### Roadmap
+- ⏳ Extended question CRUD APIs and UI improvements
+- ⏳ Frontend enhancements for moderator dashboard & player UI
+- ⏳ Advanced live statistics & visualizations
+- ⏳ Images in questions and variable time limits
+- ⏳ Pause/resume functionality for sessions
+- 💡 Additional question types (slider, sort, word cloud, etc.)
+- 💡 Background music & sound effects
+- 💡 Quiz export/import
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Vue + Vite
 - **Backend**: Node.js + Express.js
-- **Echtzeit**: Socket.io
-- **Datenbank**: MongoDB + Mongoose
-- **Authentifizierung**: JWT (optional für MVP)
+- **Real-time**: Socket.io
+- **Database**: MongoDB + Mongoose
+- **Authentication**: JWT (for moderators)
 
-## 📚 Dokumentation
+## 🔒 Privacy & Security
 
-Siehe [docs/](./docs/) für:
-- [API-Dokumentation](./docs/API.md) - REST & WebSocket Spezifikation
-- [Architektur](./docs/Architektur.md) - Systemarchitektur (Mermaid-Diagramme)
-- [Projektstruktur](./docs/Projektstruktur.md) - Ordnerstruktur & Fortschritt
-- [Fragetypen](./docs/QuestionTypes.md) - Unterstützte Fragetypen
-- [Quickstart](./docs/QUICKSTART.md) - Schnelleinstieg
+- No third-party trackers in the core project
+- Sessions use random 6‑digit PINs
+- JWT-based moderator authentication
+- Clear separation between moderators and players
+- Backend as the single source of truth for scores, timer & leaderboard
 
-## 📝 Lizenz
+## 📚 Documentation
 
-MIT License - siehe [LICENSE](LICENSE)
+See [docs/](./docs/) for:
+- [API](./docs/API.md) – REST & WebSocket specification
+- [Architecture](./docs/Architektur.md) – system architecture (Mermaid diagrams)
+- [Project structure](./docs/Projektstruktur.md) – folder layout & progress
+- [Question types](./docs/QuestionTypes.md) – supported types
+- [Quickstart](./docs/QUICKSTART.md) – step‑by‑step setup
+
+## 🤝 Contributing & Feedback
+
+Contributions are very welcome!
+
+- **Found a bug or have a feature idea?**  
+  → Open an issue in the GitHub `Issues` tab.
+
+- **Want to contribute code?**  
+  ```bash
+  git checkout -b feature/my-feature
+  # make your changes
+  git commit -m "feat: describe your feature"
+  git push origin feature/my-feature
+  # open a Pull Request on GitHub
+  ```
+
+For questions or suggestions, feel free to use issues as well.
+
+## 📝 License
+
+MIT License – see [LICENSE](LICENSE)
