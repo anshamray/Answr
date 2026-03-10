@@ -841,7 +841,7 @@ onUnmounted(cleanup);
                 {{ currentQuestion.text }}
               </h1>
               <div v-if="questionMediaUrl" class="mt-2 flex justify-center">
-                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
+                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-transparent">
                   <img
                     :src="questionMediaUrl"
                     :alt="currentQuestion.text"
@@ -865,9 +865,6 @@ onUnmounted(cleanup);
           </div>
         </main>
 
-        <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
-          <PixelButton variant="outline" @click="showEndConfirm = true">{{ t('gameControl.endGame') }}</PixelButton>
-        </footer>
       </template>
 
       <!-- Answering Phase: Show question + answers + timer -->
@@ -916,7 +913,7 @@ onUnmounted(cleanup);
                 v-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
                 class="mt-1 flex justify-center"
               >
-                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
+                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-transparent">
                   <img
                     :src="questionMediaUrl"
                     :alt="currentQuestion.text"

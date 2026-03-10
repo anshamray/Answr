@@ -39,15 +39,6 @@ const leaderboard = computed(() => {
 });
 
 const topTen = computed(() => leaderboard.value.slice(0, 10));
-
-const topThree = computed(() => {
-  const top = leaderboard.value.slice(0, 3);
-  // Only reorder if we have exactly 3 entries for podium display
-  if (top.length < 3) return top;
-  return [top[1], top[0], top[2]];
-});
-
-const otherPlayers = computed(() => leaderboard.value.slice(3, 10));
 const totalPlayers = computed(() => {
   if (typeof resultStats.value.totalPlayers === 'number') {
     return resultStats.value.totalPlayers;
@@ -223,75 +214,7 @@ onUnmounted(() => {
         <p class="text-xl lg:text-2xl text-muted-foreground">{{ session?.quizId?.title || 'Quiz Results' }}</p>
       </div>
 
-      <!-- Podium -->
-      <div v-if="topThree.length >= 3" class="flex items-end justify-center gap-4 lg:gap-6 mb-12">
-        <!-- 2nd Place -->
-        <div class="flex flex-col items-center">
-          <div class="mb-4 text-center">
-            <div class="text-4xl lg:text-6xl mb-2">{{ getLeaderboardAvatar(topThree[0]?.avatar, (topThree[0]?.position ?? 2)) }}</div>
-            <div class="text-lg lg:text-xl font-bold truncate max-w-[120px]">{{ topThree[0]?.name || 'Player' }}</div>
-            <div class="text-lg lg:text-2xl font-bold text-muted-foreground">{{ (topThree[0]?.score || 0).toLocaleString() }}</div>
-          </div>
-          <div class="w-24 lg:w-32 h-24 lg:h-32 bg-gradient-to-t from-muted-foreground to-muted-foreground/70 border-[3px] border-black pixel-shadow-lg flex items-center justify-center">
-            <span class="text-4xl lg:text-5xl font-bold text-white pixel-font">2</span>
-          </div>
-        </div>
-
-        <!-- 1st Place -->
-        <div class="flex flex-col items-center mb-8">
-          <PixelStar class="text-warning animate-spin mb-4" :size="48" style="animation-duration: 3s;" />
-          <div class="mb-4 text-center">
-            <div class="text-5xl lg:text-7xl mb-2">{{ getLeaderboardAvatar(topThree[1]?.avatar, (topThree[1]?.position ?? 1)) }}</div>
-            <div class="text-xl lg:text-2xl font-bold truncate max-w-[140px]">{{ topThree[1]?.name || 'Player' }}</div>
-            <div class="text-2xl lg:text-3xl font-bold text-warning">{{ (topThree[1]?.score || 0).toLocaleString() }}</div>
-          </div>
-          <div class="w-32 lg:w-40 h-36 lg:h-48 bg-gradient-to-t from-warning to-warning/70 border-[3px] border-black pixel-shadow-lg flex items-center justify-center">
-            <span class="text-5xl lg:text-6xl font-bold text-white pixel-font">1</span>
-          </div>
-        </div>
-
-        <!-- 3rd Place -->
-        <div class="flex flex-col items-center">
-          <div class="mb-4 text-center">
-            <div class="text-4xl lg:text-6xl mb-2">{{ getLeaderboardAvatar(topThree[2]?.avatar, (topThree[2]?.position ?? 3)) }}</div>
-            <div class="text-lg lg:text-xl font-bold truncate max-w-[120px]">{{ topThree[2]?.name || 'Player' }}</div>
-            <div class="text-lg lg:text-2xl font-bold text-accent">{{ (topThree[2]?.score || 0).toLocaleString() }}</div>
-          </div>
-          <div class="w-24 lg:w-32 h-16 lg:h-24 bg-gradient-to-t from-accent to-accent/70 border-[3px] border-black pixel-shadow-lg flex items-center justify-center">
-            <span class="text-4xl lg:text-5xl font-bold text-white pixel-font">3</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Leaderboard for fewer than 3 players -->
-      <PixelCard v-if="leaderboard.length > 0 && leaderboard.length < 3" class="space-y-4">
-        <h2 class="text-2xl font-bold flex items-center gap-2">
-          <svg class="text-warning" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-            <path d="M4 22h16" /><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-          </svg>
-          Final Rankings
-        </h2>
-
-        <div class="space-y-2">
-          <div
-            v-for="player in leaderboard"
-            :key="player.playerId || player.name"
-            class="flex items-center gap-3 p-3 bg-muted border-2 border-border"
-          >
-            <div class="w-10 h-10 bg-white border-2 border-black flex items-center justify-center font-bold">
-              {{ player.position }}
-            </div>
-            <span class="text-2xl">{{ getLeaderboardAvatar(player.avatar, player.position) }}</span>
-            <div class="flex-1">
-              <div class="font-bold">{{ player.name || player.nickname || 'Player' }}</div>
-              <div class="text-sm text-muted-foreground">{{ (player.score || 0).toLocaleString() }} pts</div>
-            </div>
-          </div>
-        </div>
-      </PixelCard>
+      <!-- Rankings are only shown in the right-hand column -->
 
       <!-- Stats + Final Rankings -->
       <div class="grid lg:grid-cols-2 gap-6">
