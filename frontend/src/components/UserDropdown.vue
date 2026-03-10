@@ -181,7 +181,7 @@ onUnmounted(() => {
                 :class="loc.code === locale ? 'border-primary bg-primary/10 font-medium' : 'border-border hover:border-primary'"
                 @click="selectLocale(loc.code)"
               >
-                <span>{{ loc.flag }}</span>
+                <span :class="['fi', `fi-${loc.flag}`]" aria-hidden="true"></span>
                 <span>{{ loc.code.toUpperCase() }}</span>
               </button>
             </div>

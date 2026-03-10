@@ -69,6 +69,7 @@ export async function updateUserStats(userId, sessionResults) {
       totalAnswers: 0,
       wins: 0,
       maxStreak: 0,
+      sessionsHosted: 0,
       badges: []
     };
   }
@@ -129,6 +130,7 @@ export async function getUserStats(userId) {
     totalAnswers: 0,
     wins: 0,
     maxStreak: 0,
+    sessionsHosted: 0,
     badges: []
   };
 
@@ -161,7 +163,8 @@ export async function getAllBadgesWithProgress(userId) {
     correctAnswers: 0,
     totalAnswers: 0,
     wins: 0,
-    maxStreak: 0
+    maxStreak: 0,
+    sessionsHosted: 0
   };
 
   return getAllBadges().map(badge => {
@@ -211,7 +214,54 @@ function calculateBadgeProgress(badge, stats) {
       return Math.min(100, (stats.correctAnswers / 500) * 100);
     case 'correct_1000':
       return Math.min(100, (stats.correctAnswers / 1000) * 100);
+    // Hosting badges
+    case 'first_host':
+      return Math.min(100, (stats.sessionsHosted || 0) * 100);
+    case 'host_5':
+      return Math.min(100, ((stats.sessionsHosted || 0) / 5) * 100);
+    case 'host_20':
+      return Math.min(100, ((stats.sessionsHosted || 0) / 20) * 100);
+    case 'host_50':
+      return Math.min(100, ((stats.sessionsHosted || 0) / 50) * 100);
     default:
       return 0;
   }
+}
+
+/**
+ * Update moderator hosting stats after a session.
+ *
+ * @param {string} userId - Moderator user ID
+ * @param {object} hostUpdate - Hosting-related deltas
+ * @param {number} hostUpdate.sessionsHostedDelta - How many sessions to add (default 1)
+ * @returns {Promise<{ stats: object, newBadges: string[] }>}
+ */
+export async function updateHostStats(userId, hostUpdate = {}) {
+  if (!userId) return { stats: null, newBadges: [] };
+
+  const user = await User.findById(userId);
+  if (!user) return { stats: null, newBadges: [] };
+
+  if (!user.stats) {
+    user.stats = {
+      quizzesCompleted: 0,
+      correctAnswers: 0,
+      totalAnswers: 0,
+      wins: 0,
+      maxStreak: 0,
+      sessionsHosted: 0,
+      badges: []
+    };
+  }
+
+  const { sessionsHostedDelta = 1 } = hostUpdate;
+  if (sessionsHostedDelta !== 0) {
+    user.stats.sessionsHosted = (user.stats.sessionsHosted || 0) + sessionsHostedDelta;
+  }
+
+  await user.save();
+
+  const newBadges = await checkAndAwardBadges(userId, user.stats);
+
+  return { stats: user.stats, newBadges };
 }

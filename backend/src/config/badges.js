@@ -129,6 +129,40 @@ export const BADGES = {
     emoji: '\u{1F4D6}',
     category: 'accuracy',
     condition: (stats) => stats.correctAnswers >= 1000
+  },
+
+  // Hosting badges (moderator-focused)
+  first_host: {
+    id: 'first_host',
+    name: 'Host Debut',
+    description: 'Host your first quiz session',
+    emoji: '\u{1F3AE}',
+    category: 'host',
+    condition: (stats) => (stats.sessionsHosted || 0) >= 1
+  },
+  host_5: {
+    id: 'host_5',
+    name: 'Frequent Host',
+    description: 'Host 5 quiz sessions',
+    emoji: '\u{1F3C1}',
+    category: 'host',
+    condition: (stats) => (stats.sessionsHosted || 0) >= 5
+  },
+  host_20: {
+    id: 'host_20',
+    name: 'Event Organizer',
+    description: 'Host 20 quiz sessions',
+    emoji: '\u{1F4AA}',
+    category: 'host',
+    condition: (stats) => (stats.sessionsHosted || 0) >= 20
+  },
+  host_50: {
+    id: 'host_50',
+    name: 'Showrunner',
+    description: 'Host 50 quiz sessions',
+    emoji: '\u{1F451}',
+    category: 'host',
+    condition: (stats) => (stats.sessionsHosted || 0) >= 50
   }
 };
 
@@ -160,5 +194,6 @@ export const BADGE_CATEGORIES = [
   { id: 'participation', name: 'Participation', description: 'Badges for playing quizzes' },
   { id: 'streak', name: 'Streaks', description: 'Badges for consecutive correct answers' },
   { id: 'victory', name: 'Victory', description: 'Badges for winning quizzes' },
-  { id: 'accuracy', name: 'Accuracy', description: 'Badges for correct answers' }
+  { id: 'accuracy', name: 'Accuracy', description: 'Badges for correct answers' },
+  { id: 'host', name: 'Hosting', description: 'Badges for hosting quiz sessions' }
 ];

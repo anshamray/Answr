@@ -48,6 +48,8 @@ const userSchema = new mongoose.Schema({
     totalAnswers: { type: Number, default: 0 },
     wins: { type: Number, default: 0 },
     maxStreak: { type: Number, default: 0 },
+    // Moderator stats
+    sessionsHosted: { type: Number, default: 0 },
     badges: [{
       badgeId: { type: String, required: true },
       earnedAt: { type: Date, default: Date.now }

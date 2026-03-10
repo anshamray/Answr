@@ -290,7 +290,7 @@ onMounted(() => {
 
         <!-- Stats Grid -->
         <div v-else-if="userStats" class="space-y-6">
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
             <div class="text-center p-4 bg-muted/30 border-2 border-border">
               <div class="text-2xl font-bold text-primary">{{ userStats.quizzesCompleted || 0 }}</div>
               <div class="text-xs text-muted-foreground">{{ t('account.quizzesPlayed') }}</div>
@@ -306,6 +306,10 @@ onMounted(() => {
             <div class="text-center p-4 bg-muted/30 border-2 border-border">
               <div class="text-2xl font-bold text-secondary">{{ userStats.maxStreak || 0 }}</div>
               <div class="text-xs text-muted-foreground">{{ t('account.bestStreak') }}</div>
+            </div>
+            <div class="text-center p-4 bg-muted/30 border-2 border-border">
+              <div class="text-2xl font-bold text-accent">{{ userStats.sessionsHosted || 0 }}</div>
+              <div class="text-xs text-muted-foreground">{{ t('account.sessionsHosted') }}</div>
             </div>
           </div>
 

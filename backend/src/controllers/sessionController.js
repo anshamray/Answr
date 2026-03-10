@@ -13,6 +13,7 @@ import {
   sendConflict,
   sendServerError
 } from '../utils/responseHelper.js';
+import { updateHostStats } from '../services/badgeService.js';
 
 function submissionCountsAsCorrect(submission) {
   if (submission?.isCorrect === true) return true;
@@ -160,6 +161,11 @@ export async function endSession(req, res) {
     session.status = 'finished';
     session.finishedAt = new Date();
     await session.save();
+
+    // Update moderator hosting stats and badges (non-blocking for the response)
+    updateHostStats(req.user.userId, { sessionsHostedDelta: 1 }).catch((err) => {
+      console.error('Failed to update host stats:', err);
+    });
 
     sendSuccess(res, { message: 'Session ended', data: { session } });
   } catch (error) {
