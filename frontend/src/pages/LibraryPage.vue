@@ -25,6 +25,10 @@ const sort = ref('newest');
 const page = ref(1);
 const totalPages = ref(1);
 const total = ref(0);
+const categoryFilter = ref('');
+const languageFilter = ref('');
+const officialOnly = ref(false);
+const tagFilter = ref('');
 
 let debounceTimer = null;
 
@@ -35,6 +39,12 @@ async function fetchLibrary() {
   try {
     const params = new URLSearchParams();
     if (search.value.trim()) params.set('search', search.value.trim());
+    if (categoryFilter.value) params.set('category', categoryFilter.value);
+    if (languageFilter.value) params.set('language', languageFilter.value);
+    if (officialOnly.value) params.set('official', 'true');
+    if (tagFilter.value.trim()) {
+      params.append('tag', tagFilter.value.trim().toLowerCase());
+    }
     params.set('sort', sort.value);
     params.set('page', page.value);
     params.set('limit', '12');
@@ -66,7 +76,29 @@ function onSearchInput() {
   }, TIMING.SEARCH_DEBOUNCE_DELAY);
 }
 
+function onTagInput() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    page.value = 1;
+    fetchLibrary();
+  }, TIMING.SEARCH_DEBOUNCE_DELAY);
+}
+
 watch(sort, () => {
+  page.value = 1;
+  fetchLibrary();
+});
+
+watch(categoryFilter, () => {
+  page.value = 1;
+  fetchLibrary();
+});
+
+watch(languageFilter, () => {
+  page.value = 1;
+  fetchLibrary();
+});
+watch(officialOnly, () => {
   page.value = 1;
   fetchLibrary();
 });
@@ -107,29 +139,98 @@ onMounted(fetchLibrary);
           </router-link>
         </div>
 
-        <!-- Search and Filter -->
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="flex-1 relative">
-            <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              v-model="search"
-              type="text"
-              :placeholder="t('library.searchPlaceholder')"
-              class="w-full pl-12 pr-4 py-3 border-[3px] border-black focus:outline-none focus:ring-4 focus:ring-primary/30 bg-white"
-              @input="onSearchInput"
-            />
+        <!-- Search and Filters -->
+        <div class="space-y-3">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1 relative">
+              <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                v-model="search"
+                type="text"
+                :placeholder="t('library.searchPlaceholder')"
+                class="w-full pl-12 pr-4 py-3 border-[3px] border-black focus:outline-none focus:ring-4 focus:ring-primary/30 bg-white"
+                @input="onSearchInput"
+              />
+            </div>
+
+            <div class="w-full sm:w-64">
+              <input
+                v-model="tagFilter"
+                type="text"
+                :placeholder="t('library.filterTagPlaceholder')"
+                class="w-full px-4 py-3 border-[3px] border-black focus:outline-none focus:ring-4 focus:ring-primary/30 bg-white"
+                @input="onTagInput"
+              />
+            </div>
           </div>
 
-          <select
-            v-model="sort"
-            class="px-6 py-3 border-[3px] border-black bg-white focus:outline-none focus:ring-4 focus:ring-primary/30"
-          >
-            <option value="popular">{{ t('library.sortPopular') }}</option>
-            <option value="newest">{{ t('library.sortNewest') }}</option>
-            <option value="title">{{ t('library.sortTitle') }}</option>
-          </select>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="w-full sm:w-64">
+              <select
+                v-model="categoryFilter"
+                class="w-full px-4 py-3 border-[3px] border-black bg-white focus:outline-none focus:ring-4 focus:ring-primary/30"
+              >
+                <option value="">{{ t('library.filterAnyCategory') }}</option>
+                <option value="General">{{ t('quizEditor.categoryGeneral') }}</option>
+                <option value="Science">{{ t('quizEditor.categoryScience') }}</option>
+                <option value="History">{{ t('quizEditor.categoryHistory') }}</option>
+                <option value="Geography">{{ t('quizEditor.categoryGeography') }}</option>
+                <option value="Art">{{ t('quizEditor.categoryArt') }}</option>
+                <option value="Music">{{ t('quizEditor.categoryMusic') }}</option>
+                <option value="Sports">{{ t('quizEditor.categorySports') }}</option>
+                <option value="Technology">{{ t('quizEditor.categoryTechnology') }}</option>
+                <option value="Literature">{{ t('quizEditor.categoryLiterature') }}</option>
+                <option value="Movies">{{ t('quizEditor.categoryMovies') }}</option>
+                <option value="TV Shows">{{ t('quizEditor.categoryTVShows') }}</option>
+                <option value="Food">{{ t('quizEditor.categoryFood') }}</option>
+                <option value="Nature">{{ t('quizEditor.categoryNature') }}</option>
+                <option value="Math">{{ t('quizEditor.categoryMath') }}</option>
+                <option value="Language">{{ t('quizEditor.categoryLanguage') }}</option>
+                <option value="Other">{{ t('quizEditor.categoryOther') }}</option>
+              </select>
+            </div>
+
+            <div class="w-full sm:w-56">
+              <select
+                v-model="languageFilter"
+                class="w-full px-4 py-3 border-[3px] border-black bg-white focus:outline-none focus:ring-4 focus:ring-primary/30"
+              >
+                <option value="">{{ t('library.filterAnyLanguage') }}</option>
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="it">Italiano</option>
+                <option value="pt">Português</option>
+                <option value="nl">Nederlands</option>
+                <option value="pl">Polski</option>
+                <option value="ru">Русский</option>
+                <option value="ja">日本語</option>
+                <option value="zh">中文</option>
+                <option value="ko">한국어</option>
+              </select>
+            </div>
+
+            <select
+              v-model="sort"
+              class="w-full sm:w-56 px-6 py-3 border-[3px] border-black bg-white focus:outline-none focus:ring-4 focus:ring-primary/30"
+            >
+              <option value="popular">{{ t('library.sortPopular') }}</option>
+              <option value="newest">{{ t('library.sortNewest') }}</option>
+              <option value="title">{{ t('library.sortTitle') }}</option>
+            </select>
+
+            <label class="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <input
+                v-model="officialOnly"
+                type="checkbox"
+                class="w-4 h-4 border-[3px] border-black"
+              />
+              <span>{{ t('library.filterOfficialOnly') }}</span>
+            </label>
+          </div>
         </div>
       </div>
 

@@ -191,6 +191,7 @@ export async function importOfficialQuizzes(req, res) {
  *   - search: text search in title/description
  *   - category: filter by category
  *   - tag: filter by tag (can appear multiple times)
+ *   - language: filter by quiz language (e.g. 'en', 'de')
  *   - sort: 'newest' | 'popular' | 'title' (default: 'newest')
  *   - official: 'true' to show only official quizzes
  *   - page: page number (default: 1)
@@ -202,6 +203,7 @@ export async function browseLibrary(req, res) {
       search,
       category,
       tag,
+      language,
       sort = 'newest',
       official,
       page = 1,
@@ -227,6 +229,9 @@ export async function browseLibrary(req, res) {
       filter.tags = { $in: tags.map(t => t.toLowerCase()) };
     }
 
+  if (language) {
+    filter.language = language;
+  }
     if (official === 'true') {
       filter.isOfficial = true;
     }
