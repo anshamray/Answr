@@ -304,7 +304,8 @@ export async function getSessionAnalytics(req, res) {
 
     // Get all submissions for this session
     const submissions = await Submission.find({ sessionId: session._id })
-      .populate('questionId', 'text type');
+      .populate('questionId', 'text type')
+      .lean();
 
     // Calculate summary stats
     const participants = session.participants || [];
@@ -343,15 +344,47 @@ export async function getSessionAnalytics(req, res) {
       };
     }).sort((a, b) => b.score - a.score);
 
-    // Build question-level stats
+    // Build question-level stats including questions with zero submissions
     const questionStats = [];
     const questionMap = new Map();
 
+    // Initialize stats for all quiz questions so unanswered questions still appear
+    const quizQuestionIds = Array.isArray(session.quizId?.questions)
+      ? session.quizId.questions
+      : [];
+
+    if (quizQuestionIds.length > 0) {
+      const quizQuestions = await Question.find({ _id: { $in: quizQuestionIds } })
+        .select('text type order')
+        .lean();
+
+      quizQuestions
+        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        .forEach((q) => {
+          const qId = q._id.toString();
+          const baseStat = {
+            questionId: qId,
+            text: q.text || 'Unknown',
+            type: q.type || 'unknown',
+            totalAnswers: 0,
+            correctCount: 0,
+            totalTime: 0,
+            answerDistribution: {},
+            order: q.order ?? 0
+          };
+          questionMap.set(qId, baseStat);
+          questionStats.push(baseStat);
+        });
+    }
+
+    // Fold submissions into the pre-initialized question stats
     for (const sub of submissions) {
       if (!sub.questionId) continue;
 
       const qId = sub.questionId._id.toString();
+
       if (!questionMap.has(qId)) {
+        // Fallback for legacy data where question isn't part of the quiz anymore
         questionMap.set(qId, {
           questionId: qId,
           text: sub.questionId.text || 'Unknown',
@@ -359,8 +392,10 @@ export async function getSessionAnalytics(req, res) {
           totalAnswers: 0,
           correctCount: 0,
           totalTime: 0,
-          answerDistribution: {}
+          answerDistribution: {},
+          order: 0
         });
+        questionStats.push(questionMap.get(qId));
       }
 
       const stat = questionMap.get(qId);
@@ -373,15 +408,17 @@ export async function getSessionAnalytics(req, res) {
       stat.answerDistribution[answerId] = (stat.answerDistribution[answerId] || 0) + 1;
     }
 
-    for (const [, stat] of questionMap) {
+    // Finalize per-question aggregates
+    questionStats.forEach((stat) => {
       stat.accuracy = stat.totalAnswers > 0
         ? Math.round((stat.correctCount / stat.totalAnswers) * 100)
         : 0;
       stat.avgTime = stat.totalAnswers > 0
         ? Math.round(stat.totalTime / stat.totalAnswers)
         : 0;
-      questionStats.push(stat);
-    }
+      // Remove helper field from response
+      delete stat.order;
+    });
 
     sendSuccess(res, {
       message: 'Session analytics retrieved',

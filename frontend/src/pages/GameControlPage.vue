@@ -36,6 +36,7 @@ const playerCount = ref(0);
 const timeRemaining = ref(0);
 const answerDistribution = ref({});
 const playerAnswers = ref({});
+const playerNameById = ref({});
 const leaderboard = ref([]);
 let endGameRedirectTimer = null;
 
@@ -219,6 +220,10 @@ function rebuildAnswerDistribution() {
   answerDistribution.value = nextDistribution;
 }
 
+function getPlayerName(playerId) {
+  return playerNameById.value[playerId] || t('game.player');
+}
+
 const acceptedTypeAnswers = computed(() => {
   if (!isTypeAnswerQuestion.value) return [];
 
@@ -362,6 +367,88 @@ function getCorrectCount() {
 
   return correctIds.reduce((sum, id) => sum + getCount(id), 0);
 }
+
+function isAnswerCorrectForCurrentQuestion(answerId) {
+  if (!currentQuestion.value) return false;
+  const qType = currentQuestion.value.type || 'multiple-choice';
+
+  if (isSliderQuestion.value) {
+    const numeric = Number(Array.isArray(answerId) ? answerId[0] : answerId);
+    if (!Number.isFinite(numeric)) return false;
+    return isSliderValueCorrect(numeric);
+  }
+
+  if (isSortQuestion.value) {
+    const key = getAnswerDistributionKeys(answerId)[0];
+    return key === correctSortKey.value;
+  }
+
+  if (qType === 'pin-answer') {
+    const coords = parsePinAnswer(answerId);
+    return isPinAnswerCorrect(coords);
+  }
+
+  if (qType === 'type-answer') {
+    return acceptedTypeAnswerSet.value.has(normalizeTextAnswer(answerId));
+  }
+
+  const correctIds = (currentQuestion.value.answers || [])
+    .filter((answer) => answer.isCorrect)
+    .map((answer) => String(answer._id));
+
+  if (correctIds.length === 0) return false;
+
+  const selectedIds = getSelectedAnswerIds(answerId);
+  const correctIdSet = new Set(correctIds);
+
+  if (questionAllowsMultipleAnswers()) {
+    const selectedIdSet = new Set(selectedIds);
+    if (selectedIdSet.size !== correctIdSet.size) return false;
+    return correctIds.every((id) => selectedIdSet.has(id));
+  }
+
+  return selectedIds.length === 1 && correctIdSet.has(selectedIds[0]);
+}
+
+const playerAnswerRows = computed(() => {
+  const q = currentQuestion.value;
+  if (!q) return [];
+
+  const qType = q.type || 'multiple-choice';
+
+  return Object.entries(playerAnswers.value).map(([playerId, rawAnswer]) => {
+    let displayAnswer = '';
+
+    if (isSliderQuestion.value) {
+      const numeric = Number(Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer);
+      displayAnswer = Number.isFinite(numeric) ? formatSliderValue(numeric) : '';
+    } else if (isSortQuestion.value) {
+      const orderIds = getSelectedAnswerIds(rawAnswer);
+      displayAnswer = getSortOrderText(orderIds);
+    } else if (qType === 'pin-answer') {
+      const coords = parsePinAnswer(rawAnswer);
+      displayAnswer = coords
+        ? `(${coords.x.toFixed(1)}%, ${coords.y.toFixed(1)}%)`
+        : '';
+    } else if (qType === 'type-answer') {
+      displayAnswer = String(rawAnswer || '');
+    } else {
+      const selectedIds = getSelectedAnswerIds(rawAnswer);
+      if (selectedIds.length > 0) {
+        displayAnswer = selectedIds
+          .map((id) => answerTextById.value.get(String(id)) || '—')
+          .join(', ');
+      }
+    }
+
+    return {
+      playerId,
+      name: getPlayerName(playerId),
+      answer: displayAnswer,
+      isCorrect: isAnswerCorrectForCurrentQuestion(rawAnswer)
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+});
 
 function getAccuracyPercentage() {
   const total = answersReceived.value || totalDistributionAnswers.value;
@@ -592,6 +679,15 @@ function attachListeners(socket) {
 
   socket.on('lobby:update', (data) => {
     playerCount.value = data.playerCount || data.players?.length || 0;
+    if (Array.isArray(data.players)) {
+      const nextMap = {};
+      for (const player of data.players) {
+        if (player?.id) {
+          nextMap[player.id] = player.nickname || t('game.player');
+        }
+      }
+      playerNameById.value = nextMap;
+    }
   });
 }
 
@@ -1371,6 +1467,59 @@ onUnmounted(cleanup);
                   <div class="text-xs text-muted-foreground">{{ t('gameControl.accuracy') }}</div>
                 </PixelCard>
               </div>
+
+              <!-- Per-player answers (host can see who answered what) -->
+              <PixelCard v-if="playerAnswerRows.length > 0" class="space-y-2 !p-4">
+                <h3 class="text-sm font-bold uppercase text-muted-foreground">
+                  {{ t('gameControl.playerAnswers') }}
+                </h3>
+                <div class="max-h-64 overflow-y-auto border border-border">
+                  <table class="w-full text-sm">
+                    <thead class="bg-muted/60 border-b border-border">
+                      <tr>
+                        <th class="text-left px-3 py-2 font-semibold w-1/4">
+                          {{ t('analytics.player') }}
+                        </th>
+                        <th class="text-left px-3 py-2 font-semibold">
+                          {{ t('session.answer') }}
+                        </th>
+                        <th class="text-right px-3 py-2 font-semibold w-20">
+                          {{ t('session.correct') }}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="row in playerAnswerRows"
+                        :key="row.playerId"
+                        class="border-b border-border last:border-b-0"
+                      >
+                        <td class="px-3 py-1.5 font-medium truncate">
+                          {{ row.name }}
+                        </td>
+                        <td class="px-3 py-1.5 text-foreground/90 truncate">
+                          {{ row.answer || '—' }}
+                        </td>
+                        <td class="px-3 py-1.5 text-right">
+                          <span
+                            v-if="row.isCorrect"
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-success"
+                          >
+                            <PixelCheck :size="12" />
+                            {{ t('session.correct') }}
+                          </span>
+                          <span
+                            v-else
+                            class="inline-flex items-center gap-1 text-xs font-semibold text-destructive"
+                          >
+                            ✕
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </PixelCard>
             </div>
 
             <!-- Leaderboard -->
