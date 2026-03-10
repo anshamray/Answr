@@ -77,14 +77,20 @@ export const useGameStore = defineStore('game', () => {
     lastStreakMultiplier.value = 1.0;
   }
 
-  watch(
-    [pin, playerId, sessionId, playerName, playerEmoji, status, currentQuestion, leaderboard],
-    () => {
-      if (!sessionId.value || !playerId.value) {
-        clearPersistedPlayerSession();
-        return;
-      }
+  let persistTimeout = null;
 
+  function schedulePersist() {
+    if (!sessionId.value || !playerId.value) {
+      clearPersistedPlayerSession();
+      return;
+    }
+
+    // Debounce writes so we do not thrash localStorage during fast updates.
+    if (persistTimeout) {
+      clearTimeout(persistTimeout);
+    }
+
+    persistTimeout = setTimeout(() => {
       writePersistedPlayerSession({
         pin: pin.value,
         playerId: playerId.value,
@@ -95,7 +101,13 @@ export const useGameStore = defineStore('game', () => {
         currentQuestion: currentQuestion.value,
         leaderboard: leaderboard.value
       });
-    },
+      persistTimeout = null;
+    }, 150);
+  }
+
+  watch(
+    [pin, playerId, sessionId, playerName, playerEmoji, status, currentQuestion, leaderboard],
+    schedulePersist,
     { deep: true }
   );
 

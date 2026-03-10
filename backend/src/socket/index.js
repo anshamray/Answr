@@ -3,6 +3,8 @@
  * Manages WebSocket connections and routes events to appropriate handlers
  */
 
+import { logger } from '../utils/logger.js';
+
 import { PLAYER_EVENTS, SESSION_EVENTS } from './events.js';
 import { registerModeratorEvents } from './moderatorEvents.js';
 import { registerPlayerEvents } from './playerEvents.js';
@@ -18,7 +20,7 @@ export function initializeSocket(io) {
   const activeSessions = new Map();
 
   io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
+    logger.info('Socket client connected', { socketId: socket.id });
 
     // Register player events (WS-2)
     registerPlayerEvents(io, socket, activeSessions);
@@ -28,7 +30,7 @@ export function initializeSocket(io) {
 
     // Handle disconnect
     socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
+      logger.info('Socket client disconnected', { socketId: socket.id });
       const sessionPin = socket.data?.sessionPin;
       const playerId = socket.data?.playerId;
 
@@ -40,7 +42,7 @@ export function initializeSocket(io) {
           if (player && player.socketId === socket.id) {
             player.isConnected = false;
             player.disconnectedAt = new Date();
-            console.log(`Player ${playerId} marked disconnected from session ${sessionPin}`);
+            logger.info('Player disconnected from session', { playerId, sessionPin });
 
             const connectedCount = Array.from(session.players.values()).filter(
               (p) => p.isConnected
@@ -55,17 +57,20 @@ export function initializeSocket(io) {
         }
       }
 
-      // Also check if this socket was the host for any session
-      for (const [pin, session] of activeSessions) {
-        if (session.hostSocketId === socket.id) {
-          console.log(`Host disconnected from session ${pin}`);
-          io.to(pin).emit(SESSION_EVENTS.HOST_DISCONNECTED);
+      // If this socket was the host for a session, notify clients.
+      // We can rely on socket.data.isModerator and sessionPin instead
+      // of scanning all sessions.
+      if (socket.data?.isModerator && sessionPin) {
+        const session = activeSessions.get(sessionPin);
+        if (session && session.hostSocketId === socket.id) {
+          logger.info('Host disconnected from session', { sessionPin });
+          io.to(sessionPin).emit(SESSION_EVENTS.HOST_DISCONNECTED);
         }
       }
     });
   });
 
-  console.log('Socket handler initialized');
+  logger.info('Socket handler initialized');
 
   return { activeSessions };
 }

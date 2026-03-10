@@ -25,3 +25,41 @@ export function authMediaUrl(path, token) {
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}token=${encodeURIComponent(token)}`;
 }
+
+/**
+ * Lightweight API helper that centralizes fetch, auth headers and JSON parsing.
+ * This keeps auth logic in one place and gives callers typed responses.
+ */
+export async function apiRequest(path, options = {}, token) {
+  const url = apiUrl(path);
+
+  const headers = new Headers(options.headers || {});
+  if (!headers.has('Content-Type') && options.body && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    // Non‑JSON or empty responses are allowed; data stays null.
+  }
+
+  if (!res.ok) {
+    const message = data?.error || data?.message || 'Request failed';
+    const error = new Error(message);
+    error.status = res.status;
+    error.payload = data;
+    throw error;
+  }
+
+  return data;
+}

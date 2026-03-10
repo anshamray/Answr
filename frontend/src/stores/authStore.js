@@ -1,31 +1,51 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { apiUrl } from '../lib/api.js';
+import { apiRequest } from '../lib/api.js';
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || null);
   const user = ref(null);
   const favorites = ref(new Set());
 
+  // Cache decoded token payload + exp to avoid re‑decoding on every access.
+  const tokenPayload = ref(null);
+  const tokenExpiresAt = ref(null);
+
+  function decodeToken(currentToken) {
+    if (!currentToken) {
+      tokenPayload.value = null;
+      tokenExpiresAt.value = null;
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(currentToken.split('.')[1]));
+      tokenPayload.value = payload;
+      tokenExpiresAt.value = payload.exp ? payload.exp * 1000 : null;
+    } catch {
+      tokenPayload.value = null;
+      tokenExpiresAt.value = null;
+    }
+  }
+
+  // Decode on initial load
+  decodeToken(token.value);
+
   function isTokenValid() {
     if (!token.value) return false;
-    try {
-      const payload = JSON.parse(atob(token.value.split('.')[1]));
-      if (payload.exp && payload.exp * 1000 < Date.now()) {
-        // Token expired - clear it
-        token.value = null;
-        user.value = null;
-        localStorage.removeItem('token');
-        return false;
-      }
-      return true;
-    } catch {
-      // Invalid token - clear it
-      token.value = null;
-      user.value = null;
-      localStorage.removeItem('token');
+
+    // If decoding failed earlier, treat as invalid and clear.
+    if (!tokenPayload.value) {
+      clearAuth();
       return false;
     }
+
+    if (tokenExpiresAt.value && tokenExpiresAt.value < Date.now()) {
+      clearAuth();
+      return false;
+    }
+
+    return true;
   }
 
   const isAuthenticated = computed(() => isTokenValid());
@@ -34,45 +54,34 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = newToken;
     user.value = userData;
     localStorage.setItem('token', newToken);
+    decodeToken(newToken);
   }
 
   function clearAuth() {
     token.value = null;
     user.value = null;
     favorites.value = new Set();
+    tokenPayload.value = null;
+    tokenExpiresAt.value = null;
     localStorage.removeItem('token');
   }
 
   async function login(email, password, rememberMe = false) {
-    const res = await fetch(apiUrl('/api/auth/login'), {
+    const data = await apiRequest('/api/auth/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, rememberMe })
     });
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || 'Login failed');
-    }
-
-    const data = await res.json();
     setAuth(data.data.token, data.data.user);
     return data;
   }
 
   async function register(name, email, password) {
-    const res = await fetch(apiUrl('/api/auth/register'), {
+    const data = await apiRequest('/api/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })
     });
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || 'Registration failed');
-    }
-
-    const data = await res.json();
     setAuth(data.data.token, data.data.user);
     return data;
   }
@@ -80,22 +89,17 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchMe(throwOnError = false) {
     if (!token.value) return null;
 
-    const res = await fetch(apiUrl('/api/auth/me'), {
-      headers: { Authorization: `Bearer ${token.value}` }
-    });
-
-    if (!res.ok) {
+    try {
+      const data = await apiRequest('/api/auth/me', {}, token.value);
+      user.value = data.data.user;
+      return data.data.user;
+    } catch (error) {
       clearAuth();
       if (throwOnError) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Failed to fetch user');
+        throw error;
       }
       return null;
     }
-
-    const data = await res.json();
-    user.value = data.data.user;
-    return data.data.user;
   }
 
   function logout() {
@@ -105,15 +109,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function resendVerification() {
     if (!token.value) return false;
 
-    const res = await fetch(apiUrl('/api/auth/resend-verification'), {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token.value}` }
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || 'Failed to resend verification email');
-    }
+    await apiRequest('/api/auth/resend-verification', {
+      method: 'POST'
+    }, token.value);
 
     return true;
   }
@@ -121,20 +119,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function updateName(name) {
     if (!token.value) throw new Error('Not authenticated');
 
-    const res = await fetch(apiUrl('/api/auth/update-name'), {
+    const data = await apiRequest('/api/auth/update-name', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token.value}`
-      },
       body: JSON.stringify({ name })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to update name');
-    }
+    }, token.value);
 
     user.value = data.data.user;
     return data.data.user;
@@ -143,20 +131,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function updateEmail(email, password) {
     if (!token.value) throw new Error('Not authenticated');
 
-    const res = await fetch(apiUrl('/api/auth/update-email'), {
+    const data = await apiRequest('/api/auth/update-email', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token.value}`
-      },
       body: JSON.stringify({ email, password })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to update email');
-    }
+    }, token.value);
 
     user.value = data.data.user;
     return data.data.user;
@@ -165,20 +143,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function updatePassword(currentPassword, newPassword) {
     if (!token.value) throw new Error('Not authenticated');
 
-    const res = await fetch(apiUrl('/api/auth/update-password'), {
+    await apiRequest('/api/auth/update-password', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token.value}`
-      },
       body: JSON.stringify({ currentPassword, newPassword })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to update password');
-    }
+    }, token.value);
 
     return true;
   }
@@ -186,20 +154,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function deleteAccount(confirmText, password) {
     if (!token.value) throw new Error('Not authenticated');
 
-    const res = await fetch(apiUrl('/api/auth/delete-account'), {
+    await apiRequest('/api/auth/delete-account', {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token.value}`
-      },
       body: JSON.stringify({ confirmText, password })
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Failed to delete account');
-    }
+    }, token.value);
 
     // Clear auth state after successful deletion
     clearAuth();
@@ -210,15 +168,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return;
 
     try {
-      const res = await fetch(apiUrl('/api/favorites'), {
-        headers: { Authorization: `Bearer ${token.value}` }
-      });
-
-      if (!res.ok) return;
-
-      const data = await res.json();
+      const data = await apiRequest('/api/favorites', {}, token.value);
       const quizzes = data.data?.quizzes ?? [];
-      favorites.value = new Set(quizzes.map(q => q.id));
+      favorites.value = new Set(quizzes.map((q) => q.id));
     } catch {
       // Silently fail
     }
@@ -228,12 +180,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return false;
 
     try {
-      const res = await fetch(apiUrl(`/api/favorites/${quizId}`), {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token.value}` }
-      });
-
-      if (!res.ok) return false;
+      await apiRequest(`/api/favorites/${quizId}`, {
+        method: 'POST'
+      }, token.value);
 
       favorites.value = new Set([...favorites.value, quizId]);
       return true;
@@ -246,12 +195,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return false;
 
     try {
-      const res = await fetch(apiUrl(`/api/favorites/${quizId}`), {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token.value}` }
-      });
-
-      if (!res.ok) return false;
+      await apiRequest(`/api/favorites/${quizId}`, {
+        method: 'DELETE'
+      }, token.value);
 
       const newSet = new Set(favorites.value);
       newSet.delete(quizId);

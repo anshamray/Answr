@@ -1,15 +1,23 @@
-import express from 'express';
 import http from 'http';
-import { Server } from 'socket.io';
+
 import cors from 'cors';
 import dotenv from 'dotenv';
+import express from 'express';
+import { Server } from 'socket.io';
+
+import { validateEnv } from './config/config.js';
 import { connectDatabase } from './config/database.js';
-import { initializeSocket } from './socket/index.js';
-import { apiRouter, mediaServeRoutes, handleUploadError, setActiveSessionsGetter } from './routes/index.js';
 import { initializePassport } from './config/passport.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { apiRouter, mediaServeRoutes, handleUploadError, setActiveSessionsGetter } from './routes/index.js';
+import { initializeSocket } from './socket/index.js';
+import { logger } from './utils/logger.js';
 
 // Load environment variables
 dotenv.config();
+
+// Validate critical configuration before doing anything else
+validateEnv();
 
 // Connect to MongoDB
 connectDatabase();
@@ -29,8 +37,8 @@ app.use(express.json({ limit: '10mb' })); // Default 100kb too small for questio
 
 // Initialize Passport for OAuth
 const { googleEnabled, githubEnabled } = initializePassport(app);
-if (googleEnabled) console.log('✅ Google OAuth enabled');
-if (githubEnabled) console.log('✅ GitHub OAuth enabled');
+if (googleEnabled) logger.info('Google OAuth enabled');
+if (githubEnabled) logger.info('GitHub OAuth enabled');
 
 // Basic route
 app.get('/', (req, res) => {
@@ -50,6 +58,9 @@ app.use('/media', mediaServeRoutes);
 // Upload error handler
 app.use(handleUploadError);
 
+// Central error handler for uncaught errors
+app.use(errorHandler);
+
 // Initialize WebSocket handler
 const { activeSessions } = initializeSocket(io);
 
@@ -59,6 +70,6 @@ setActiveSessionsGetter(() => activeSessions.size);
 // Start server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`🔌 WebSocket ready`);
+  logger.info(`Server running on http://localhost:${PORT}`);
+  logger.info('WebSocket ready');
 });

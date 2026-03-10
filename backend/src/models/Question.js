@@ -1,8 +1,23 @@
 import mongoose from 'mongoose';
+
 import {
   QUESTION_TYPES,
-  getBackendValidationMessages
+  getBackendValidationMessages,
+  getQuestionValidationErrors
 } from '../../../shared/questionTypeSchema.js';
+
+class QuestionValidationError extends Error {
+  /**
+   * @param {string[]} messages
+   * @param {Array<{ code: string, params?: Record<string, any> }>} details
+   */
+  constructor(messages, details) {
+    super(messages.join('; '));
+    this.name = 'QuestionValidationError';
+    this.messages = messages;
+    this.details = details;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Sub-schemas
@@ -135,10 +150,11 @@ const questionSchema = new mongoose.Schema({
  * for every question type before the document is saved.
  */
 questionSchema.pre('validate', function (next) {
-  const messages = getBackendValidationMessages(this);
+  const structuredErrors = getQuestionValidationErrors(this);
 
-  if (messages.length > 0) {
-    return next(new Error(messages.join('; ')));
+  if (structuredErrors.length > 0) {
+    const messages = getBackendValidationMessages(this);
+    return next(new QuestionValidationError(messages, structuredErrors));
   }
 
   next();

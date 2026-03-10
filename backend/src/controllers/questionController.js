@@ -111,7 +111,12 @@ export async function addQuestion(req, res) {
   } catch (error) {
     console.error('Add question error:', error);
 
-    // Handle Mongoose validation errors
+    // Handle shared Question schema validation errors
+    if (error.name === 'QuestionValidationError') {
+      return sendBadRequest(res, error.message);
+    }
+
+    // Handle generic Mongoose validation errors
     if (error.name === 'ValidationError' || error.message) {
       return sendBadRequest(res, error.message);
     }
@@ -172,7 +177,12 @@ export async function updateQuestion(req, res) {
   } catch (error) {
     console.error('Update question error:', error);
 
-    // Handle Mongoose validation errors
+    // Handle shared Question schema validation errors
+    if (error.name === 'QuestionValidationError') {
+      return sendBadRequest(res, error.message);
+    }
+
+    // Handle generic Mongoose validation errors
     if (error.name === 'ValidationError' || error.message) {
       return sendBadRequest(res, error.message);
     }
