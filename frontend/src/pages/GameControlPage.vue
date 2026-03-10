@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
-import { apiUrl } from '../lib/api.js';
+import { apiUrl, authMediaUrl } from '../lib/api.js';
 import { STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
 import { useSliderQuestion } from '../composables/useSliderQuestion.js';
 import { useGameSettings } from '../composables/useGameSettings.js';
@@ -59,6 +59,11 @@ const isSliderQuestion = computed(() =>
 const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
 const isPinAnswerQuestion = computed(() => currentQuestion.value?.type === 'pin-answer');
 const isTypeAnswerQuestion = computed(() => currentQuestion.value?.type === 'type-answer');
+const questionMediaUrl = computed(() => {
+  const url = currentQuestion.value?.mediaUrl;
+  if (!url) return null;
+  return authMediaUrl(url, auth.token);
+});
 const pinQuestionMediaUrl = computed(() => {
   const url = currentQuestion.value?.mediaUrl;
   if (!url) return null;
@@ -652,6 +657,8 @@ function buildQuestionPayload(q) {
     questionNumber: questionNumber.value,
     totalQuestions: totalQuestions.value,
     text: q.text,
+    mediaUrl: q.mediaUrl || null,
+    mediaType: q.mediaType || null,
     type: qType,
     options,
     timeLimit: q.timeLimit,
@@ -829,10 +836,17 @@ onUnmounted(cleanup);
               {{ t('gameControl.questionOf', { current: questionNumber, total: totalQuestions }) }}
             </PixelBadge>
 
-            <PixelCard class="!p-8 lg:!p-12">
+            <PixelCard class="!p-8 lg:!p-12 space-y-4">
               <h1 class="text-2xl lg:text-4xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
+              <div v-if="questionMediaUrl" class="mt-2 flex justify-center">
+                <img
+                  :src="questionMediaUrl"
+                  :alt="currentQuestion.text"
+                  class="max-h-[min(20rem,calc(100vh-20rem))] w-full max-w-3xl object-contain border-[3px] border-black bg-white"
+                />
+              </div>
             </PixelCard>
 
             <div class="space-y-3">
@@ -896,6 +910,16 @@ onUnmounted(cleanup);
               <h1 class="text-2xl lg:text-3xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
+              <div
+                v-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
+                class="mt-1 flex justify-center"
+              >
+                <img
+                  :src="questionMediaUrl"
+                  :alt="currentQuestion.text"
+                  class="max-h-[min(20rem,calc(100vh-20rem))] w-full max-w-3xl object-contain border-[3px] border-black bg-white"
+                />
+              </div>
 
               <!-- MC / True-False / Poll: answer grid -->
               <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer', 'sort' ].includes(currentQuestion.type) && !isSliderQuestion" class="grid grid-cols-2 gap-3">

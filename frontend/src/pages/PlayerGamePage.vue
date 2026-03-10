@@ -49,6 +49,13 @@ const isSlider = computed(() =>
 const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
+const questionMediaUrl = computed(() => {
+  const url = question.value?.mediaUrl;
+  if (!url) return null;
+  const full = apiUrl(url);
+  const sessionPin = game.pin;
+  return sessionPin ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${sessionPin}` : full;
+});
 const sliderConfigSource = computed(() => question.value?.sliderConfig || null);
 const { sliderConfig, getSliderPosition } = useSliderQuestion({
   configRef: sliderConfigSource
@@ -612,6 +619,13 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
+            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
+              <img
+                :src="questionMediaUrl"
+                :alt="question?.text"
+                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
+              />
+            </div>
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">
@@ -692,6 +706,13 @@ onUnmounted(cleanup);
             <h2 class="text-lg sm:text-xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
+            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
+              <img
+                :src="questionMediaUrl"
+                :alt="question?.text"
+                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
+              />
+            </div>
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-4 text-center">
@@ -851,6 +872,13 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
+            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
+              <img
+                :src="questionMediaUrl"
+                :alt="question?.text"
+                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
+              />
+            </div>
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">
@@ -953,6 +981,13 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
+            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
+              <img
+                :src="questionMediaUrl"
+                :alt="question?.text"
+                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
+              />
+            </div>
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">
