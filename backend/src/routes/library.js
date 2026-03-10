@@ -8,7 +8,8 @@ import {
   startLibraryQuiz,
   publishQuiz,
   unpublishQuiz,
-  createOfficialQuiz
+  createOfficialQuiz,
+  importOfficialQuizzes
 } from '../controllers/libraryController.js';
 
 const router = Router();
@@ -39,5 +40,8 @@ router.put('/unpublish/:id', authenticate, unpublishQuiz);
 
 // POST /api/library/official - Create an official (admin) quiz
 router.post('/official', authenticate, requireAdmin, createOfficialQuiz);
+
+// POST /api/library/import - Bulk import official quizzes as admin
+router.post('/import', authenticate, requireAdmin, importOfficialQuizzes);
 
 export default router;

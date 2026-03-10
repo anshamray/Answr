@@ -16,6 +16,174 @@ import {
 } from '../utils/responseHelper.js';
 
 /**
+ * Import one or more official quizzes into the library (admin only).
+ * POST /api/library/import
+ *
+ * This is a generic import endpoint that expects quizzes in Answr's own
+ * JSON structure. It is intended as a building block for importing from
+ * external platforms (e.g. Kahoot, Blooket) by pre-converting their
+ * exports into this format.
+ *
+ * Request body:
+ * {
+ *   "quizzes": [
+ *     {
+ *       "title": "string",
+ *       "description": "string",
+ *       "category": "string",
+ *       "tags": ["math", "algebra"],
+ *       "language": "en",
+ *       "questions": [
+ *         {
+ *           "type": "multiple-choice",
+ *           "text": "What is 2 + 2?",
+ *           "textToReadAloud": "What is two plus two?",
+ *           "mediaUrl": null,
+ *           "mediaType": null,
+ *           "audioLanguage": null,
+ *           "timeLimit": 30,
+ *           "points": 1000,
+ *           "order": 1,
+ *           "allowMultipleAnswers": false,
+ *           "answers": [
+ *             { "text": "3", "isCorrect": false },
+ *             { "text": "4", "isCorrect": true }
+ *           ],
+ *           "sliderConfig": null,
+ *           "pinConfig": null,
+ *           "scaleConfig": null,
+ *           "brainstormConfig": null
+ *         }
+ *       ]
+ *     }
+ *   ]
+ * }
+ */
+export async function importOfficialQuizzes(req, res) {
+  try {
+    const payload = req.body || {};
+    const quizzesInput = Array.isArray(payload.quizzes)
+      ? payload.quizzes
+      : (payload.quiz ? [payload.quiz] : []);
+
+    if (!quizzesInput || quizzesInput.length === 0) {
+      return sendBadRequest(res, 'No quizzes provided for import');
+    }
+
+    const results = [];
+
+    for (let index = 0; index < quizzesInput.length; index += 1) {
+      const quizInput = quizzesInput[index] || {};
+
+      try {
+        if (!quizInput.title) {
+          throw new Error('Title is required for each quiz');
+        }
+
+        const tags = Array.isArray(quizInput.tags)
+          ? quizInput.tags.map(t => String(t).trim().toLowerCase()).filter(Boolean).slice(0, 10)
+          : [];
+
+        const quiz = new Quiz({
+          moderatorId: req.user.userId,
+          title: quizInput.title,
+          description: quizInput.description || '',
+          category: quizInput.category || '',
+          tags,
+          language: quizInput.language || 'en',
+          isPublished: true,
+          isOfficial: true,
+          publishedAt: new Date()
+        });
+
+        await quiz.save();
+
+        const questionIds = [];
+
+        if (!Array.isArray(quizInput.questions) || quizInput.questions.length === 0) {
+          throw new Error('Quiz must have at least 1 question');
+        }
+
+        let autoOrder = 1;
+
+        for (const questionInput of quizInput.questions) {
+          if (!questionInput || !questionInput.type) {
+            throw new Error('Each question must have a type');
+          }
+
+          const answers = Array.isArray(questionInput.answers)
+            ? questionInput.answers.map((a, idx) => ({
+              text: a.text,
+              imageUrl: a.imageUrl ?? null,
+              isCorrect: a.isCorrect ?? null,
+              order: a.order ?? idx
+            }))
+            : [];
+
+          const question = new Question({
+            quizId: quiz._id,
+            type: questionInput.type,
+            text: questionInput.text || '',
+            textToReadAloud: questionInput.textToReadAloud || '',
+            mediaUrl: questionInput.mediaUrl ?? null,
+            mediaType: questionInput.mediaType ?? null,
+            audioLanguage: questionInput.audioLanguage ?? null,
+            timeLimit: questionInput.timeLimit ?? 30,
+            points: questionInput.points ?? 1000,
+            order: questionInput.order ?? autoOrder,
+            answers,
+            allowMultipleAnswers: questionInput.allowMultipleAnswers ?? false,
+            sliderConfig: questionInput.sliderConfig ?? undefined,
+            pinConfig: questionInput.pinConfig ?? undefined,
+            scaleConfig: questionInput.scaleConfig ?? undefined,
+            brainstormConfig: questionInput.brainstormConfig ?? undefined
+          });
+
+          await question.save();
+          questionIds.push(question._id);
+          autoOrder += 1;
+        }
+
+        quiz.questions = questionIds;
+        await quiz.save();
+
+        results.push({
+          index,
+          status: 'imported',
+          id: quiz._id,
+          title: quiz.title,
+          questionCount: questionIds.length
+        });
+      } catch (error) {
+        console.error('Import quiz error:', error);
+        results.push({
+          index,
+          status: 'failed',
+          title: quizInput.title || null,
+          error: error.message
+        });
+      }
+    }
+
+    const importedCount = results.filter(r => r.status === 'imported').length;
+    const failedCount = results.filter(r => r.status === 'failed').length;
+
+    if (importedCount === 0) {
+      return sendBadRequest(res, 'Failed to import any quizzes');
+    }
+
+    sendCreated(res, 'Quizzes imported', {
+      importedCount,
+      failedCount,
+      results
+    });
+  } catch (error) {
+    console.error('Import official quizzes error:', error);
+    sendServerError(res, 'Failed to import quizzes');
+  }
+}
+
+/**
  * Browse published quizzes in the library
  * GET /api/library
  *
