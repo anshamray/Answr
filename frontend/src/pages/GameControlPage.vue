@@ -6,6 +6,13 @@ import { useAuthStore } from '../stores/authStore.js';
 import { getSocket, connectSocket } from '../lib/socket.js';
 import { apiUrl, authMediaUrl } from '../lib/api.js';
 import { STORAGE_KEYS, ANSWER_COLORS } from '../constants/index.js';
+import {
+  questionAllowsMultipleAnswers,
+  normalizeTextAnswer,
+  parsePinAnswer,
+  getSelectedAnswerIds,
+  getAnswerDistributionKeysForQuestion
+} from '../lib/answerUtils.js';
 import { useSliderQuestion } from '../composables/useSliderQuestion.js';
 import { useGameSettings } from '../composables/useGameSettings.js';
 
@@ -134,38 +141,6 @@ const barBg = ANSWER_COLORS.BAR_COLORS;
 const barLabels = ANSWER_COLORS.LABELS;
 const answerGradients = ANSWER_COLORS.MODERATOR_GRADIENTS;
 
-function questionAllowsMultipleAnswers(question = currentQuestion.value) {
-  if (!question) return false;
-  if (question.allowMultipleAnswers) return true;
-  return (question.answers || []).filter((answer) => answer.isCorrect).length > 1;
-}
-
-function normalizeTextAnswer(value) {
-  return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-}
-
-function parsePinAnswer(answerId) {
-  if (answerId == null) return null;
-
-  let parsed = answerId;
-  if (typeof parsed === 'string') {
-    try {
-      parsed = JSON.parse(parsed);
-    } catch {
-      return null;
-    }
-  }
-
-  const x = Number(parsed?.x);
-  const y = Number(parsed?.y);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-
-  return {
-    x: Math.min(Math.max(x, 0), 100),
-    y: Math.min(Math.max(y, 0), 100)
-  };
-}
-
 function isPinAnswerCorrect(coords) {
   const config = currentQuestion.value?.pinConfig;
   if (!coords || config?.x == null || config?.y == null) return false;
@@ -176,43 +151,11 @@ function isPinAnswerCorrect(coords) {
   return distance <= Number(config.radius || 10);
 }
 
-function getSelectedAnswerIds(answerId) {
-  if (answerId == null) return [];
-  if (Array.isArray(answerId)) {
-    return answerId.map((id) => String(id));
-  }
-  return [String(answerId)];
-}
-
-function getAnswerDistributionKeys(answerId, question = currentQuestion.value) {
-  const qType = question?.type || 'multiple-choice';
-  if (answerId == null) return [];
-
-  if (qType === 'sort') {
-    return [getSelectedAnswerIds(answerId).join(',')];
-  }
-
-  if (qType === 'type-answer') {
-    const normalized = normalizeTextAnswer(answerId);
-    return normalized ? [normalized] : [];
-  }
-
-  if (questionAllowsMultipleAnswers(question)) {
-    return getSelectedAnswerIds(answerId);
-  }
-
-  if (Array.isArray(answerId)) {
-    return [answerId.map((id) => String(id)).join(',')];
-  }
-
-  return [String(answerId)];
-}
-
 function rebuildAnswerDistribution() {
   const nextDistribution = {};
 
   for (const answerId of Object.values(playerAnswers.value)) {
-    for (const key of getAnswerDistributionKeys(answerId)) {
+    for (const key of getAnswerDistributionKeysForQuestion(currentQuestion.value, answerId)) {
       nextDistribution[key] = (nextDistribution[key] || 0) + 1;
     }
   }
@@ -293,7 +236,7 @@ function getBarWidth(answerId) {
 }
 
 function getPercentage(answerId) {
-  const total = questionAllowsMultipleAnswers()
+  const total = questionAllowsMultipleAnswers(currentQuestion.value)
     ? answersReceived.value
     : totalDistributionAnswers.value;
   if (total === 0) return 0;
@@ -313,9 +256,10 @@ function getCorrectCount() {
   if (isSortQuestion.value) {
     const answers = Object.values(playerAnswers.value);
     if (answers.length > 0) {
-      return answers.reduce((sum, answerId) => (
-        getAnswerDistributionKeys(answerId)[0] === correctSortKey.value ? sum + 1 : sum
-      ), 0);
+      return answers.reduce((sum, answerId) => {
+        const key = getAnswerDistributionKeysForQuestion(currentQuestion.value, answerId)[0];
+        return key === correctSortKey.value ? sum + 1 : sum;
+      }, 0);
     }
 
     return sortAnswerEntries.value.reduce((sum, entry) => (

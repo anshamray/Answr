@@ -8,6 +8,7 @@ import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
 import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
 import { apiUrl } from '../lib/api.js';
 import { useSliderQuestion, DEFAULT_SLIDER_CONFIG } from '../composables/useSliderQuestion.js';
+import { getStreakLabel, getStreakMultiplier } from '../lib/streakHelpers.js';
 
 import PixelBadge from '../components/PixelBadge.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -139,32 +140,6 @@ const shapeButtonGridClass = computed(() => {
   if (count <= 4) return 'grid-cols-2 grid-rows-2';
   return 'grid-cols-2 grid-rows-3'; // 5-6 options
 });
-
-// Streak helpers (mirroring backend config)
-const STREAK_THRESHOLDS = [
-  { streak: 2, multiplier: 1.1, label: 'Hot!' },
-  { streak: 3, multiplier: 1.2, label: 'On Fire!' },
-  { streak: 5, multiplier: 1.3, label: 'Unstoppable!' },
-  { streak: 8, multiplier: 1.5, label: 'LEGENDARY!' }
-];
-
-function getStreakLabel(streak) {
-  if (!streak || streak < 2) return null;
-  let label = null;
-  for (const t of STREAK_THRESHOLDS) {
-    if (streak >= t.streak) label = t.label;
-  }
-  return label;
-}
-
-function getStreakMultiplier(streak) {
-  if (!streak || streak < 2) return 1.0;
-  let multiplier = 1.0;
-  for (const t of STREAK_THRESHOLDS) {
-    if (streak >= t.streak) multiplier = t.multiplier;
-  }
-  return multiplier;
-}
 
 // Use shared answer colors from constants
 const answerBg = ANSWER_COLORS.BUTTON_GRADIENTS;
