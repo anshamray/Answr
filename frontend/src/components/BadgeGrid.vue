@@ -57,7 +57,7 @@ function formatDate(dateStr) {
           <span class="text-3xl sm:text-4xl mb-1">{{ badge.emoji }}</span>
 
           <!-- Name -->
-          <span class="text-xs font-bold text-center leading-tight truncate w-full">
+          <span class="text-[11px] font-bold text-center leading-tight line-clamp-2 w-full px-1">
             {{ badge.name }}
           </span>
 
