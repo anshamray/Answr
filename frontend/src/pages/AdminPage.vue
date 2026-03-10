@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 import { apiUrl } from '../lib/api.js';
@@ -14,6 +14,38 @@ const auth = useAuthStore();
 const importing = ref(false);
 const importError = ref('');
 const importResult = ref(null);
+
+const statsLoading = ref(true);
+const statsError = ref('');
+const totalUsers = ref(null);
+const totalAdmins = ref(null);
+
+async function fetchAdminStats() {
+  statsLoading.value = true;
+  statsError.value = '';
+
+  try {
+    const res = await fetch(apiUrl('/api/admin/stats'), {
+      headers: {
+        Authorization: `Bearer ${auth.token}`
+      }
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || data.success === false) {
+      statsError.value = data.error || data.message || 'Failed to load admin statistics.';
+      return;
+    }
+
+    totalUsers.value = data.data?.totalUsers ?? null;
+    totalAdmins.value = data.data?.totalAdmins ?? null;
+  } catch (error) {
+    statsError.value = 'Network error while loading admin statistics.';
+  } finally {
+    statsLoading.value = false;
+  }
+}
 
 async function handleImportChange(event) {
   const [file] = event.target.files || [];
@@ -60,6 +92,8 @@ async function handleImportChange(event) {
     event.target.value = '';
   }
 }
+
+onMounted(fetchAdminStats);
 </script>
 
 <template>
@@ -75,9 +109,34 @@ async function handleImportChange(event) {
         </p>
       </header>
 
-      <div class="grid gap-6 md:grid-cols-2">
+      <div class="grid gap-6 md:grid-cols-3">
+        <!-- Admin stats -->
+        <PixelCard class="space-y-3 md:col-span-1">
+          <h2 class="text-xl font-bold">Platform stats</h2>
+          <div v-if="statsLoading" class="text-sm text-muted-foreground">
+            Loading statistics…
+          </div>
+          <div v-else-if="statsError" class="text-sm text-destructive">
+            {{ statsError }}
+          </div>
+          <div v-else class="space-y-2">
+            <div>
+              <div class="text-3xl font-bold">
+                {{ totalUsers ?? '—' }}
+              </div>
+              <div class="text-xs text-muted-foreground">Registered users</div>
+            </div>
+            <div>
+              <div class="text-lg font-semibold">
+                {{ totalAdmins ?? '—' }}
+              </div>
+              <div class="text-xs text-muted-foreground">Admin accounts</div>
+            </div>
+          </div>
+        </PixelCard>
+
         <!-- Publishing info -->
-        <PixelCard class="space-y-3">
+        <PixelCard class="space-y-3 md:col-span-1">
           <h2 class="text-xl font-bold">Publish quizzes to library</h2>
           <p class="text-sm text-muted-foreground">
             Create and edit quizzes on your
@@ -94,7 +153,7 @@ async function handleImportChange(event) {
         </PixelCard>
 
         <!-- Import tool -->
-        <PixelCard class="space-y-4">
+        <PixelCard class="space-y-4 md:col-span-1">
           <div class="flex items-center justify-between gap-2">
             <h2 class="text-xl font-bold">Import official quizzes</h2>
             <span class="px-2 py-1 text-xs font-semibold border border-primary text-primary">

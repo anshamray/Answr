@@ -161,7 +161,10 @@ onMounted(fetchLibrary);
               class="text-left"
               @click="viewQuiz(quiz.id)"
             >
-              <PixelCard variant="primary" class="space-y-4 hover:-translate-y-2 transition-all cursor-pointer h-full">
+              <PixelCard
+                variant="primary"
+                class="space-y-4 hover:-translate-y-2 transition-all cursor-pointer h-full flex flex-col"
+              >
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <h3 class="text-2xl font-bold mb-2">{{ quiz.title }}</h3>
@@ -186,7 +189,7 @@ onMounted(fetchLibrary);
                   >{{ tag }}</span>
                 </div>
 
-                <div class="flex items-center justify-between pt-3 border-t-2 border-border">
+                <div class="flex items-center justify-between pt-3 border-t-2 border-border mt-auto">
                   <div class="flex items-center gap-4 text-sm text-muted-foreground">
                     <span class="flex items-center gap-1">
                       <PixelUsers :size="16" />
@@ -213,7 +216,9 @@ onMounted(fetchLibrary);
               class="text-left"
               @click="viewQuiz(quiz.id)"
             >
-              <PixelCard class="space-y-3 hover:border-primary transition-all cursor-pointer h-full">
+              <PixelCard
+                class="space-y-3 hover:border-primary transition-all cursor-pointer h-full flex flex-col"
+              >
                 <div class="flex items-start justify-between">
                   <h3 class="text-xl font-bold group-hover:text-primary transition">{{ quiz.title }}</h3>
                   <div class="flex items-center gap-2 ml-2 shrink-0">
@@ -233,7 +238,9 @@ onMounted(fetchLibrary);
                   >{{ tag }}</span>
                 </div>
 
-                <div class="flex items-center justify-between pt-2 border-t-2 border-border text-xs text-muted-foreground">
+                <div
+                  class="flex items-center justify-between pt-2 border-t-2 border-border text-xs text-muted-foreground mt-auto"
+                >
                   <span>{{ t('common.by') }} {{ quiz.author }}</span>
                   <span class="flex items-center gap-1">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
