@@ -1,4 +1,6 @@
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -12,6 +14,9 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { apiRouter, mediaServeRoutes, handleUploadError, setActiveSessionsGetter } from './routes/index.js';
 import { initializeSocket } from './socket/index.js';
 import { logger } from './utils/logger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 dotenv.config();
