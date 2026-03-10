@@ -51,6 +51,15 @@ const isActive = (path) => route.path === path;
           >
             {{ t('analytics.navLink') }}
           </router-link>
+
+          <router-link
+            v-if="auth.user && auth.user.role === 'admin'"
+            to="/admin"
+            class="text-sm transition"
+            :class="isActive('/admin') ? 'text-primary font-medium' : 'text-muted-foreground hover:text-primary'"
+          >
+            Admin
+          </router-link>
         </template>
 
         <template v-if="auth.isAuthenticated">

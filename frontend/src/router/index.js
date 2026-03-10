@@ -27,6 +27,7 @@ import PlayerProfilePage from '../pages/PlayerProfilePage.vue';
 import PlayerLobbyPage from '../pages/PlayerLobbyPage.vue';
 import PlayerGamePage from '../pages/PlayerGamePage.vue';
 import PlayerResultsPage from '../pages/PlayerResultsPage.vue';
+import AdminPage from '../pages/AdminPage.vue';
 
 const routes = [
   // Public
@@ -46,6 +47,7 @@ const routes = [
 
   // Moderator (auth required — or guest token for sessions started from library)
   { path: '/dashboard', component: DashboardPage, meta: { requiresAuth: true } },
+  { path: '/admin', component: AdminPage, meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/account', component: AccountPage, meta: { requiresAuth: true } },
   { path: '/analytics', component: AnalyticsPage, meta: { requiresAuth: true } },
   { path: '/analytics/:sessionId', component: SessionAnalyticsPage, meta: { requiresAuth: true } },
@@ -90,6 +92,13 @@ router.beforeEach((to) => {
     const auth = useAuthStore();
     if (!auth.isAuthenticated) {
       return { path: '/login', query: { redirect: to.fullPath } };
+    }
+  }
+
+  if (to.meta.requiresAdmin) {
+    const auth = useAuthStore();
+    if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+      return { path: '/dashboard' };
     }
   }
 
