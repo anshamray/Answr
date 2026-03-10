@@ -471,6 +471,9 @@ onMounted(fetchQuizzes);
             <p class="text-muted-foreground max-w-md mx-auto">
               {{ t('dashboard.noQuizzesSubtitle') }}
             </p>
+            <p class="text-sm text-muted-foreground mt-2">
+              Create your first quiz (3 mins) to see how Answr works end-to-end.
+            </p>
           </div>
           <PixelButton variant="primary" class="text-lg" @click="createNewQuiz">
             <svg class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

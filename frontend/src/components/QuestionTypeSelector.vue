@@ -4,60 +4,63 @@ import PixelButton from './PixelButton.vue';
 const emit = defineEmits(['select', 'close']);
 
 // Scored question types (test knowledge)
-const scoredTypes = [
+// Split into "recommended" core types and "advanced" types to reduce cognitive load.
+const recommendedScoredTypes = [
   {
     type: 'multiple-choice',
     name: 'Multiple Choice',
-    description: 'Players select one or more correct answers from 2-6 options',
+    description: 'Best for most quizzes. Players pick 1–4 correct options.',
     icon: 'grid'
   },
   {
     type: 'true-false',
     name: 'True / False',
-    description: 'Simple binary choice between true and false',
+    description: 'Quick knowledge checks with a simple yes/no choice.',
     icon: 'check'
   },
   {
+    type: 'poll',
+    name: 'Poll (no points)',
+    description: 'Lightweight check-in where every answer is “correct”.',
+    icon: 'bar-chart'
+  }
+];
+
+const advancedScoredTypes = [
+  {
     type: 'type-answer',
     name: 'Type Answer',
-    description: 'Players type their answer, matched against accepted answers',
+    description: 'Players type their answer, matched against accepted answers.',
     icon: 'type'
   },
   {
     type: 'sort',
     name: 'Sort',
-    description: 'Arrange 3-4 items in the correct order',
+    description: 'Arrange 3–4 items in the correct order.',
     icon: 'sort'
   },
   {
     type: 'slider',
     name: 'Slider',
-    description: 'Players slide to select a numeric value within a range',
+    description: 'Players slide to select a numeric value within a range.',
     icon: 'sliders'
   },
   {
     type: 'quiz-audio',
     name: 'Audio Quiz',
-    description: 'Question is read aloud in selected language',
+    description: 'Question is read aloud in a selected language.',
     icon: 'volume'
   },
   {
     type: 'pin-answer',
     name: 'Pin on Image',
-    description: 'Players click on the correct location on an image',
+    description: 'Players click on the correct location on an image.',
     icon: 'map-pin'
   }
 ];
 
-// Opinion question types (no points)
+// Opinion / survey question types (no points)
 const opinionTypes = [
-  {
-    type: 'poll',
-    name: 'Poll',
-    description: 'Collect opinions with multiple choice (no correct answer)',
-    icon: 'bar-chart',
-    comingSoon: true
-  },
   {
     type: 'word-cloud',
     name: 'Word Cloud',
@@ -191,17 +194,17 @@ function getIcon(iconName) {
 
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-6 space-y-8">
-        <!-- Knowledge Section (Scored) -->
+        <!-- Recommended core types -->
         <div>
           <div class="flex items-center gap-2 mb-4">
             <div class="w-3 h-3 bg-primary"></div>
-            <h3 class="font-bold text-lg">Test Knowledge</h3>
-            <span class="text-xs text-muted-foreground">(Scored)</span>
+            <h3 class="font-bold text-lg">Recommended</h3>
+            <span class="text-xs text-muted-foreground">Fastest way to create a playable quiz</span>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
-              v-for="qType in scoredTypes"
+              v-for="qType in recommendedScoredTypes"
               :key="qType.type"
               class="flex items-start gap-4 p-4 border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group"
               @click="selectType(qType.type)"
@@ -218,7 +221,34 @@ function getIcon(iconName) {
           </div>
         </div>
 
-        <!-- Opinion Section (No Points) -->
+        <!-- Advanced types -->
+        <div>
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-3 h-3 bg-secondary"></div>
+            <h3 class="font-bold text-lg">Advanced question types</h3>
+            <span class="text-xs text-muted-foreground">Use when you need more control</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              v-for="qType in advancedScoredTypes"
+              :key="qType.type"
+              class="flex items-start gap-4 p-4 border-2 border-border hover:border-secondary hover:bg-secondary/5 transition-all text-left group"
+              @click="selectType(qType.type)"
+            >
+              <div
+                class="w-12 h-12 flex items-center justify-center bg-secondary/10 border-2 border-secondary/20 group-hover:border-secondary transition-colors flex-shrink-0"
+                v-html="getIcon(qType.icon)"
+              ></div>
+              <div class="flex-1 min-w-0">
+                <h4 class="font-bold group-hover:text-secondary transition-colors">{{ qType.name }}</h4>
+                <p class="text-sm text-muted-foreground mt-1">{{ qType.description }}</p>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opinion Section (No Points, mostly coming soon) -->
         <div>
           <div class="flex items-center gap-2 mb-4">
             <div class="w-3 h-3 bg-secondary"></div>

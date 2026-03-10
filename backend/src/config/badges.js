@@ -58,7 +58,7 @@ export const BADGES = {
     id: 'on_fire',
     name: 'On Fire',
     description: 'Get 5 correct answers in a row',
-    emoji: '\u{1F525}\u{1F525}',
+    emoji: '\u{1F525}',
     category: 'streak',
     condition: (stats) => stats.maxStreak >= 5
   },
@@ -66,7 +66,7 @@ export const BADGES = {
     id: 'unstoppable',
     name: 'Unstoppable',
     description: 'Get 8 correct answers in a row',
-    emoji: '\u{1F525}\u{1F525}\u{1F525}',
+    emoji: '\u{1F4A5}',
     category: 'streak',
     condition: (stats) => stats.maxStreak >= 8
   },

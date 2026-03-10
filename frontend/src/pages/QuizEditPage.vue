@@ -66,6 +66,7 @@ const saveButtonText = computed(() => {
 // Track changes for "unsaved" indicator
 const hasUnsavedChanges = ref(false);
 const deletedQuestionIds = ref([]); // Track questions to delete on save
+const fieldValidationErrors = ref({}); // { [questionId]: string }
 
 // Drag-and-drop reordering
 const dragIndex = ref(null);
@@ -432,12 +433,24 @@ async function saveAll() {
   if (!validation.valid) {
     const firstError = validation.errors[0];
     selectedQuestionId.value = firstError.questionId;
-    const label = t('questionValidation.questionNum', { num: firstError.index + 1 });
-    error.value = `${label}: ${firstError.errors[0]}`;
+      const label = t('questionValidation.questionNum', { num: firstError.index + 1 });
+      error.value = `${label}: ${firstError.errors[0]}`;
+
+      // Surface inline validation hints per question for better UX.
+      const map = {};
+      for (const item of validation.errors) {
+        if (item.errors && item.errors.length > 0 && item.questionId) {
+          map[item.questionId] = item.errors[0];
+        }
+      }
+      fieldValidationErrors.value = map;
     saveStatus.value = 'error';
     saving.value = false;
     return;
   }
+
+    // Clear any previous field-level errors once everything validates.
+    fieldValidationErrors.value = {};
 
   try {
     // Step 1: Create quiz if it doesn't exist
@@ -570,6 +583,19 @@ function goBack() {
   router.push('/dashboard');
 }
 
+// Open moderator preview page, then allow "practice as player" from there
+async function openPlayerPreview() {
+  // Ensure quiz exists on the server so preview has an ID to work with
+  if (!quiz.value._id) {
+    await saveAll();
+    if (!quiz.value._id) {
+      // Save failed; error toast will already be shown
+      return;
+    }
+  }
+  router.push(`/quiz/${quiz.value._id}/preview`);
+}
+
 // Initialize
 onMounted(() => {
   fetchQuiz();
@@ -617,6 +643,16 @@ onUnmounted(() => {
             <PixelBadge variant="secondary" class="whitespace-nowrap">
               {{ questionCount }} {{ questionCount === 1 ? t('quizEditor.question') : t('quizEditor.questions') }}
             </PixelBadge>
+
+            <PixelButton
+              variant="outline"
+              size="sm"
+              class="hidden sm:inline-flex"
+              :disabled="saving"
+              @click="openPlayerPreview"
+            >
+              Preview as player
+            </PixelButton>
 
             <PixelButton
               variant="primary"
@@ -773,6 +809,7 @@ onUnmounted(() => {
           :key="selectedQuestionId"
           :question="selectedQuestion"
           :question-type-info="questionTypeInfo"
+          :validation-error="fieldValidationErrors[selectedQuestionId]"
           @update="updateQuestion"
           @delete="deleteQuestion"
         />
@@ -862,6 +899,9 @@ onUnmounted(() => {
                 {{ lang.label }}
               </option>
             </select>
+            <p class="mt-1 text-[11px] text-muted-foreground">
+              This language applies to the quiz title, questions, and what players see when they join.
+            </p>
           </div>
 
           <!-- Tags -->
@@ -906,6 +946,20 @@ onUnmounted(() => {
             </div>
             <p v-if="quiz.tags.length >= 10" class="text-xs text-muted-foreground mt-2">
               {{ t('quizEditor.maxTags') }}
+            </p>
+          </div>
+
+          <!-- Per-quiz defaults explanation -->
+          <div class="pt-4 mt-2 border-t border-dashed border-border space-y-2">
+            <h4 class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+              Quiz defaults
+            </h4>
+            <p class="text-xs text-muted-foreground">
+              New questions start with a <span class="font-semibold">30s time limit</span> and <span class="font-semibold">1000 points</span>.
+              You can override time and points for individual questions in their settings.
+            </p>
+            <p class="text-[11px] text-muted-foreground">
+              Shorter time limits make questions feel more intense. Higher points make a question more important for the final leaderboard.
             </p>
           </div>
         </div>

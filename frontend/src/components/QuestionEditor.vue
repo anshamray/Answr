@@ -21,6 +21,10 @@ const props = defineProps({
   questionTypeInfo: {
     type: Object,
     required: true
+  },
+  validationError: {
+    type: String,
+    default: ''
   }
 });
 
@@ -362,7 +366,15 @@ function getIcon(iconName) {
     <div class="space-y-6">
       <!-- Question Text -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
-        <label class="block text-sm font-medium mb-2">{{ t('quizEditor.questionText') }}</label>
+        <div class="flex items-center justify-between mb-2">
+          <label class="block text-sm font-medium">{{ t('quizEditor.questionText') }}</label>
+          <span
+            v-if="validationError"
+            class="text-xs font-medium text-destructive"
+          >
+            {{ validationError }}
+          </span>
+        </div>
         <textarea
           v-model="localQuestion.text"
           :placeholder="t('quizEditor.questionPlaceholder')"

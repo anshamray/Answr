@@ -162,13 +162,22 @@ function handlePinSubmit() {
                 <span class="text-muted-foreground text-sm">{{ t('common.or') }}</span>
                 <hr class="flex-1 border-border" />
               </div>
-              <div class="flex flex-col sm:flex-row gap-3 max-w-sm">
-                <router-link to="/library" class="flex-1">
-                  <PixelButton variant="primary" class="w-full">{{ t('landing.browseLibrary') }}</PixelButton>
-                </router-link>
-                <router-link to="/login" class="flex-1">
-                  <PixelButton variant="outline" class="w-full">{{ t('landing.hostAQuiz') }}</PixelButton>
-                </router-link>
+              <div class="max-w-sm space-y-2">
+                <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  For moderators
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3">
+                  <router-link to="/login" class="flex-1">
+                    <PixelButton variant="primary" class="w-full">
+                      Create your first quiz (3 mins)
+                    </PixelButton>
+                  </router-link>
+                  <router-link to="/library" class="flex-1">
+                    <PixelButton variant="outline" class="w-full">
+                      Try a demo game
+                    </PixelButton>
+                  </router-link>
+                </div>
               </div>
             </template>
           </div>

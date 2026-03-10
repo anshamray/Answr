@@ -47,6 +47,7 @@ const answerDistribution = ref({});
 const playerAnswers = ref({});
 const playerNameById = ref({});
 const leaderboard = ref([]);
+const previousLeaderboard = ref([]);
 let endGameRedirectTimer = null;
 
 // Intro phase: 'intro' (question only) -> 'answering' (answers visible) -> handled by status='reveal'
@@ -488,6 +489,9 @@ function handleModeratorQuestion(data) {
 
   if (nextIndex === -1) return;
 
+  // Store the last leaderboard snapshot so we can compute per-question deltas
+  previousLeaderboard.value = leaderboard.value || [];
+
   currentIndex.value = nextIndex;
 
   if (previousQuestionId !== nextQuestionId) {
@@ -623,7 +627,22 @@ function attachListeners(socket) {
   });
 
   socket.on('game:leaderboard', (data) => {
-    leaderboard.value = data?.leaderboard || [];
+    const rawLeaderboard = data?.leaderboard || [];
+
+    // Compute per-question points earned by diffing against the previous leaderboard snapshot.
+    const prevScores = new Map(
+      (previousLeaderboard.value || []).map((entry) => [entry.playerId, entry.score || 0])
+    );
+
+    leaderboard.value = rawLeaderboard.map((entry) => {
+      const prev = prevScores.get(entry.playerId) ?? 0;
+      const current = entry.score || 0;
+      const delta = current - prev;
+      return {
+        ...entry,
+        delta
+      };
+    });
   });
 
   socket.on('game:end', handleGameEnded);

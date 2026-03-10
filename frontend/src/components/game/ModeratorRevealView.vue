@@ -600,8 +600,17 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
                     {{ entry.nickname }}
                   </div>
                 </div>
-                <div class="text-sm font-bold text-muted-foreground">
-                  {{ entry.score?.toLocaleString() }}
+                <div class="text-right text-sm font-bold text-muted-foreground">
+                  <div>
+                    {{ entry.score?.toLocaleString() }}
+                  </div>
+                  <div
+                    v-if="entry.delta != null"
+                    class="text-[11px] font-semibold"
+                    :class="entry.delta > 0 ? 'text-emerald-900' : 'text-muted-foreground'"
+                  >
+                    +{{ (entry.delta || 0).toLocaleString() }}
+                  </div>
                 </div>
               </div>
             </div>

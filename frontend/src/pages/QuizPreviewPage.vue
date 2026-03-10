@@ -22,6 +22,8 @@ const loading = ref(true);
 const error = ref('');
 const starting = ref(false);
 const startError = ref('');
+const practiceStarting = ref(false);
+const practiceError = ref('');
 
 async function fetchQuiz() {
   loading.value = true;
@@ -68,6 +70,45 @@ async function startQuiz() {
     startError.value = err.message;
   } finally {
     starting.value = false;
+  }
+}
+
+async function startPracticeRun() {
+  practiceStarting.value = true;
+  practiceError.value = '';
+
+  try {
+    const res = await fetch(apiUrl('/api/sessions'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${auth.token}`
+      },
+      body: JSON.stringify({ quizId: route.params.id })
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || 'Failed to start practice run');
+    }
+
+    const json = await res.json();
+    const session = json.data?.session;
+
+    if (!session?.pin) {
+      throw new Error('Missing session PIN for practice run');
+    }
+
+    // Open a new tab in the normal player flow with the practice PIN prefilled.
+    const practiceUrl = `/play?pin=${session.pin}&practice=1`;
+    window.open(practiceUrl, '_blank', 'noopener,noreferrer');
+
+    // Keep the current tab as the moderator host in the usual lobby.
+    router.push(`/session/${session._id || session.id}/lobby`);
+  } catch (err) {
+    practiceError.value = err.message;
+  } finally {
+    practiceStarting.value = false;
   }
 }
 
@@ -225,8 +266,18 @@ onMounted(fetchQuiz);
                 {{ starting ? t('libraryDetail.starting') : t('libraryDetail.startQuiz') }}
               </PixelButton>
 
+              <PixelButton
+                variant="secondary"
+                class="w-full text-sm py-3 mt-2"
+                :disabled="practiceStarting || !quiz.questions?.length"
+                @click="startPracticeRun"
+              >
+                {{ practiceStarting ? 'Starting practice run…' : 'Preview as player (single-player)' }}
+              </PixelButton>
+
               <p v-if="!quiz.questions?.length" class="text-sm text-muted-foreground">{{ t('libraryDetail.noQuestionsYet') }}</p>
               <p v-if="startError" class="text-sm text-destructive">{{ startError }}</p>
+              <p v-if="practiceError" class="text-sm text-destructive">{{ practiceError }}</p>
 
               <div class="pt-4 border-t-2 border-border space-y-3">
                 <PixelButton
