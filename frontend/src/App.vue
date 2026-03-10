@@ -11,10 +11,6 @@ const fatalLog = computed(() =>
 );
 
 const hasLogs = computed(() => debugLogState.logs.length > 0);
-
-function toggleDebugPanel() {
-  setDebugPanelOpen(!debugLogState.panelOpen);
-}
 </script>
 
 <template>
@@ -60,14 +56,6 @@ function toggleDebugPanel() {
       </div>
     </div>
   </div>
-
-  <button
-    v-else-if="hasLogs"
-    class="fixed bottom-4 right-4 z-[90] border-[3px] border-black bg-warning px-4 py-3 font-bold pixel-shadow"
-    @click="toggleDebugPanel"
-  >
-    Show Logs ({{ debugLogState.logs.length }})
-  </button>
 
   <div
     v-if="!fatalLog && debugLogState.panelOpen && hasLogs"
