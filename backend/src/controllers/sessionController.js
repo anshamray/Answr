@@ -342,14 +342,18 @@ export async function getSessionAnalytics(req, res) {
         ? Math.round((correctCount / denominator) * 100)
         : 0;
 
+      const totalAnswered = playerSubmissions.length;
+      const skippedCount = Math.max((totalQuizQuestions || 0) - totalAnswered, 0);
+
       return {
         id: p._id,
         name: p.name,
         avatar: p.avatar,
         score: p.score || 0,
         correctCount,
-        totalAnswered: playerSubmissions.length,
+        totalAnswered,
         totalQuestions: totalQuizQuestions,
+        skippedCount,
         accuracy
       };
     }).sort((a, b) => b.score - a.score);

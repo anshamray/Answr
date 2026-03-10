@@ -39,7 +39,6 @@ import {
 
 import Session from '../models/Session.js';
 import Participant from '../models/Participant.js';
-import Submission from '../models/Submission.js';
 
 /**
  * Register all moderator-related Socket.io event handlers (WS-3)
@@ -564,13 +563,6 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       // Compute real final leaderboard with all player scores
       const finalResults = computeFinalResults(session);
 
-      // Persist submissions to database before cleanup
-      try {
-        await persistSessionData(sessionPin, session);
-      } catch (persistError) {
-        console.error('Failed to persist session data:', persistError);
-      }
-
       broadcastGameEnd(io, sessionPin, finalResults);
 
       // Clean up the session from memory
@@ -586,101 +578,3 @@ export function registerModeratorEvents(io, socket, activeSessions) {
   });
 }
 
-/**
- * Persist in-memory session data (players and submissions) to the database.
- * Called when the game ends to enable analytics.
- *
- * @param {string} sessionPin
- * @param {object} session - in-memory session object
- */
-async function persistSessionData(sessionPin, session) {
-  // Find the database session by PIN
-  const dbSession = await Session.findOne({ pin: sessionPin });
-  if (!dbSession) {
-    console.warn(`Session ${sessionPin} not found in DB for persistence`);
-    return;
-  }
-
-  const sessionId = dbSession._id;
-
-  // Update session status and finishedAt
-  dbSession.status = 'finished';
-  dbSession.finishedAt = new Date();
-  await dbSession.save();
-
-  // Create a mapping from in-memory playerId to database participantId
-  const playerIdToParticipantId = new Map();
-
-  // Persist or update participants
-  if (session.players) {
-    for (const [playerId, player] of session.players) {
-      // Check if participant already exists (created during join via REST)
-      let participant = await Participant.findOne({
-        sessionId,
-        name: player.nickname
-      });
-
-      if (!participant) {
-        participant = new Participant({
-          sessionId,
-          name: player.nickname,
-          avatar: player.avatar || '',
-          score: player.score || 0,
-          isConnected: player.isConnected
-        });
-        await participant.save();
-      } else {
-        // Update the existing participant with final score
-        participant.score = player.score || 0;
-        participant.isConnected = player.isConnected;
-        await participant.save();
-      }
-
-      playerIdToParticipantId.set(playerId, participant._id);
-    }
-
-    // Update session with participant references
-    dbSession.participants = Array.from(playerIdToParticipantId.values());
-    await dbSession.save();
-  }
-
-  // Persist submissions
-  if (session.answers) {
-    const submissions = [];
-
-    for (const [questionId, questionAnswers] of session.answers) {
-      for (const [playerId, answer] of questionAnswers) {
-        const participantId = playerIdToParticipantId.get(playerId);
-        if (!participantId) continue;
-
-        // Check if submission already exists (avoid duplicates)
-        const existingSubmission = await Submission.findOne({
-          participantId,
-          questionId
-        });
-
-        if (!existingSubmission) {
-          submissions.push({
-            participantId,
-            questionId,
-            sessionId,
-            questionType: answer.questionType || 'multiple-choice',
-            answerId: answer.answerId,
-            timeTaken: answer.timeTaken || 0,
-            pointsAwarded: answer.pointsAwarded || 0,
-            isCorrect: answer.isCorrect ?? null
-          });
-        }
-      }
-    }
-
-    if (submissions.length > 0) {
-      await Submission.insertMany(submissions, { ordered: false }).catch(err => {
-        // Ignore duplicate key errors
-        if (err.code !== 11000) throw err;
-      });
-    }
-  }
-
-  console.log(`Persisted session ${sessionPin}: ${playerIdToParticipantId.size} participants, ${session.answers?.size || 0} questions`);
-}

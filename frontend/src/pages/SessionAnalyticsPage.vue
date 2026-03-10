@@ -202,6 +202,9 @@ onMounted(fetchAnalytics);
                   <div class="text-xs text-muted-foreground">
                     {{ player.correctCount }} / {{ player.totalQuestions || player.totalAnswered }} ({{ player.accuracy }}% {{ t('analytics.accuracy') }})
                   </div>
+                  <div class="text-[11px] text-muted-foreground/80">
+                    {{ player.totalAnswered }} / {{ player.totalQuestions || player.totalAnswered }} {{ t('session.answers') }}
+                  </div>
                 </div>
                 <div class="text-lg font-bold text-right whitespace-nowrap">{{ player.score }}</div>
               </div>
@@ -274,7 +277,12 @@ onMounted(fetchAnalytics);
                     </td>
                     <td class="p-3 text-right font-bold">{{ player.score }}</td>
                     <td class="p-3 text-right">
-                      {{ player.correctCount }} / {{ player.totalQuestions || summary?.totalQuestions || player.totalAnswered }}
+                      <div class="font-medium">
+                        {{ player.correctCount }} / {{ player.totalQuestions || summary?.totalQuestions || player.totalAnswered }}
+                      </div>
+                      <div class="text-xs text-muted-foreground">
+                        {{ player.totalAnswered }} / {{ player.totalQuestions || summary?.totalQuestions || player.totalAnswered }} {{ t('session.answers') }}
+                      </div>
                     </td>
                     <td class="p-3 text-right">
                       <span :class="getAccuracyColor(player.accuracy)" class="font-bold">

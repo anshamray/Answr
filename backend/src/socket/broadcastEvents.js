@@ -7,6 +7,11 @@
  * Scoring is delegated to utils/scoring.js (WS-5).
  */
 
+import Participant from '../models/Participant.js';
+import Session from '../models/Session.js';
+import Submission from '../models/Submission.js';
+import { calculateScore, DEFAULT_SCORING_CONFIG, getStreakBonus } from '../utils/scoring.js';
+
 import {
   broadcastTimer,
   broadcastQuestionEnd,
@@ -15,10 +20,6 @@ import {
   broadcastQuestionStart,
   INTRO_DURATION
 } from './gameEvents.js';
-import { calculateScore, DEFAULT_SCORING_CONFIG, getStreakBonus } from '../utils/scoring.js';
-import Session from '../models/Session.js';
-import Participant from '../models/Participant.js';
-import Submission from '../models/Submission.js';
 
 // ─── Timer ──────────────────────────────────────────────────────────────
 
@@ -320,18 +321,65 @@ async function persistQuestionResults(sessionPin, session) {
       const participantId = playerIdToParticipantId.get(playerId);
       if (!participantId) continue;
 
+      const baseUpdate = {
+        sessionId,
+        questionType: answer.questionType || questionType,
+        timeTaken: answer.timeTaken || 0,
+        pointsAwarded: answer.pointsAwarded || 0,
+        isCorrect: typeof answer.isCorrect === 'boolean' ? answer.isCorrect : null
+      };
+
+      // Populate typed answer fields based on question type
+      const rawAnswer = answer.answerId;
+
+      if (Array.isArray(rawAnswer)) {
+        // Multi-select or sort type
+        if (questionType === 'sort') {
+          baseUpdate.orderedAnswerIds = rawAnswer;
+        } else {
+          baseUpdate.answerIds = rawAnswer;
+        }
+      } else if (typeof rawAnswer === 'string' || rawAnswer == null) {
+        if (questionType === 'slider' || questionType === 'scale' || questionType === 'nps-scale') {
+          const num = Number(rawAnswer);
+          if (Number.isFinite(num)) {
+            baseUpdate.numericAnswer = num;
+          }
+        } else if (questionType === 'type-answer' || questionType === 'word-cloud' || questionType === 'open-ended' || questionType === 'brainstorm') {
+          baseUpdate.textAnswer = typeof rawAnswer === 'string' ? rawAnswer : null;
+        } else if (questionType === 'pin-answer' || questionType === 'drop-pin') {
+          let coords = null;
+          try {
+            coords = typeof rawAnswer === 'string' ? JSON.parse(rawAnswer) : rawAnswer;
+          } catch {
+            coords = null;
+          }
+          if (coords && typeof coords.x === 'number' && typeof coords.y === 'number') {
+            baseUpdate.pinAnswer = {
+              x: coords.x,
+              y: coords.y
+            };
+          }
+        } else {
+          // Default: single-choice style questions
+          baseUpdate.answerId = rawAnswer || null;
+        }
+      } else {
+        // Non-string object payloads (e.g. pin-answer sent as object)
+        if (questionType === 'pin-answer' || questionType === 'drop-pin') {
+          const coords = rawAnswer;
+          if (coords && typeof coords.x === 'number' && typeof coords.y === 'number') {
+            baseUpdate.pinAnswer = {
+              x: coords.x,
+              y: coords.y
+            };
+          }
+        }
+      }
+
       await Submission.findOneAndUpdate(
         { participantId, questionId },
-        {
-          $set: {
-            sessionId,
-            questionType: answer.questionType || questionType,
-            answerId: answer.answerId,
-            timeTaken: answer.timeTaken || 0,
-            pointsAwarded: answer.pointsAwarded || 0,
-            isCorrect: typeof answer.isCorrect === 'boolean' ? answer.isCorrect : null
-          }
-        },
+        { $set: baseUpdate },
         { upsert: true, new: true }
       );
     }
