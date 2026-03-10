@@ -615,16 +615,18 @@ onUnmounted(cleanup);
       <!-- Slider mode -->
       <template v-if="isSlider">
         <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
-          <PixelCard class="mb-6">
+          <PixelCard class="mb-4">
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
-              <img
-                :src="questionMediaUrl"
-                :alt="question?.text"
-                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
-              />
+            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
+                <img
+                  :src="questionMediaUrl"
+                  :alt="question?.text"
+                  class="max-h-full w-full object-contain"
+                />
+              </div>
             </div>
           </PixelCard>
 
@@ -702,16 +704,18 @@ onUnmounted(cleanup);
       <!-- Sort mode -->
       <template v-else-if="isSort">
         <div class="flex-1 flex flex-col px-4 py-4 bg-gradient-to-br from-primary/10 to-secondary/10">
-          <PixelCard class="mb-4">
+          <PixelCard class="mb-3">
             <h2 class="text-lg sm:text-xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
-              <img
-                :src="questionMediaUrl"
-                :alt="question?.text"
-                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
-              />
+            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
+                <img
+                  :src="questionMediaUrl"
+                  :alt="question?.text"
+                  class="max-h-full w-full object-contain"
+                />
+              </div>
             </div>
           </PixelCard>
 
@@ -816,17 +820,17 @@ onUnmounted(cleanup);
             <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}</p>
           </div>
 
-          <div v-if="!submitted && !timedOut" class="flex-1 min-h-0 flex flex-col items-center gap-4 overflow-y-auto">
+          <div v-if="!submitted && !timedOut" class="flex-1 min-h-0 flex flex-col items-center gap-3 overflow-y-auto">
             <p class="text-sm text-muted-foreground font-bold">{{ t('playerGame.tapOnImage') }}</p>
             <div
-              class="relative w-full max-w-md border-[3px] border-black cursor-crosshair select-none"
+              class="relative w-full max-w-md max-h-[60vh] border-[3px] border-black cursor-crosshair select-none bg-black overflow-hidden"
               @click="handlePinClick"
               @touchstart="handlePinTouch"
             >
               <img
                 v-if="pinMediaUrl && !pinImageFailed"
                 :src="pinMediaUrl"
-                class="w-full h-auto block"
+                class="w-full h-auto max-h-[60vh] block object-contain"
                 alt="Pin target"
                 draggable="false"
                 @error="pinImageFailed = true"
@@ -840,7 +844,7 @@ onUnmounted(cleanup);
                 class="absolute w-6 h-6 -ml-3 -mt-3 pointer-events-none"
                 :style="{ left: pinX + '%', top: pinY + '%' }"
               >
-                <div class="w-6 h-6 bg-destructive border-2 border-white rounded-full shadow-lg animate-pulse"></div>
+                <div class="w-6 h-6 bg-destructive border-[3px] border-black shadow-[3px_3px_0_#000] rotate-45"></div>
               </div>
             </div>
 
@@ -868,16 +872,18 @@ onUnmounted(cleanup);
       <!-- Type-answer mode -->
       <template v-else-if="isTypeAnswer">
         <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
-          <PixelCard class="mb-6">
+          <PixelCard class="mb-4">
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
-              <img
-                :src="questionMediaUrl"
-                :alt="question?.text"
-                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
-              />
+            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
+                <img
+                  :src="questionMediaUrl"
+                  :alt="question?.text"
+                  class="max-h-full w-full object-contain"
+                />
+              </div>
             </div>
           </PixelCard>
 
@@ -977,16 +983,18 @@ onUnmounted(cleanup);
       <template v-else>
         <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
           <!-- Question -->
-          <PixelCard class="mb-6">
+          <PixelCard class="mb-4">
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaUrl" class="mt-4 flex justify-center">
-              <img
-                :src="questionMediaUrl"
-                :alt="question?.text"
-                class="max-h-64 w-full max-w-2xl object-contain border-[3px] border-black bg-white"
-              />
+            <div v-if="questionMediaUrl" class="mt-3 flex justify-center">
+              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
+                <img
+                  :src="questionMediaUrl"
+                  :alt="question?.text"
+                  class="max-h-full w-full object-contain"
+                />
+              </div>
             </div>
           </PixelCard>
 

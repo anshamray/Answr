@@ -836,16 +836,18 @@ onUnmounted(cleanup);
               {{ t('gameControl.questionOf', { current: questionNumber, total: totalQuestions }) }}
             </PixelBadge>
 
-            <PixelCard class="!p-8 lg:!p-12 space-y-4">
+            <PixelCard class="!p-6 lg:!p-10 space-y-4">
               <h1 class="text-2xl lg:text-4xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
               <div v-if="questionMediaUrl" class="mt-2 flex justify-center">
-                <img
-                  :src="questionMediaUrl"
-                  :alt="currentQuestion.text"
-                  class="max-h-[min(20rem,calc(100vh-20rem))] w-full max-w-3xl object-contain border-[3px] border-black bg-white"
-                />
+                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
+                  <img
+                    :src="questionMediaUrl"
+                    :alt="currentQuestion.text"
+                    class="max-h-full w-full object-contain"
+                  />
+                </div>
               </div>
             </PixelCard>
 
@@ -914,11 +916,13 @@ onUnmounted(cleanup);
                 v-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
                 class="mt-1 flex justify-center"
               >
-                <img
-                  :src="questionMediaUrl"
-                  :alt="currentQuestion.text"
-                  class="max-h-[min(20rem,calc(100vh-20rem))] w-full max-w-3xl object-contain border-[3px] border-black bg-white"
-                />
+                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
+                  <img
+                    :src="questionMediaUrl"
+                    :alt="currentQuestion.text"
+                    class="max-h-full w-full object-contain"
+                  />
+                </div>
               </div>
 
               <!-- MC / True-False / Poll: answer grid -->
@@ -1231,22 +1235,22 @@ onUnmounted(cleanup);
                   </PixelBadge>
                 </div>
 
-                <div class="border-[3px] border-black bg-white p-2 sm:p-3">
-                  <div v-if="pinQuestionMediaUrl" class="relative mx-auto w-fit max-w-full">
+                <div class="border-[3px] border-black bg-black p-2 sm:p-3">
+                  <div v-if="pinQuestionMediaUrl" class="relative mx-auto w-fit max-w-full overflow-hidden">
                     <img
                       :src="pinQuestionMediaUrl"
                       :alt="currentQuestion.text"
-                      class="block max-h-[min(30rem,calc(100vh-24rem))] max-w-full object-contain"
+                      class="block max-h-[min(26rem,calc(100vh-22rem))] max-w-full object-contain"
                     />
 
                     <div
                       v-if="currentQuestion.pinConfig"
-                      class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-success bg-success/20 shadow-[0_0_0_3px_rgba(255,255,255,0.8)]"
+                      class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 border-[3px] border-success bg-success/20 shadow-[3px_3px_0_rgba(0,0,0,0.9)] rotate-45"
                       :style="{
                         left: `${currentQuestion.pinConfig.x}%`,
                         top: `${currentQuestion.pinConfig.y}%`,
-                        width: `${(currentQuestion.pinConfig.radius || 10) * 2}%`,
-                        height: `${(currentQuestion.pinConfig.radius || 10) * 2}%`
+                        width: `${(currentQuestion.pinConfig.radius || 8) * 2}%`,
+                        height: `${(currentQuestion.pinConfig.radius || 8) * 2}%`
                       }"
                     ></div>
                     <div
@@ -1254,7 +1258,7 @@ onUnmounted(cleanup);
                       class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
                       :style="{ left: `${currentQuestion.pinConfig.x}%`, top: `${currentQuestion.pinConfig.y}%` }"
                     >
-                      <div class="flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-white bg-success text-sm font-bold text-white shadow-lg">
+                      <div class="flex h-7 w-7 items-center justify-center border-[3px] border-black bg-success text-xs font-bold text-white shadow-[3px_3px_0_#000] rotate-45">
                         ✓
                       </div>
                     </div>
@@ -1266,7 +1270,7 @@ onUnmounted(cleanup);
                       :style="{ left: `${entry.coords.x}%`, top: `${entry.coords.y}%` }"
                     >
                       <div
-                        class="flex h-8 w-8 items-center justify-center rounded-full border-[3px] border-white text-xs font-bold text-white shadow-lg"
+                        class="flex h-6 w-6 items-center justify-center border-[3px] border-black text-[10px] font-bold text-white shadow-[3px_3px_0_#000] rotate-45"
                         :class="entry.isCorrect ? 'bg-success' : 'bg-destructive'"
                       >
                         {{ entry.label }}
