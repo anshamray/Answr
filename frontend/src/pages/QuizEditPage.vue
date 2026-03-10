@@ -141,20 +141,20 @@ const categoryOptions = [
   { value: 'Other', labelKey: 'quizEditor.categoryOther' }
 ];
 
-// Language options with flags
+// Language options with flag-icons country codes
 const languageOptions = [
-  { value: 'en', label: 'English', flag: '\u{1F1EC}\u{1F1E7}' },
-  { value: 'de', label: 'Deutsch', flag: '\u{1F1E9}\u{1F1EA}' },
-  { value: 'es', label: 'Espa\u00F1ol', flag: '\u{1F1EA}\u{1F1F8}' },
-  { value: 'fr', label: 'Fran\u00E7ais', flag: '\u{1F1EB}\u{1F1F7}' },
-  { value: 'it', label: 'Italiano', flag: '\u{1F1EE}\u{1F1F9}' },
-  { value: 'pt', label: 'Portugu\u00EAs', flag: '\u{1F1F5}\u{1F1F9}' },
-  { value: 'nl', label: 'Nederlands', flag: '\u{1F1F3}\u{1F1F1}' },
-  { value: 'pl', label: 'Polski', flag: '\u{1F1F5}\u{1F1F1}' },
-  { value: 'ru', label: '\u0420\u0443\u0441\u0441\u043A\u0438\u0439', flag: '\u{1F1F7}\u{1F1FA}' },
-  { value: 'ja', label: '\u65E5\u672C\u8A9E', flag: '\u{1F1EF}\u{1F1F5}' },
-  { value: 'zh', label: '\u4E2D\u6587', flag: '\u{1F1E8}\u{1F1F3}' },
-  { value: 'ko', label: '\uD55C\uAD6D\uC5B4', flag: '\u{1F1F0}\u{1F1F7}' }
+  { value: 'en', label: 'English', flag: 'gb' },
+  { value: 'de', label: 'Deutsch', flag: 'de' },
+  { value: 'es', label: 'Español', flag: 'es' },
+  { value: 'fr', label: 'Français', flag: 'fr' },
+  { value: 'it', label: 'Italiano', flag: 'it' },
+  { value: 'pt', label: 'Português', flag: 'pt' },
+  { value: 'nl', label: 'Nederlands', flag: 'nl' },
+  { value: 'pl', label: 'Polski', flag: 'pl' },
+  { value: 'ru', label: 'Русский', flag: 'ru' },
+  { value: 'ja', label: '日本語', flag: 'jp' },
+  { value: 'zh', label: '中文', flag: 'cn' },
+  { value: 'ko', label: '한국어', flag: 'kr' }
 ];
 
 // Tag management functions
@@ -854,8 +854,12 @@ onUnmounted(() => {
               class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
               @change="hasUnsavedChanges = true"
             >
-              <option v-for="lang in languageOptions" :key="lang.value" :value="lang.value">
-                {{ lang.flag }} {{ lang.label }}
+              <option
+                v-for="lang in languageOptions"
+                :key="lang.value"
+                :value="lang.value"
+              >
+                {{ lang.label }}
               </option>
             </select>
           </div>
