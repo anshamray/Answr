@@ -806,31 +806,31 @@ onUnmounted(cleanup);
 
       <!-- Pin-answer mode -->
       <template v-else-if="isPinAnswer">
-        <div class="flex-1 min-h-0 flex flex-col px-4 py-4 bg-gradient-to-br from-primary/10 to-secondary/10">
-          <PixelCard class="mb-4">
+        <div class="flex-1 min-h-0 flex flex-col px-4 py-3 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <PixelCard class="mb-3">
             <h2 class="text-lg sm:text-xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
           </PixelCard>
 
-          <div v-if="timedOut && !submitted" class="mb-4 text-center">
+          <div v-if="timedOut && !submitted" class="mb-3 text-center">
             <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
           </div>
-          <div v-else-if="submitted" class="mb-4 text-center">
+          <div v-else-if="submitted" class="mb-3 text-center">
             <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}</p>
           </div>
 
           <div v-if="!submitted && !timedOut" class="flex-1 min-h-0 flex flex-col items-center gap-3 overflow-y-auto">
             <p class="text-sm text-muted-foreground font-bold">{{ t('playerGame.tapOnImage') }}</p>
             <div
-              class="relative w-full max-w-md max-h-[60vh] border-[3px] border-black cursor-crosshair select-none bg-black overflow-hidden"
+              class="relative w-full max-w-md max-h-[50vh] border-[3px] border-black cursor-crosshair select-none bg-black overflow-hidden"
               @click="handlePinClick"
               @touchstart="handlePinTouch"
             >
               <img
                 v-if="pinMediaUrl && !pinImageFailed"
                 :src="pinMediaUrl"
-                class="w-full h-auto max-h-[60vh] block object-contain"
+                class="w-full h-auto max-h-[50vh] block object-contain"
                 alt="Pin target"
                 draggable="false"
                 @error="pinImageFailed = true"
