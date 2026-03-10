@@ -755,6 +755,7 @@ function sendNextQuestion() {
 }
 
 const showEndConfirm = ref(false);
+const showPinResultsFullscreen = ref(false);
 
 function endGame() {
   const socket = getSocket();
@@ -841,13 +842,11 @@ onUnmounted(cleanup);
                 {{ currentQuestion.text }}
               </h1>
               <div v-if="questionMediaUrl" class="mt-2 flex justify-center">
-                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-transparent">
-                  <img
-                    :src="questionMediaUrl"
-                    :alt="currentQuestion.text"
-                    class="max-h-full w-full object-contain"
-                  />
-                </div>
+                <img
+                  :src="questionMediaUrl"
+                  :alt="currentQuestion.text"
+                  class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] max-w-full object-contain"
+                />
               </div>
             </PixelCard>
 
@@ -913,13 +912,11 @@ onUnmounted(cleanup);
                 v-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
                 class="mt-1 flex justify-center"
               >
-                <div class="border-[4px] border-black max-h-[min(16rem,calc(100vh-22rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-transparent">
-                  <img
-                    :src="questionMediaUrl"
-                    :alt="currentQuestion.text"
-                    class="max-h-full w-full object-contain"
-                  />
-                </div>
+                <img
+                  :src="questionMediaUrl"
+                  :alt="currentQuestion.text"
+                  class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] max-w-full object-contain"
+                />
               </div>
 
               <!-- MC / True-False / Poll: answer grid -->
@@ -1233,11 +1230,15 @@ onUnmounted(cleanup);
                 </div>
 
                 <div class="border-[3px] border-black bg-black p-2 sm:p-3">
-                  <div v-if="pinQuestionMediaUrl" class="relative mx-auto w-fit max-w-full overflow-hidden">
+                  <div
+                    v-if="pinQuestionMediaUrl"
+                    class="relative mx-auto w-fit max-w-full overflow-hidden cursor-zoom-in"
+                    @click="showPinResultsFullscreen = true"
+                  >
                     <img
                       :src="pinQuestionMediaUrl"
                       :alt="currentQuestion.text"
-                      class="block max-h-[min(26rem,calc(100vh-22rem))] max-w-full object-contain"
+                      class="block max-h-[min(20rem,calc(100vh-26rem))] max-w-full object-contain"
                     />
 
                     <div
@@ -1256,7 +1257,9 @@ onUnmounted(cleanup);
                       :style="{ left: `${currentQuestion.pinConfig.x}%`, top: `${currentQuestion.pinConfig.y}%` }"
                     >
                       <div class="flex h-7 w-7 items-center justify-center border-[3px] border-black bg-success text-xs font-bold text-white shadow-[3px_3px_0_#000] rotate-45">
-                        ✓
+                        <div class="-rotate-45">
+                          ✓
+                        </div>
                       </div>
                     </div>
 
@@ -1270,7 +1273,9 @@ onUnmounted(cleanup);
                         class="flex h-6 w-6 items-center justify-center border-[3px] border-black text-[10px] font-bold text-white shadow-[3px_3px_0_#000] rotate-45"
                         :class="entry.isCorrect ? 'bg-success' : 'bg-destructive'"
                       >
-                        {{ entry.label }}
+                        <div class="-rotate-45">
+                          {{ entry.label }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1446,6 +1451,68 @@ onUnmounted(cleanup);
             <PixelButton variant="destructive" @click="endGame">{{ t('gameControl.endGame') }}</PixelButton>
           </div>
         </PixelCard>
+      </div>
+    </Teleport>
+
+    <!-- Pin-answer fullscreen image dialog -->
+    <Teleport to="body">
+      <div
+        v-if="showPinResultsFullscreen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+        @click.self="showPinResultsFullscreen = false"
+      >
+        <div class="max-w-5xl w-full px-4">
+          <PixelCard class="!p-3 sm:!p-4 bg-black cursor-zoom-out" @click="showPinResultsFullscreen = false">
+            <div
+              v-if="pinQuestionMediaUrl"
+              class="relative mx-auto w-fit max-w-full overflow-hidden"
+            >
+              <img
+                :src="pinQuestionMediaUrl"
+                :alt="currentQuestion?.text"
+                class="block max-h-[min(90vh,40rem)] max-w-full object-contain"
+              />
+
+              <div
+                v-if="currentQuestion?.pinConfig"
+                class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 border-[3px] border-success bg-success/20 shadow-[3px_3px_0_rgba(0,0,0,0.9)] rotate-45"
+                :style="{
+                  left: `${currentQuestion.pinConfig.x}%`,
+                  top: `${currentQuestion.pinConfig.y}%`,
+                  width: `${(currentQuestion.pinConfig.radius || 8) * 2}%`,
+                  height: `${(currentQuestion.pinConfig.radius || 8) * 2}%`
+                }"
+              ></div>
+              <div
+                v-if="currentQuestion?.pinConfig"
+                class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                :style="{ left: `${currentQuestion.pinConfig.x}%`, top: `${currentQuestion.pinConfig.y}%` }"
+              >
+                <div class="flex h-7 w-7 items-center justify-center border-[3px] border-black bg-success text-xs font-bold text-white shadow-[3px_3px_0_#000] rotate-45">
+                  <div class="-rotate-45">
+                    ✓
+                  </div>
+                </div>
+              </div>
+
+              <div
+                v-for="entry in pinAnswerEntries"
+                :key="entry.playerId"
+                class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                :style="{ left: `${entry.coords.x}%`, top: `${entry.coords.y}%` }"
+              >
+                <div
+                  class="flex h-6 w-6 items-center justify-center border-[3px] border-black text-[10px] font-bold text-white shadow-[3px_3px_0_#000] rotate-45"
+                  :class="entry.isCorrect ? 'bg-success' : 'bg-destructive'"
+                >
+                  <div class="-rotate-45">
+                    {{ entry.label }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </PixelCard>
+        </div>
       </div>
     </Teleport>
   </div>
