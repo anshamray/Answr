@@ -40,12 +40,13 @@ const localQuestion = ref({ ...props.question });
 // Error state for file validation
 const fileError = ref('');
 
-// Upload progress state
+// Upload progress state (shared between normal + reveal media uploads)
 const uploadProgress = ref(0);
 const isUploading = ref(false);
 
-// File input ref
+// File input refs
 const fileInputRef = ref(null);
+const revealFileInputRef = ref(null);
 
 // Media sections collapsed by default (optional, not often used)
 const mediaExpanded = ref(false);
@@ -337,6 +338,49 @@ async function handleFileSelect(event) {
     }
   }
 }
+
+// Trigger reveal file input click
+function triggerRevealFileInput() {
+  revealFileInputRef.value?.click();
+}
+
+// Handle reveal media file selection - upload to server
+async function handleRevealFileSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  fileError.value = '';
+
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    fileError.value = t('questionEditor.fileTypeError');
+    return;
+  }
+
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    fileError.value = t('questionEditor.fileSizeError');
+    return;
+  }
+
+  // Upload to server
+  isUploading.value = true;
+  uploadProgress.value = 0;
+
+  try {
+    const media = await uploadMedia(file, (percent) => {
+      uploadProgress.value = percent;
+    });
+    updateRevealMediaUrl(media.url);
+  } catch (err) {
+    fileError.value = err.message || t('questionEditor.uploadFailed');
+  } finally {
+    isUploading.value = false;
+    uploadProgress.value = 0;
+    if (revealFileInputRef.value) {
+      revealFileInputRef.value.value = '';
+    }
+  }
 
 // Get icon for question type
 function getIcon(iconName) {
@@ -694,8 +738,32 @@ function getIcon(iconName) {
           </svg>
         </button>
         <div v-show="revealMediaExpanded" class="p-6 pt-0">
-          <div class="border-2 border-dashed border-border p-6 text-center">
-            <div v-if="localQuestion.revealMediaUrl" class="space-y-3">
+          <!-- Hidden file input for reveal media -->
+          <input
+            ref="revealFileInputRef"
+            type="file"
+            accept="image/*"
+            class="hidden"
+            @change="handleRevealFileSelect"
+          />
+          <div class="border-2 border-dashed border-border p-6 text-center hover:border-primary transition-colors">
+            <div v-if="isUploading" class="space-y-3">
+              <svg class="mx-auto mb-3 text-primary animate-pulse" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <p class="text-sm text-muted-foreground">
+                {{ t('questionEditor.uploading') }}
+              </p>
+              <div class="w-full max-w-xs mx-auto bg-border h-2">
+                <div
+                  class="bg-primary h-full transition-all duration-200"
+                  :style="{ width: `${uploadProgress}%` }"
+                ></div>
+              </div>
+              <p class="text-xs text-muted-foreground">{{ uploadProgress }}%</p>
+            </div>
+
+            <div v-else-if="localQuestion.revealMediaUrl" class="space-y-3">
               <div v-if="revealMediaKind === 'externalVideo'" class="max-w-xl mx-auto">
                 <div class="aspect-video border-2 border-black bg-black">
                   <iframe
@@ -725,16 +793,28 @@ function getIcon(iconName) {
                 {{ t('common.remove') }}
               </button>
             </div>
-            <div v-else class="space-y-3">
-              <p class="text-sm text-muted-foreground">
-                {{ t('questionEditor.revealMediaHint') }}
-              </p>
-              <input
-                type="text"
-                :placeholder="t('questionEditor.revealMediaUrlPlaceholder')"
-                class="w-full max-w-xs px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
-                @blur="updateRevealMediaUrl($event.target.value)"
-              />
+
+            <div v-else class="space-y-4">
+              <div class="cursor-pointer" @click="triggerRevealFileInput">
+                <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                </svg>
+                <p class="text-sm text-muted-foreground mb-2">
+                  {{ t('questionEditor.revealMediaHint') }}
+                </p>
+                <p v-if="fileError" class="text-sm text-destructive mb-2">{{ fileError }}</p>
+              </div>
+              <div class="flex items-center gap-2 justify-center">
+                <span class="text-sm text-muted-foreground">
+                  {{ t('common.or') }}
+                </span>
+                <input
+                  type="text"
+                  :placeholder="t('questionEditor.revealMediaUrlPlaceholder')"
+                  class="w-48 px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
+                  @blur="updateRevealMediaUrl($event.target.value)"
+                />
+              </div>
             </div>
           </div>
         </div>

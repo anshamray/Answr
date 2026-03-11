@@ -7,6 +7,7 @@ import {
   sendNotFound,
   sendServerError
 } from '../utils/responseHelper.js';
+
 import { linkMediaToQuiz } from './mediaController.js';
 
 /**
@@ -70,7 +71,8 @@ export async function addQuestion(req, res) {
       sliderConfig,
       pinConfig,
       scaleConfig,
-      brainstormConfig
+      brainstormConfig,
+      revealMediaUrl
     } = req.body;
 
     if (!type) {
@@ -84,6 +86,7 @@ export async function addQuestion(req, res) {
       textToReadAloud,
       mediaUrl,
       mediaType,
+      revealMediaUrl,
       audioLanguage,
       timeLimit,
       points,
@@ -101,6 +104,9 @@ export async function addQuestion(req, res) {
     // Link media to quiz for access control
     if (question.mediaUrl) {
       await linkMediaToQuiz(question.mediaUrl, quizId);
+    }
+    if (question.revealMediaUrl) {
+      await linkMediaToQuiz(question.revealMediaUrl, quizId);
     }
 
     // Add question to quiz's questions array
@@ -148,6 +154,7 @@ export async function updateQuestion(req, res) {
       'textToReadAloud',
       'mediaUrl',
       'mediaType',
+      'revealMediaUrl',
       'audioLanguage',
       'timeLimit',
       'points',
@@ -168,9 +175,12 @@ export async function updateQuestion(req, res) {
 
     await question.save();
 
-    // Link media to quiz for access control if mediaUrl was updated
+    // Link media to quiz for access control if media fields were updated
     if (req.body.mediaUrl) {
       await linkMediaToQuiz(question.mediaUrl, question.quizId);
+    }
+    if (req.body.revealMediaUrl) {
+      await linkMediaToQuiz(question.revealMediaUrl, question.quizId);
     }
 
     sendSuccess(res, { message: 'Question updated', data: { question } });

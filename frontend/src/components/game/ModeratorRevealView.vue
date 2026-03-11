@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { isExternalVideoUrl, getExternalVideoEmbedUrl } from '../../lib/mediaService.js';
 
@@ -79,38 +79,71 @@ const revealMediaEmbedUrl = computed(() => {
   if (!url || !isExternalVideoUrl(url)) return null;
   return getExternalVideoEmbedUrl(url);
 });
+
+const revealMediaExpanded = ref(false);
 </script>
 
 <template>
   <main class="flex-1 p-3 sm:p-4 bg-gradient-to-br from-success/10 via-primary/5 to-secondary/5">
     <div class="max-w-7xl mx-auto space-y-4">
-      <!-- Optional reveal media -->
+      <!-- Optional reveal media (collapsed preview card, expandable on click) -->
       <div v-if="revealMediaUrl" class="w-full">
-        <PixelCard class="!p-3 sm:!p-4 flex flex-col items-center space-y-2">
-          <div class="w-full text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            {{ t('questionEditor.revealMediaOptional') }}
-          </div>
-          <div
-            v-if="revealMediaEmbedUrl"
-            class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden"
+        <PixelCard class="!p-3 sm:!p-4 space-y-2">
+          <button
+            type="button"
+            class="w-full flex items-center justify-between gap-2 text-left"
+            @click="revealMediaExpanded = !revealMediaExpanded"
           >
-            <iframe
-              :src="revealMediaEmbedUrl"
-              class="w-full h-full"
-              frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen
-            ></iframe>
-          </div>
-          <div
-            v-else
-            class="mt-2 flex justify-center w-full"
-          >
-            <img
-              :src="revealMediaUrl"
-              :alt="currentQuestion.text"
-              class="border-[4px] border-black max-h-[min(18rem,calc(100vh-26rem))] max-w-full object-contain"
-            />
+            <div class="flex items-center gap-2">
+              <div class="w-7 h-7 flex items-center justify-center border-[2px] border-black bg-primary text-primary-foreground text-xs font-bold pixel-font">
+                ▶
+              </div>
+              <div class="flex flex-col">
+                <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {{ t('questionEditor.revealMediaOptional') }}
+                </span>
+                <span class="text-[11px] text-muted-foreground truncate max-w-xs sm:max-w-sm">
+                  {{ revealMediaUrl }}
+                </span>
+              </div>
+            </div>
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="flex-shrink-0 transition-transform"
+              :class="{ 'rotate-180': revealMediaExpanded }"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          <div v-if="revealMediaExpanded" class="pt-2">
+            <div
+              v-if="revealMediaEmbedUrl"
+              class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden mx-auto"
+            >
+              <iframe
+                :src="revealMediaEmbedUrl"
+                class="w-full h-full"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <div
+              v-else
+              class="mt-2 flex justify-center w-full"
+            >
+              <img
+                :src="revealMediaUrl"
+                :alt="currentQuestion.text"
+                class="border-[4px] border-black max-h-[min(18rem,calc(100vh-26rem))] max-w-full object-contain"
+              />
+            </div>
           </div>
         </PixelCard>
       </div>
