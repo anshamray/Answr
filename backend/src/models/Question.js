@@ -28,7 +28,7 @@ const answerSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    maxlength: 75
+    maxlength: 200
   },
   imageUrl: {
     type: String,
