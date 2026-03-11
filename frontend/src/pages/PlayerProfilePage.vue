@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
@@ -22,10 +22,9 @@ const showAnswerText = ref(game.playerSettings?.showAnswerText ?? true);
 const error = ref('');
 const loading = ref(false);
 const { shake, triggerShake } = useShakeAnimation();
-const { cleanup: cleanupSocket } = useSocketCleanup(['player:joined', 'player:profile-updated', 'player:error']);
+const { cleanup: cleanupSocket } = useSocketCleanup(['player:joined', 'player:error']);
 
 const emojiOptions = AVATARS.PROFILE_EMOJIS;
-const isEditingExistingPlayer = computed(() => !!game.playerId && !!game.sessionId);
 
 onMounted(() => {
   // If no PIN is stored, redirect back to home
@@ -64,26 +63,14 @@ function handleJoin() {
     cleanupSocket();
   }, TIMING.SOCKET_CONNECTION_TIMEOUT);
 
-  function applyLocalSettingsAndGoToLobby() {
-    game.playerName = nickname.value.trim();
-    game.playerEmoji = selectedEmoji.value;
-    game.setPlayerSetting('showAnswerText', showAnswerText.value);
-    // Ensure lobby-only actions are available until we receive game:started
-    game.status = 'lobby';
-    router.push('/play/lobby');
-  }
-
   socket.on('player:joined', (data) => {
     clearTimeout(timeout);
     loading.value = false;
+    game.playerName = nickname.value.trim();
+    game.playerEmoji = selectedEmoji.value;
+    game.setPlayerSetting('showAnswerText', showAnswerText.value);
     game.setSession(data);
-    applyLocalSettingsAndGoToLobby();
-  });
-
-  socket.on('player:profile-updated', () => {
-    clearTimeout(timeout);
-    loading.value = false;
-    applyLocalSettingsAndGoToLobby();
+    router.push('/play/lobby');
   });
 
   socket.on('player:error', (data) => {
@@ -94,15 +81,7 @@ function handleJoin() {
     cleanupSocket();
   });
 
-  const emit = () => {
-    if (isEditingExistingPlayer.value) {
-      socket.emit('player:update-profile', {
-        name: nickname.value.trim(),
-        avatar: selectedEmoji.value
-      });
-      return;
-    }
-
+  const emitJoin = () => {
     socket.emit('player:join', {
       pin: game.pin,
       name: nickname.value.trim(),
@@ -111,18 +90,13 @@ function handleJoin() {
   };
 
   if (socket.connected) {
-    emit();
+    emitJoin();
   } else {
-    socket.once('connect', emit);
+    socket.once('connect', emitJoin);
   }
 }
 
 function goBack() {
-  if (isEditingExistingPlayer.value) {
-    router.push('/play/lobby');
-    return;
-  }
-
   game.reset();
   router.push('/');
 }
@@ -227,7 +201,7 @@ function goBack() {
           <svg v-if="!loading" class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="5 3 19 12 5 21 5 3" />
           </svg>
-          {{ loading ? t('game.joining') : (isEditingExistingPlayer ? t('game.saveProfile') : t('landing.joinGame')) }}
+          {{ loading ? t('game.joining') : t('landing.joinGame') }}
         </PixelButton>
 
         <button
@@ -235,7 +209,7 @@ function goBack() {
           :disabled="loading"
           @click="goBack"
         >
-          &larr; {{ isEditingExistingPlayer ? t('game.backToLobby') : t('game.changePin') }}
+          &larr; {{ t('game.changePin') }}
         </button>
       </PixelCard>
     </div>

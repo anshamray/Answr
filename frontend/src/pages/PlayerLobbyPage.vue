@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
@@ -24,16 +24,10 @@ const showAnswerText = ref(game.playerSettings?.showAnswerText ?? true);
 const dotsIntervalId = ref(null);
 let cleanupReconnect = () => {};
 
-const canEditProfile = computed(() => !game.status || game.status === 'lobby');
-
 function setup() {
   if (!game.pin || !game.sessionId || !game.playerId) {
     router.replace('/play');
     return;
-  }
-
-  if (!game.status) {
-    game.status = 'lobby';
   }
 
   const socket = getSocket() || connectSocket();
@@ -90,11 +84,6 @@ function leaveGame() {
   disconnectSocket();
   game.reset();
   router.push('/');
-}
-
-function editProfile() {
-  if (!canEditProfile.value) return;
-  router.push('/play/profile');
 }
 
 watch(showAnswerText, (val) => {
@@ -157,14 +146,6 @@ onUnmounted(cleanup);
               <p class="text-xs text-muted-foreground">{{ t('game.showAnswerTextHint') }}</p>
             </div>
           </label>
-
-          <button
-            class="w-full text-sm py-3 px-4 min-h-[44px] border-2 border-border bg-white hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="!canEditProfile"
-            @click="editProfile"
-          >
-            {{ t('game.changeNameEmoji') }}
-          </button>
         </div>
 
         <div class="space-y-3">

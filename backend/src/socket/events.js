@@ -11,7 +11,6 @@ export const PLAYER_EVENTS = {
   // Client → Server
   CHECK_PIN: 'player:check-pin',
   JOIN: 'player:join',
-  UPDATE_PROFILE: 'player:update-profile',
   ANSWER: 'player:answer',
   RECONNECT: 'player:reconnect',
 
@@ -19,7 +18,6 @@ export const PLAYER_EVENTS = {
   PIN_VALID: 'player:pin-valid',
   PIN_INVALID: 'player:pin-invalid',
   JOINED: 'player:joined',
-  PROFILE_UPDATED: 'player:profile-updated',
   ANSWER_ACK: 'player:answer:ack',
   ANSWER_RECEIVED: 'player:answer:received',
   ANSWER_DETAIL: 'player:answer:detail',
