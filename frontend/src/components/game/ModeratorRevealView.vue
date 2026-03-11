@@ -117,7 +117,9 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
                     >
                       {{ barLabels[i] }}
                     </div>
-                    <span class="text-base font-bold">{{ answer.text }}</span>
+                    <span class="text-sm sm:text-base font-bold leading-snug break-words max-w-xs sm:max-w-sm">
+                      {{ answer.text }}
+                    </span>
                     <PixelBadge v-if="answer.isCorrect" variant="success" class="ml-1 text-xs">
                       <PixelCheck class="inline mr-1" :size="10" />
                       {{ t('session.correct') }}
@@ -254,7 +256,7 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
                     >
                       {{ index + 1 }}
                     </div>
-                    <div class="font-bold text-base">
+                    <div class="font-bold text-sm sm:text-base leading-snug break-words">
                       {{ answerTextById.get(answerId) || '—' }}
                     </div>
                   </div>
@@ -294,7 +296,7 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
                         >
                           {{ index + 1 }}
                         </span>
-                        <span class="font-medium">
+                        <span class="font-medium leading-snug break-words">
                           {{ answerTextById.get(answerId) || '—' }}
                         </span>
                       </div>

@@ -113,7 +113,7 @@ function moveDown(index) {
       <div
         v-for="(answer, index) in localAnswers"
         :key="index"
-        class="flex items-center gap-3 p-3 bg-white border-2 border-border hover:border-primary transition-colors cursor-move"
+        class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 p-3 bg-white border-2 border-border hover:border-primary transition-colors cursor-move"
         :class="{ 'border-primary bg-primary/5': dragIndex === index }"
         draggable="true"
         @dragstart="onDragStart(index)"
@@ -134,15 +134,22 @@ function moveDown(index) {
           {{ index + 1 }}
         </div>
 
-        <!-- Answer text -->
-        <input
-          :value="answer.text"
-          @input="updateAnswerText(index, $event.target.value)"
-          type="text"
-          placeholder="Enter item text..."
-          maxlength="75"
-          class="flex-1 px-3 py-2 border-2 border-border bg-white focus:border-primary focus:outline-none"
-        />
+        <!-- Answer text + counter -->
+        <div class="flex-1 min-w-0 space-y-1">
+          <input
+            :value="answer.text"
+            @input="updateAnswerText(index, $event.target.value)"
+            type="text"
+            placeholder="Enter item text..."
+            maxlength="200"
+            class="w-full px-3 py-2 border-2 border-border bg-white focus:border-primary focus:outline-none"
+          />
+          <div class="flex justify-end">
+            <span class="text-[11px] leading-tight text-muted-foreground">
+              {{ answer.text?.length || 0 }}/200
+            </span>
+          </div>
+        </div>
 
         <!-- Move buttons (alternative to drag) -->
         <div class="flex flex-col gap-1">

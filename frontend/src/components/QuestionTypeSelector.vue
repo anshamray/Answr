@@ -17,12 +17,6 @@ const recommendedScoredTypes = [
     name: 'True / False',
     description: 'Quick knowledge checks with a simple yes/no choice.',
     icon: 'check'
-  },
-  {
-    type: 'poll',
-    name: 'Poll (no points)',
-    description: 'Lightweight check-in where every answer is “correct”.',
-    icon: 'bar-chart'
   }
 ];
 
@@ -61,6 +55,13 @@ const advancedScoredTypes = [
 
 // Opinion / survey question types (no points)
 const opinionTypes = [
+  {
+    type: 'poll',
+    name: 'Poll (no points)',
+    description: 'Lightweight check-in where every answer is “correct”.',
+    icon: 'bar-chart',
+    comingSoon: false
+  },
   {
     type: 'word-cloud',
     name: 'Word Cloud',
@@ -224,7 +225,7 @@ function getIcon(iconName) {
         <!-- Advanced types -->
         <div>
           <div class="flex items-center gap-2 mb-4">
-            <div class="w-3 h-3 bg-secondary"></div>
+            <div class="w-3 h-3 bg-primary"></div>
             <h3 class="font-bold text-lg">Advanced question types</h3>
             <span class="text-xs text-muted-foreground">Use when you need more control</span>
           </div>
@@ -233,15 +234,15 @@ function getIcon(iconName) {
             <button
               v-for="qType in advancedScoredTypes"
               :key="qType.type"
-              class="flex items-start gap-4 p-4 border-2 border-border hover:border-secondary hover:bg-secondary/5 transition-all text-left group"
+              class="flex items-start gap-4 p-4 border-2 border-border hover:border-primary hover:bg-primary/5 transition-all text-left group"
               @click="selectType(qType.type)"
             >
               <div
-                class="w-12 h-12 flex items-center justify-center bg-secondary/10 border-2 border-secondary/20 group-hover:border-secondary transition-colors flex-shrink-0"
+                class="w-12 h-12 flex items-center justify-center bg-primary/10 border-2 border-primary/20 group-hover:border-primary transition-colors flex-shrink-0"
                 v-html="getIcon(qType.icon)"
               ></div>
               <div class="flex-1 min-w-0">
-                <h4 class="font-bold group-hover:text-secondary transition-colors">{{ qType.name }}</h4>
+                <h4 class="font-bold group-hover:text-primary transition-colors">{{ qType.name }}</h4>
                 <p class="text-sm text-muted-foreground mt-1">{{ qType.description }}</p>
               </div>
             </button>

@@ -54,12 +54,12 @@ function removeAnswer(index) {
         @input="updateAnswer(index, $event.target.value)"
         type="text"
         placeholder="Accepted answer..."
-        maxlength="20"
+        maxlength="200"
         class="flex-1 px-4 py-3 border-2 border-border bg-white focus:border-primary focus:outline-none font-mono"
       />
 
       <span class="text-xs text-muted-foreground w-12">
-        {{ answer.text?.length || 0 }}/20
+        {{ answer.text?.length || 0 }}/200
       </span>
 
       <button
@@ -93,7 +93,7 @@ function removeAnswer(index) {
       <ul class="text-xs text-muted-foreground space-y-1">
         <li>- Answers are matched case-insensitively</li>
         <li>- Add common misspellings or abbreviations as alternatives</li>
-        <li>- Keep answers short (max 20 characters)</li>
+        <li>- Keep answers reasonably short (max 200 characters)</li>
       </ul>
     </div>
   </div>

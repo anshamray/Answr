@@ -1009,7 +1009,10 @@ onUnmounted(cleanup);
               </div>
 
               <!-- MC / True-False / Poll: answer grid -->
-              <div v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer', 'sort' ].includes(currentQuestion.type) && !isSliderQuestion" class="grid grid-cols-2 gap-3">
+              <div
+                v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer', 'sort' ].includes(currentQuestion.type) && !isSliderQuestion"
+                class="grid grid-cols-2 gap-3"
+              >
                 <div
                   v-for="(answer, i) in currentQuestion.answers"
                   :key="answer._id"
@@ -1020,7 +1023,9 @@ onUnmounted(cleanup);
                     <div class="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 border-2 border-white flex items-center justify-center text-lg lg:text-xl font-bold pixel-font">
                       {{ barLabels[i] }}
                     </div>
-                    <span class="text-xl lg:text-2xl font-bold">{{ answer.text }}</span>
+                    <span class="flex-1 text-base sm:text-lg lg:text-2xl font-bold leading-snug break-words">
+                      {{ answer.text }}
+                    </span>
                   </div>
                   <div class="absolute top-2 right-2">
                     <PixelUsers class="text-white/50" :size="20" />
@@ -1052,7 +1057,7 @@ onUnmounted(cleanup);
                   <div
                     v-for="answer in currentQuestion.answers"
                     :key="answer._id"
-                    class="border-[3px] border-black bg-white px-4 py-3 font-bold text-base"
+                    class="border-[3px] border-black bg-white px-4 py-3 font-bold text-sm sm:text-base leading-snug break-words"
                   >
                     {{ answer.text }}
                   </div>

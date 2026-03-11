@@ -1056,7 +1056,9 @@ onUnmounted(cleanup);
                   <template v-if="isMultiAnswer && selectedAnswers.includes(option.id)">✓</template>
                   <template v-else>{{ answerLabels[i] }}</template>
                 </span>
-                <span class="flex-1 text-2xl font-bold">{{ option.text }}</span>
+                <span class="flex-1 text-base sm:text-lg md:text-xl font-bold leading-snug break-words">
+                  {{ option.text }}
+                </span>
               </div>
             </button>
           </div>
@@ -1156,7 +1158,9 @@ onUnmounted(cleanup);
               <span class="w-6 h-6 flex items-center justify-center text-xs font-bold shrink-0 border-2 border-current">
                 {{ answerLabels[i] }}
               </span>
-              <span class="flex-1 text-left truncate">{{ option.text }}</span>
+              <span class="flex-1 text-left text-xs sm:text-sm leading-snug break-words">
+                {{ option.text }}
+              </span>
               <span v-if="correctAnswerIds.includes(option.id)" class="font-bold">&#10003;</span>
             </div>
           </div>
