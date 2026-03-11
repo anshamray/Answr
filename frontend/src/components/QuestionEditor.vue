@@ -11,6 +11,7 @@ import SortEditor from './editors/SortEditor.vue';
 import SliderEditor from './editors/SliderEditor.vue';
 import QuizAudioEditor from './editors/QuizAudioEditor.vue';
 import PinAnswerEditor from './editors/PinAnswerEditor.vue';
+import PollEditor from './editors/PollEditor.vue';
 import MediaLibrary from './MediaLibrary.vue';
 
 const props = defineProps({
@@ -77,7 +78,8 @@ const typeInfo = computed(() =>
 const isScored = computed(() => scoredTypes.includes(localQuestion.value.type));
 
 const canHaveMultipleAnswers = computed(() =>
-  localQuestion.value.type === 'multiple-choice'
+  localQuestion.value.type === 'multiple-choice' ||
+  localQuestion.value.type === 'poll'
 );
 
 function handleAllowMultipleChange(event) {
@@ -348,6 +350,25 @@ function getIcon(iconName) {
     </svg>`,
     'map-pin': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
+    </svg>`,
+    'bar-chart': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="20" x2="12" y2="10" /><line x1="18" y1="20" x2="18" y2="4" /><line x1="6" y1="20" x2="6" y2="16" />
+    </svg>`,
+    cloud: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
+    </svg>`,
+    lightbulb: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="9" y1="18" x2="15" y2="18" /><line x1="10" y1="22" x2="14" y2="22" />
+      <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+    </svg>`,
+    target: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+    </svg>`,
+    message: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>`,
+    'trending-up': `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />
     </svg>`
   };
   return icons[iconName] || icons.grid;
@@ -531,7 +552,7 @@ function getIcon(iconName) {
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
         <label class="block text-sm font-medium mb-4">Answers</label>
 
-        <!-- Allow Multiple Answers (multiple-choice only) -->
+        <!-- Allow Multiple Answers (multiple-choice and polls) -->
         <div v-if="canHaveMultipleAnswers" class="mb-4">
           <label class="flex items-center gap-2 cursor-pointer">
             <input
@@ -548,6 +569,12 @@ function getIcon(iconName) {
           v-if="localQuestion.type === 'multiple-choice'"
           :answers="localQuestion.answers"
           :allow-multiple="localQuestion.allowMultipleAnswers"
+          @update:answers="updateAnswers"
+        />
+
+        <PollEditor
+          v-else-if="localQuestion.type === 'poll'"
+          :answers="localQuestion.answers"
           @update:answers="updateAnswers"
         />
 

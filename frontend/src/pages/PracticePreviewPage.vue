@@ -202,19 +202,17 @@ onMounted(() => {
           </div>
           <div class="flex-1 flex items-center justify-center">
             <div class="relative w-full max-w-xs aspect-[9/19] rounded-[32px] border-[6px] border-black overflow-hidden shadow-[0_0_0_2px_rgba(0,0,0,0.6)] bg-black">
-              <div class="absolute inset-[6px] rounded-[26px] overflow-hidden bg-white">
-                <iframe
-                  v-if="playerUrl && showPlayerFrame"
-                  :src="playerUrl"
-                  title="Player preview"
-                  class="w-full h-full border-0"
-                ></iframe>
-                <div
-                  v-else
-                  class="w-full h-full flex items-center justify-center text-xs text-muted-foreground"
-                >
-                  {{ t('common.loading') }}
-                </div>
+              <iframe
+                v-if="playerUrl && showPlayerFrame"
+                :src="playerUrl"
+                title="Player preview"
+                class="absolute inset-[6px] w-[calc(100%-12px)] h-[calc(100%-12px)] rounded-[26px] border-0 bg-white"
+              ></iframe>
+              <div
+                v-else
+                class="absolute inset-[6px] w-[calc(100%-12px)] h-[calc(100%-12px)] rounded-[26px] flex items-center justify-center text-xs text-muted-foreground bg-white"
+              >
+                {{ t('common.loading') }}
               </div>
             </div>
           </div>
