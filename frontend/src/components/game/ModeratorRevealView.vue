@@ -86,7 +86,10 @@ const revealMediaEmbedUrl = computed(() => {
     <div class="max-w-7xl mx-auto space-y-4">
       <!-- Optional reveal media -->
       <div v-if="revealMediaUrl" class="w-full">
-        <PixelCard class="!p-3 sm:!p-4 flex flex-col items-center">
+        <PixelCard class="!p-3 sm:!p-4 flex flex-col items-center space-y-2">
+          <div class="w-full text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            {{ t('questionEditor.revealMediaOptional') }}
+          </div>
           <div
             v-if="revealMediaEmbedUrl"
             class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden"
