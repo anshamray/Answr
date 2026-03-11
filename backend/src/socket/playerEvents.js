@@ -121,7 +121,11 @@ export function registerPlayerEvents(io, socket, activeSessions) {
         return;
       }
 
-      socket.emit(PLAYER_EVENTS.PIN_VALID, { pin: sessionPin });
+      socket.emit(PLAYER_EVENTS.PIN_VALID, {
+        pin: sessionPin,
+        mode: session.mode || 'competitive',
+        isAnonymous: !!session.isAnonymous
+      });
     } catch (error) {
       console.error('Error in player:check-pin handler:', error);
       socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.INTERNAL_ERROR, message: 'An unexpected error occurred.' });

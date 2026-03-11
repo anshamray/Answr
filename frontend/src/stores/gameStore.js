@@ -20,6 +20,7 @@ export const useGameStore = defineStore('game', () => {
   const leaderboard = ref(Array.isArray(persistedSession?.leaderboard) ? persistedSession.leaderboard : []);
   const answerResult = ref(null);
   const mode = ref(persistedSession?.mode ?? 'competitive'); // 'competitive' | 'collect-opinions'
+  const isAnonymous = ref(false);
 
   // Streak tracking
   const currentStreak = ref(0);
@@ -58,6 +59,7 @@ export const useGameStore = defineStore('game', () => {
     leaderboard.value = [];
     answerResult.value = null;
     mode.value = 'competitive';
+    isAnonymous.value = false;
     currentStreak.value = 0;
     maxStreak.value = 0;
     streakLabel.value = null;
@@ -126,6 +128,7 @@ export const useGameStore = defineStore('game', () => {
     leaderboard,
     answerResult,
     mode,
+    isAnonymous,
     playerSettings,
     currentStreak,
     maxStreak,

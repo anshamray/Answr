@@ -40,13 +40,16 @@ onUnmounted(() => {
 function handleJoin() {
   error.value = '';
 
-  if (nickname.value.trim().length < 2) {
+  // In collect-opinions mode, treat name/avatar as optional.
+  const requireIdentity = game.mode !== 'collect-opinions';
+
+  if (requireIdentity && nickname.value.trim().length < 2) {
     error.value = t('game.nameMinLength');
     triggerShake();
     return;
   }
 
-  if (!selectedEmoji.value) {
+  if (requireIdentity && !selectedEmoji.value) {
     error.value = t('game.selectEmojiError');
     triggerShake();
     return;
@@ -124,11 +127,21 @@ function goBack() {
             </svg>
           </div>
           <h2 class="text-3xl font-bold mb-2">{{ t('game.createProfile') }}</h2>
-          <p class="text-muted-foreground">{{ t('game.chooseAppearance') }}</p>
+          <p class="text-muted-foreground">
+            <span v-if="game.mode === 'collect-opinions'">
+              This session may be anonymous – name and avatar are optional.
+            </span>
+            <span v-else>
+              {{ t('game.chooseAppearance') }}
+            </span>
+          </p>
         </div>
 
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-foreground">{{ t('game.yourNickname') }}</label>
+          <label class="block text-sm font-medium text-foreground">
+            {{ t('game.yourNickname') }}
+            <span v-if="game.mode === 'collect-opinions'" class="text-xs text-muted-foreground">(optional)</span>
+          </label>
           <input
             v-model="nickname"
             type="text"
@@ -143,7 +156,10 @@ function goBack() {
         </div>
 
         <div class="space-y-3">
-          <label class="block text-sm font-medium text-foreground">{{ t('game.chooseEmoji') }}</label>
+          <label class="block text-sm font-medium text-foreground">
+            {{ t('game.chooseEmoji') }}
+            <span v-if="game.mode === 'collect-opinions'" class="text-xs text-muted-foreground">(optional)</span>
+          </label>
           <div class="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 max-h-64 overflow-y-auto p-2 bg-muted border-2 border-border">
             <button
               v-for="emoji in emojiOptions"
@@ -179,7 +195,7 @@ function goBack() {
         </div>
 
         <!-- Preview -->
-        <PixelCard v-if="selectedEmoji && nickname.trim()" variant="primary" class="text-center">
+        <PixelCard v-if="(selectedEmoji || nickname.trim())" variant="primary" class="text-center">
           <div class="text-sm text-muted-foreground mb-2">{{ t('game.preview') }}</div>
           <div class="flex items-center justify-center gap-3">
             <span class="text-5xl">{{ selectedEmoji }}</span>
@@ -195,7 +211,7 @@ function goBack() {
         <PixelButton
           variant="primary"
           class="w-full text-lg py-5"
-          :disabled="nickname.trim().length < 2 || !selectedEmoji || loading"
+          :disabled="(game.mode !== 'collect-opinions' && (nickname.trim().length < 2 || !selectedEmoji)) || loading"
           @click="handleJoin"
         >
           <svg v-if="!loading" class="inline mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

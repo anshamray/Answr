@@ -76,7 +76,7 @@ function handlePinSubmit() {
     disconnectSocket();
   }, 5000);
 
-  socket.on('player:pin-valid', () => {
+  socket.on('player:pin-valid', (data) => {
     clearTimeout(timeout);
     loading.value = false;
     cleanupSocket();
@@ -85,6 +85,12 @@ function handlePinSubmit() {
     game.reset();
     clearPersistedPlayerSession();
     game.pin = trimmed;
+    if (data?.mode) {
+      game.mode = data.mode === 'collect-opinions' ? 'collect-opinions' : 'competitive';
+    }
+    if (typeof data?.isAnonymous === 'boolean') {
+      game.isAnonymous = data.isAnonymous;
+    }
     router.push('/play/profile');
   });
 
