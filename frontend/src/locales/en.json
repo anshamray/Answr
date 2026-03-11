@@ -544,7 +544,17 @@
     "pointsOption": "{points} points",
     "fileTypeError": "Please select an image file",
     "fileSizeError": "Image must be smaller than 5MB",
-    "uploadFailed": "Upload failed"
+    "uploadFailed": "Upload failed",
+    "sortIntro": "Arrange items in the correct order. The order shown here is the correct answer - players will see them shuffled.",
+    "sortPlaceholder": "Enter item text...",
+    "sortMoveUp": "Move up",
+    "sortMoveDown": "Move down",
+    "sortRemoveItem": "Remove item",
+    "sortAddItemButton": "Add item ({count}/4)",
+    "sortHowItWorksTitle": "How it works:",
+    "sortHowItWorksLine1": "Players will see these items in a random order",
+    "sortHowItWorksLine2": "They must drag to rearrange them in the correct order",
+    "sortHowItWorksLine3": "The order shown above is the correct sequence"
   },
   "questionValidation": {
     "textRequired": "Question text is required for type \"{type}\"",

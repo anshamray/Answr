@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   answers: {
@@ -13,6 +14,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:answers']);
+
+const { t } = useI18n();
 
 // Local copy
 const localAnswers = ref([...props.answers]);
@@ -106,14 +109,14 @@ function moveDown(index) {
 <template>
   <div class="space-y-4">
     <p class="text-sm text-muted-foreground mb-4">
-      Arrange items in the correct order. The order shown here is the correct answer - players will see them shuffled.
+      {{ t('questionEditor.sortIntro') }}
     </p>
 
     <div class="space-y-2">
       <div
         v-for="(answer, index) in localAnswers"
         :key="index"
-        class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 p-3 bg-white border-2 border-border hover:border-primary transition-colors cursor-move"
+        class="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 bg-white border-2 border-border hover:border-primary transition-colors cursor-move"
         :class="{ 'border-primary bg-primary/5': dragIndex === index }"
         draggable="true"
         @dragstart="onDragStart(index)"
@@ -122,7 +125,7 @@ function moveDown(index) {
         @dragend="onDragEnd"
       >
         <!-- Drag handle -->
-        <div class="flex-shrink-0 text-muted-foreground cursor-grab active:cursor-grabbing">
+        <div class="w-6 h-12 flex items-center justify-center flex-shrink-0 text-muted-foreground cursor-grab active:cursor-grabbing">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="8" y1="6" x2="8" y2="6.01" /><line x1="8" y1="12" x2="8" y2="12.01" /><line x1="8" y1="18" x2="8" y2="18.01" />
             <line x1="16" y1="6" x2="16" y2="6.01" /><line x1="16" y1="12" x2="16" y2="12.01" /><line x1="16" y1="18" x2="16" y2="18.01" />
@@ -140,7 +143,7 @@ function moveDown(index) {
               :value="answer.text"
               @input="updateAnswerText(index, $event.target.value)"
               type="text"
-              placeholder="Enter item text..."
+              :placeholder="t('questionEditor.sortPlaceholder')"
             maxlength="200"
             class="w-full h-12 px-3 border-2 border-border bg-white focus:border-primary focus:outline-none"
             />
@@ -158,7 +161,7 @@ function moveDown(index) {
             @click="moveUp(index)"
             :disabled="index === 0"
             class="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Move up"
+            :title="t('questionEditor.sortMoveUp')"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="18 15 12 9 6 15" />
@@ -168,7 +171,7 @@ function moveDown(index) {
             @click="moveDown(index)"
             :disabled="index === localAnswers.length - 1"
             class="p-1 text-muted-foreground hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
-            title="Move down"
+            :title="t('questionEditor.sortMoveDown')"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="6 9 12 15 18 9" />
@@ -181,7 +184,7 @@ function moveDown(index) {
           v-if="localAnswers.length > 3"
           @click="removeAnswer(index)"
           class="p-2 text-muted-foreground hover:text-destructive transition-colors"
-          title="Remove item"
+          :title="t('questionEditor.sortRemoveItem')"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6" />
@@ -202,15 +205,17 @@ function moveDown(index) {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
       </svg>
-      Add Item ({{ localAnswers.length }}/4)
+      {{ t('questionEditor.sortAddItemButton', { count: localAnswers.length }) }}
     </button>
 
     <div class="bg-muted/50 p-4 border-2 border-border">
-      <h4 class="text-sm font-medium mb-2">How it works:</h4>
+      <h4 class="text-sm font-medium mb-2">
+        {{ t('questionEditor.sortHowItWorksTitle') }}
+      </h4>
       <ul class="text-xs text-muted-foreground space-y-1">
-        <li>- Players will see these items in a random order</li>
-        <li>- They must drag to rearrange them in the correct order</li>
-        <li>- The order shown above is the correct sequence</li>
+        <li>- {{ t('questionEditor.sortHowItWorksLine1') }}</li>
+        <li>- {{ t('questionEditor.sortHowItWorksLine2') }}</li>
+        <li>- {{ t('questionEditor.sortHowItWorksLine3') }}</li>
       </ul>
     </div>
   </div>

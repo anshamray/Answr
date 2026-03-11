@@ -544,7 +544,17 @@
     "pointsOption": "{points} Punkte",
     "fileTypeError": "Bitte wähle eine Bilddatei aus",
     "fileSizeError": "Das Bild darf maximal 5 MB groß sein",
-    "uploadFailed": "Upload fehlgeschlagen"
+    "uploadFailed": "Upload fehlgeschlagen",
+    "sortIntro": "Ordne die Elemente in die richtige Reihenfolge. Die hier gezeigte Reihenfolge ist die richtige Antwort – Spieler sehen die Elemente gemischt.",
+    "sortPlaceholder": "Elementtext eingeben...",
+    "sortMoveUp": "Nach oben verschieben",
+    "sortMoveDown": "Nach unten verschieben",
+    "sortRemoveItem": "Element entfernen",
+    "sortAddItemButton": "Element hinzufügen ({count}/4)",
+    "sortHowItWorksTitle": "So funktioniert's:",
+    "sortHowItWorksLine1": "Spieler sehen diese Elemente in zufälliger Reihenfolge",
+    "sortHowItWorksLine2": "Sie müssen sie per Drag & Drop in die richtige Reihenfolge bringen",
+    "sortHowItWorksLine3": "Die oben gezeigte Reihenfolge ist die richtige Reihenfolge"
   },
   "questionValidation": {
     "textRequired": "Fragetext ist erforderlich für Typ \"{type}\"",
