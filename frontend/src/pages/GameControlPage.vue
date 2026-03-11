@@ -331,7 +331,7 @@ function isAnswerCorrectForCurrentQuestion(answerId) {
   }
 
   if (isSortQuestion.value) {
-    const key = getAnswerDistributionKeys(answerId)[0];
+    const key = getAnswerDistributionKeysForQuestion(currentQuestion.value, answerId)[0];
     return key === correctSortKey.value;
   }
 
@@ -590,7 +590,7 @@ function attachListeners(socket) {
       rebuildAnswerDistribution();
     } else if (data?.answerId != null) {
       const nextDistribution = { ...answerDistribution.value };
-      for (const key of getAnswerDistributionKeys(data.answerId)) {
+      for (const key of getAnswerDistributionKeysForQuestion(currentQuestion.value, data.answerId)) {
         nextDistribution[key] = (nextDistribution[key] || 0) + 1;
       }
       answerDistribution.value = nextDistribution;
