@@ -769,7 +769,6 @@ function sendFirstQuestion() {
   answersReceived.value = 0;
   answerDistribution.value = {};
   playerAnswers.value = {};
-  leaderboard.value = [];
   status.value = 'question';
   phase.value = 'intro';
 
@@ -803,7 +802,6 @@ function sendNextQuestion() {
   answersReceived.value = 0;
   answerDistribution.value = {};
   playerAnswers.value = {};
-  leaderboard.value = [];
   status.value = 'question';
   phase.value = 'intro';
 
