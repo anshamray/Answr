@@ -206,27 +206,21 @@ function getAvatar(index) {
             <div class="grid md:grid-cols-[1fr,auto] gap-4 items-center py-4 bg-white border-[3px] border-black">
               <div class="text-center">
                 <div class="text-base font-medium text-muted-foreground mb-2">{{ t('sessionLobby.joinAt') }}</div>
-                <div class="text-5xl lg:text-6xl font-bold text-primary leading-none mb-3 pixel-font" style="letter-spacing: 0.2em;">
-                  {{ pin }}
-                </div>
-                <button
-                  class="inline-flex items-center justify-center w-11 h-11 border-2 border-primary bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors"
-                  type="button"
+                <div
+                  class="text-5xl lg:text-6xl font-bold text-primary leading-none mb-3 pixel-font cursor-pointer select-none"
+                  style="letter-spacing: 0.2em;"
                   :title="copied ? t('sessionLobby.copied') : t('sessionLobby.copyPin')"
                   :aria-label="copied ? t('sessionLobby.copied') : t('sessionLobby.copyPin')"
                   @click="copyPin"
                 >
-                  <svg v-if="!copied" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  <PixelCheck v-else :size="18" class="text-primary" />
-                </button>
+                  {{ pin }}
+                </div>
               </div>
 
               <!-- QR Code -->
               <div class="flex flex-col items-center gap-2 px-6 border-l-2 border-border">
                 <div class="text-xs font-medium text-muted-foreground">{{ t('sessionLobby.scanToJoin') }}</div>
-                <QRCode :data="joinUrl" :size="180" />
+                <QRCode :data="joinUrl" :size="220" />
               </div>
             </div>
 

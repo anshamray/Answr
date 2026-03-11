@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
@@ -19,14 +19,21 @@ const game = useGameStore();
 
 const dots = ref('.');
 const playerCount = ref(0);
+const showAnswerText = ref(game.playerSettings?.showAnswerText ?? true);
 // Use ref for interval ID to ensure reliable cleanup
 const dotsIntervalId = ref(null);
 let cleanupReconnect = () => {};
+
+const canEditProfile = computed(() => !game.status || game.status === 'lobby');
 
 function setup() {
   if (!game.pin || !game.sessionId || !game.playerId) {
     router.replace('/play');
     return;
+  }
+
+  if (!game.status) {
+    game.status = 'lobby';
   }
 
   const socket = getSocket() || connectSocket();
@@ -85,6 +92,15 @@ function leaveGame() {
   router.push('/');
 }
 
+function editProfile() {
+  if (!canEditProfile.value) return;
+  router.push('/play/profile');
+}
+
+watch(showAnswerText, (val) => {
+  game.setPlayerSetting('showAnswerText', !!val);
+});
+
 onMounted(setup);
 onUnmounted(cleanup);
 </script>
@@ -126,6 +142,29 @@ onUnmounted(cleanup);
             <span v-if="game.playerEmoji" class="text-4xl">{{ game.playerEmoji }}</span>
             <span class="text-3xl font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
           </div>
+        </div>
+
+        <!-- Waiting screen settings -->
+        <div class="space-y-3 text-left">
+          <label class="flex items-center gap-3 cursor-pointer select-none p-3 bg-muted border-2 border-border">
+            <input
+              v-model="showAnswerText"
+              type="checkbox"
+              class="w-5 h-5 accent-primary"
+            />
+            <div class="min-w-0">
+              <span class="text-sm font-medium">{{ t('game.showAnswerText') }}</span>
+              <p class="text-xs text-muted-foreground">{{ t('game.showAnswerTextHint') }}</p>
+            </div>
+          </label>
+
+          <button
+            class="w-full text-sm py-3 px-4 min-h-[44px] border-2 border-border bg-white hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!canEditProfile"
+            @click="editProfile"
+          >
+            {{ t('game.changeNameEmoji') }}
+          </button>
         </div>
 
         <div class="space-y-3">
