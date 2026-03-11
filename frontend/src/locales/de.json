@@ -509,6 +509,7 @@
     "pasteHint": "💡 Tipp: Frage mit Antworten einfügen zum automatischen Ausfüllen",
     "questionText": "Fragentext",
     "questionPlaceholder": "Gib hier deine Frage ein...",
+    "answerPlaceholder": "Antwortoption eingeben...",
     "previewAsPlayer": "Als Spieler testen",
     "previewHostHint": "Genau das, was du beim Live-Hosting siehst.",
     "languageHint": "Diese Sprache gilt für den Quiztitel, die Fragen und das, was Spieler beim Beitritt sehen.",
