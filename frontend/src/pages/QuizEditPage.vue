@@ -564,16 +564,16 @@ async function saveAll() {
 
     // Persist the sidebar order after creates/updates so reloads keep the dragged order.
     if (updatedQuestions.length > 0) {
-      const reorderData = await apiFetch(`/api/quizzes/${quiz.value._id}/questions/reorder`, {
+      await apiFetch(`/api/quizzes/${quiz.value._id}/questions/reorder`, {
         method: 'PUT',
         body: JSON.stringify({
           questionIds: updatedQuestions.map(question => question._id)
         })
       });
-      questions.value = reorderData.data.questions;
-    } else {
-      questions.value = updatedQuestions;
     }
+
+    // Keep the local questions array in sync with exactly what we just saved.
+    questions.value = updatedQuestions;
 
     syncQuestionOrders();
 
@@ -926,7 +926,7 @@ onUnmounted(() => {
             >
               <div class="flex flex-col">
                 <span class="text-xs font-semibold uppercase tracking-wide">
-                  Advanced settings
+                  ADVANCED SETTINGS
                 </span>
                 <span class="text-[11px] text-muted-foreground">
                   Opinion settings & privacy (most quizzes don’t need changes)

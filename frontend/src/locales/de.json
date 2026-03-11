@@ -20,7 +20,8 @@
     "plays": "{count} Spiel | {count} Spiele",
     "playsShort": "Spiele",
     "players": "{count} Spieler | {count} Spieler",
-    "by": "von"
+    "by": "von",
+    "remove": "Entfernen"
   },
   "nav": {
     "features": "Funktionen",

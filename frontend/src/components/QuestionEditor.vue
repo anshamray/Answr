@@ -570,89 +570,6 @@ function getIcon(iconName) {
         </div>
       </div>
 
-      <!-- Reveal Media (link only, optional) -->
-      <div class="bg-white border-[3px] border-black pixel-shadow">
-        <button
-          type="button"
-          class="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"
-          @click="revealMediaExpanded = !revealMediaExpanded"
-        >
-          <span class="text-sm font-medium">
-            {{ t('questionEditor.revealMediaOptional') }}
-            <span
-              v-if="localQuestion.revealMediaUrl"
-              class="text-muted-foreground font-normal"
-            >
-              {{ t('questionEditor.mediaOneItem') }}
-            </span>
-          </span>
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            class="flex-shrink-0 transition-transform"
-            :class="{ 'rotate-180': revealMediaExpanded }"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        <div v-show="revealMediaExpanded" class="p-6 pt-0">
-          <div class="border-2 border-dashed border-border p-6 text-center">
-            <div v-if="localQuestion.revealMediaUrl" class="space-y-3">
-              <div v-if="revealMediaKind === 'externalVideo'" class="max-w-xl mx-auto">
-                <div class="aspect-video border-2 border-black bg-black">
-                  <iframe
-                    v-if="revealMediaEmbedUrl"
-                    :src="revealMediaEmbedUrl"
-                    class="w-full h-full"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                  ></iframe>
-                </div>
-              </div>
-              <img
-                v-else
-                :src="localQuestion.revealMediaUrl"
-                alt="Reveal media"
-                class="max-h-48 mx-auto object-contain"
-              />
-              <p class="mt-2 text-xs text-muted-foreground break-all">
-                {{ localQuestion.revealMediaUrl }}
-              </p>
-              <button
-                type="button"
-                class="mt-2 px-3 py-1 text-xs border-2 border-destructive text-destructive hover:bg-destructive/10"
-                @click="updateRevealMediaUrl('')"
-              >
-                {{ t('common.remove') }}
-              </button>
-            </div>
-            <div v-else class="space-y-3">
-              <p class="text-sm text-muted-foreground">
-                {{ t('questionEditor.revealMediaHint') }}
-              </p>
-              <input
-                type="text"
-                :placeholder="t('questionEditor.revealMediaUrlPlaceholder')"
-                class="w-full max-w-xs px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
-                @blur="updateRevealMediaUrl($event.target.value)"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Media Library Modal -->
-      <MediaLibrary
-        :open="showMediaLibrary"
-        @close="showMediaLibrary = false"
-        @select="handleLibrarySelect"
-      />
-
       <!-- Type-Specific Editor -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
         <label class="block text-sm font-medium mb-4">
@@ -746,6 +663,89 @@ function getIcon(iconName) {
           <p>{{ t('questionEditor.comingSoon') }}</p>
         </div>
       </div>
+
+      <!-- Reveal Media during results (link only, optional) -->
+      <div class="bg-white border-[3px] border-black pixel-shadow">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"
+          @click="revealMediaExpanded = !revealMediaExpanded"
+        >
+          <span class="text-sm font-medium">
+            {{ t('questionEditor.revealMediaOptional') }}
+            <span
+              v-if="localQuestion.revealMediaUrl"
+              class="text-muted-foreground font-normal"
+            >
+              {{ t('questionEditor.mediaOneItem') }}
+            </span>
+          </span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="flex-shrink-0 transition-transform"
+            :class="{ 'rotate-180': revealMediaExpanded }"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div v-show="revealMediaExpanded" class="p-6 pt-0">
+          <div class="border-2 border-dashed border-border p-6 text-center">
+            <div v-if="localQuestion.revealMediaUrl" class="space-y-3">
+              <div v-if="revealMediaKind === 'externalVideo'" class="max-w-xl mx-auto">
+                <div class="aspect-video border-2 border-black bg-black">
+                  <iframe
+                    v-if="revealMediaEmbedUrl"
+                    :src="revealMediaEmbedUrl"
+                    class="w-full h-full"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+              <img
+                v-else
+                :src="localQuestion.revealMediaUrl"
+                alt="Reveal media"
+                class="max-h-48 mx-auto object-contain"
+              />
+              <p class="mt-2 text-xs text-muted-foreground break-all">
+                {{ localQuestion.revealMediaUrl }}
+              </p>
+              <button
+                type="button"
+                class="mt-2 px-3 py-1 text-xs border-2 border-destructive text-destructive hover:bg-destructive/10"
+                @click="updateRevealMediaUrl('')"
+              >
+                {{ t('common.remove') }}
+              </button>
+            </div>
+            <div v-else class="space-y-3">
+              <p class="text-sm text-muted-foreground">
+                {{ t('questionEditor.revealMediaHint') }}
+              </p>
+              <input
+                type="text"
+                :placeholder="t('questionEditor.revealMediaUrlPlaceholder')"
+                class="w-full max-w-xs px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
+                @blur="updateRevealMediaUrl($event.target.value)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Library Modal -->
+      <MediaLibrary
+        :open="showMediaLibrary"
+        @close="showMediaLibrary = false"
+        @select="handleLibrarySelect"
+      />
 
       <!-- Question Settings -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">

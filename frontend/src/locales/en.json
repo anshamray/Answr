@@ -20,7 +20,8 @@
     "plays": "{count} play | {count} plays",
     "playsShort": "plays",
     "players": "{count} player | {count} players",
-    "by": "by"
+    "by": "by",
+    "remove": "Remove"
   },
   "nav": {
     "features": "Features",
