@@ -578,7 +578,7 @@ function getIcon(iconName) {
           @click="revealMediaExpanded = !revealMediaExpanded"
         >
           <span class="text-sm font-medium">
-            {{ t('questionEditor.mediaOptional') }}
+            {{ t('questionEditor.revealMediaOptional') }}
             <span
               v-if="localQuestion.revealMediaUrl"
               class="text-muted-foreground font-normal"
@@ -633,11 +633,11 @@ function getIcon(iconName) {
             </div>
             <div v-else class="space-y-3">
               <p class="text-sm text-muted-foreground">
-                {{ t('questionEditor.uploadHint') }}
+                {{ t('questionEditor.revealMediaHint') }}
               </p>
               <input
                 type="text"
-                :placeholder="t('questionEditor.pasteUrlPlaceholder')"
+                :placeholder="t('questionEditor.revealMediaUrlPlaceholder')"
                 class="w-full max-w-xs px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
                 @blur="updateRevealMediaUrl($event.target.value)"
               />
