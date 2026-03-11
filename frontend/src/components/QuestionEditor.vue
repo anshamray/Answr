@@ -80,6 +80,25 @@ const canHaveMultipleAnswers = computed(() =>
   localQuestion.value.type === 'multiple-choice'
 );
 
+function handleAllowMultipleChange(event) {
+  const checked = event.target.checked;
+  localQuestion.value.allowMultipleAnswers = checked;
+
+  // When disabling multiple answers, clear existing selections
+  // if more than one answer is currently marked correct.
+  if (!checked && Array.isArray(localQuestion.value.answers)) {
+    const correctCount = localQuestion.value.answers.filter(a => a && a.isCorrect).length;
+    if (correctCount > 1) {
+      localQuestion.value.answers = localQuestion.value.answers.map(answer => ({
+        ...answer,
+        isCorrect: false
+      }));
+    }
+  }
+
+  emitUpdate();
+}
+
 // Watch for external changes to the question prop
 watch(() => props.question, (newVal) => {
   localQuestion.value = { ...newVal };
@@ -519,7 +538,7 @@ function getIcon(iconName) {
               type="checkbox"
               v-model="localQuestion.allowMultipleAnswers"
               class="w-5 h-5 border-2 border-border accent-primary"
-              @change="emitUpdate"
+              @change="handleAllowMultipleChange"
             />
             <span class="text-sm">Allow multiple answers</span>
           </label>
