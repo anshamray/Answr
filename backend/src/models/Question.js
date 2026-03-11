@@ -72,6 +72,11 @@ const questionSchema = new mongoose.Schema({
     trim: true,
     maxlength: 300
   },
+  // Optional media that is only shown after the correct answer is revealed
+  revealMediaUrl: {
+    type: String,
+    default: null
+  },
   mediaUrl: {
     type: String,
     default: null

@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { isExternalVideoUrl, getExternalVideoEmbedUrl } from '../../lib/mediaService.js';
 
 import PixelBadge from '../PixelBadge.vue';
 import PixelButton from '../PixelButton.vue';
@@ -71,11 +72,46 @@ const hasLeaderboard = computed(() =>
   props.top5.length > 0 &&
   isScoredQuestion.value
 );
+
+const revealMediaUrl = computed(() => props.currentQuestion?.revealMediaUrl || null);
+const revealMediaEmbedUrl = computed(() => {
+  const url = revealMediaUrl.value;
+  if (!url || !isExternalVideoUrl(url)) return null;
+  return getExternalVideoEmbedUrl(url);
+});
 </script>
 
 <template>
   <main class="flex-1 p-3 sm:p-4 bg-gradient-to-br from-success/10 via-primary/5 to-secondary/5">
     <div class="max-w-7xl mx-auto space-y-4">
+      <!-- Optional reveal media -->
+      <div v-if="revealMediaUrl" class="w-full">
+        <PixelCard class="!p-3 sm:!p-4 flex flex-col items-center">
+          <div
+            v-if="revealMediaEmbedUrl"
+            class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden"
+          >
+            <iframe
+              :src="revealMediaEmbedUrl"
+              class="w-full h-full"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <div
+            v-else
+            class="mt-2 flex justify-center w-full"
+          >
+            <img
+              :src="revealMediaUrl"
+              :alt="currentQuestion.text"
+              class="border-[4px] border-black max-h-[min(18rem,calc(100vh-26rem))] max-w-full object-contain"
+            />
+          </div>
+        </PixelCard>
+      </div>
+
       <!-- Header -->
       <div class="flex items-center justify-between flex-wrap gap-3">
         <PixelBadge variant="success" class="text-base px-4 py-2">

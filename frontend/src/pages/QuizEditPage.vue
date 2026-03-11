@@ -289,6 +289,7 @@ function getDefaultQuestionData(type) {
     case 'multiple-choice':
       return {
         ...base,
+        revealMediaUrl: '',
         answers: [
           { text: '', isCorrect: true },
           { text: '', isCorrect: false }
@@ -297,6 +298,7 @@ function getDefaultQuestionData(type) {
     case 'true-false':
       return {
         ...base,
+        revealMediaUrl: '',
         answers: [
           { text: 'True', isCorrect: true },
           { text: 'False', isCorrect: false }
@@ -306,12 +308,14 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         timeLimit: 30,
+        revealMediaUrl: '',
         answers: [{ text: '' }]
       };
     case 'sort':
       return {
         ...base,
         timeLimit: 30,
+        revealMediaUrl: '',
         answers: [
           { text: '', order: 0 },
           { text: '', order: 1 },
@@ -322,6 +326,7 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         timeLimit: 20,
+        revealMediaUrl: '',
         sliderConfig: {
           min: 0,
           max: 100,
@@ -333,6 +338,7 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         audioLanguage: 'en',
+        revealMediaUrl: '',
         answers: [
           { text: 'Answer 1', isCorrect: true },
           { text: 'Answer 2', isCorrect: false }
@@ -343,6 +349,7 @@ function getDefaultQuestionData(type) {
         ...base,
         timeLimit: 30,
         mediaUrl: '',
+        revealMediaUrl: '',
         pinConfig: { x: 50, y: 50, radius: 10 }
       };
     // Opinion types (no points)
@@ -350,18 +357,20 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         points: 0,
+        revealMediaUrl: '',
         answers: [
           { text: '' },
           { text: '' }
         ]
       };
     case 'word-cloud':
-      return { ...base, points: 0, timeLimit: 30 };
+      return { ...base, points: 0, timeLimit: 30, revealMediaUrl: '' };
     case 'brainstorm':
       return {
         ...base,
         points: 0,
         timeLimit: 60,
+        revealMediaUrl: '',
         brainstormConfig: { maxIdeas: 3, votingTime: 30 }
       };
     case 'drop-pin':
@@ -369,20 +378,23 @@ function getDefaultQuestionData(type) {
         ...base,
         points: 0,
         timeLimit: 30,
-        mediaUrl: '/placeholder-image.jpg'
+        mediaUrl: '/placeholder-image.jpg',
+        revealMediaUrl: ''
       };
     case 'open-ended':
-      return { ...base, points: 0, timeLimit: 60 };
+      return { ...base, points: 0, timeLimit: 60, revealMediaUrl: '' };
     case 'scale':
       return {
         ...base,
         points: 0,
+        revealMediaUrl: '',
         scaleConfig: { scaleType: 'likert', min: 1, max: 5, startLabel: 'Disagree', endLabel: 'Agree' }
       };
     case 'nps-scale':
       return {
         ...base,
         points: 0,
+        revealMediaUrl: '',
         scaleConfig: { scaleType: 'nps', min: 0, max: 10, startLabel: 'Not likely', endLabel: 'Very likely' }
       };
     default:

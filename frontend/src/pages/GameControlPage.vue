@@ -791,7 +791,8 @@ function buildQuestionPayload(q) {
     timeLimit: q.timeLimit,
     correctAnswerIds,
     allowMultipleAnswers: q.allowMultipleAnswers || correctAnswerIds.length > 1,
-    sliderConfig: q.sliderConfig || null
+    sliderConfig: q.sliderConfig || null,
+    revealMediaUrl: q.revealMediaUrl || null
   };
 
   // Sort: correctAnswerIds = IDs in correct order (by answer.order field)

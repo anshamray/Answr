@@ -47,8 +47,9 @@ const isUploading = ref(false);
 // File input ref
 const fileInputRef = ref(null);
 
-// Media section collapsed by default (optional, not often used)
+// Media sections collapsed by default (optional, not often used)
 const mediaExpanded = ref(false);
+const revealMediaExpanded = ref(false);
 
 // Media library modal state
 const showMediaLibrary = ref(false);
@@ -135,6 +136,12 @@ function updateMediaUrl(url) {
   emitUpdate();
 }
 
+// Handle reveal media URL change
+function updateRevealMediaUrl(url) {
+  localQuestion.value.revealMediaUrl = url;
+  emitUpdate();
+}
+
 const mediaKind = computed(() => {
   const url = localQuestion.value.mediaUrl;
   if (!url) return null;
@@ -142,8 +149,19 @@ const mediaKind = computed(() => {
   return 'image';
 });
 
+const revealMediaKind = computed(() => {
+  const url = localQuestion.value.revealMediaUrl;
+  if (!url) return null;
+  if (isExternalVideoUrl(url)) return 'externalVideo';
+  return 'image';
+});
+
 const externalVideoEmbedUrl = computed(() =>
   getExternalVideoEmbedUrl(localQuestion.value.mediaUrl || '')
+);
+
+const revealMediaEmbedUrl = computed(() =>
+  getExternalVideoEmbedUrl(localQuestion.value.revealMediaUrl || '')
 );
 
 // Parse pasted structured question text
@@ -547,6 +565,82 @@ function getIcon(iconName) {
                   @blur="updateMediaUrl($event.target.value)"
                 />
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reveal Media (link only, optional) -->
+      <div class="bg-white border-[3px] border-black pixel-shadow">
+        <button
+          type="button"
+          class="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"
+          @click="revealMediaExpanded = !revealMediaExpanded"
+        >
+          <span class="text-sm font-medium">
+            {{ t('questionEditor.mediaOptional') }}
+            <span
+              v-if="localQuestion.revealMediaUrl"
+              class="text-muted-foreground font-normal"
+            >
+              {{ t('questionEditor.mediaOneItem') }}
+            </span>
+          </span>
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="flex-shrink-0 transition-transform"
+            :class="{ 'rotate-180': revealMediaExpanded }"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div v-show="revealMediaExpanded" class="p-6 pt-0">
+          <div class="border-2 border-dashed border-border p-6 text-center">
+            <div v-if="localQuestion.revealMediaUrl" class="space-y-3">
+              <div v-if="revealMediaKind === 'externalVideo'" class="max-w-xl mx-auto">
+                <div class="aspect-video border-2 border-black bg-black">
+                  <iframe
+                    v-if="revealMediaEmbedUrl"
+                    :src="revealMediaEmbedUrl"
+                    class="w-full h-full"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+              </div>
+              <img
+                v-else
+                :src="localQuestion.revealMediaUrl"
+                alt="Reveal media"
+                class="max-h-48 mx-auto object-contain"
+              />
+              <p class="mt-2 text-xs text-muted-foreground break-all">
+                {{ localQuestion.revealMediaUrl }}
+              </p>
+              <button
+                type="button"
+                class="mt-2 px-3 py-1 text-xs border-2 border-destructive text-destructive hover:bg-destructive/10"
+                @click="updateRevealMediaUrl('')"
+              >
+                {{ t('common.remove') }}
+              </button>
+            </div>
+            <div v-else class="space-y-3">
+              <p class="text-sm text-muted-foreground">
+                {{ t('questionEditor.uploadHint') }}
+              </p>
+              <input
+                type="text"
+                :placeholder="t('questionEditor.pasteUrlPlaceholder')"
+                class="w-full max-w-xs px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
+                @blur="updateRevealMediaUrl($event.target.value)"
+              />
             </div>
           </div>
         </div>
