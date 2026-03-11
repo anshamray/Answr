@@ -127,6 +127,7 @@ const top5 = computed(() => leaderboard.value.slice(0, 5));
 const answerTextById = computed(() => new Map(
   (currentQuestion.value?.answers || []).map((answer) => [String(answer._id), answer.text])
 ));
+const isCollectOpinions = computed(() => sessionMode.value === 'collect-opinions');
 const correctSortOrderIds = computed(() => {
   if (!isSortQuestion.value) return [];
 
@@ -1029,8 +1030,10 @@ onUnmounted(cleanup);
 
               <div class="flex items-center gap-4">
                 <div
-                  class="px-4 py-2 border-[3px] border-black text-white"
-                  :class="timeRemaining > 10 ? 'bg-success' : timeRemaining > 5 ? 'bg-warning' : 'bg-destructive animate-pulse'"
+                  class="px-4 py-2 border-[3px] border-black"
+                  :class="isCollectOpinions
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'text-white ' + (timeRemaining > 10 ? 'bg-success' : timeRemaining > 5 ? 'bg-warning' : 'bg-destructive animate-pulse')"
                 >
                   <div class="flex items-center gap-2">
                     <PixelClock :size="20" />
@@ -1040,7 +1043,14 @@ onUnmounted(cleanup);
 
                 <div class="text-right">
                   <div class="text-xl lg:text-2xl font-bold">{{ answersReceived }}/{{ playerCount }}</div>
-                  <div class="text-xs text-muted-foreground">{{ t('gameControl.answered') }}</div>
+                  <div class="text-xs text-muted-foreground">
+                    <span v-if="isCollectOpinions">
+                      {{ t('gameControl.answered') }} · {{ t('sessionLobby.players') }}
+                    </span>
+                    <span v-else>
+                      {{ t('gameControl.answered') }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1099,6 +1109,41 @@ onUnmounted(cleanup);
                   </div>
                   <div class="absolute top-2 right-2">
                     <PixelUsers class="text-white/50" :size="20" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Live distribution (Collect Opinions) -->
+              <div
+                v-if="isCollectOpinions && currentQuestion.answers && currentQuestion.answers.length > 0 && !['pin-answer','type-answer','sort'].includes(currentQuestion.type) && !isSliderQuestion"
+                class="mt-4 space-y-2 border-t border-dashed border-border pt-3"
+              >
+                <h3 class="text-sm font-bold text-muted-foreground">
+                  Live responses
+                  <span class="font-normal text-xs">
+                    ({{ answersReceived }} / {{ playerCount }})
+                  </span>
+                </h3>
+                <div
+                  v-for="(answer, i) in currentQuestion.answers"
+                  :key="'live-' + answer._id"
+                  class="space-y-1"
+                >
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="truncate max-w-[60%]">{{ answer.text }}</span>
+                    <span class="text-muted-foreground">
+                      {{ getCount(answer._id) }}
+                      <template v-if="totalDistributionAnswers > 0">
+                        ({{ getPercentage(answer._id) }}%)
+                      </template>
+                    </span>
+                  </div>
+                  <div class="relative h-2 bg-muted border border-border">
+                    <div
+                      class="absolute left-0 top-0 h-full"
+                      :class="barBg[i % barBg.length]"
+                      :style="{ width: getBarWidth(answer._id) }"
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -1162,7 +1207,10 @@ onUnmounted(cleanup);
 
         <!-- Controls -->
         <footer class="border-t-[3px] border-black bg-white px-4 py-3 flex justify-center gap-3">
-          <PixelButton variant="primary" @click="revealAnswer">{{ t('gameControl.revealAnswer') }}</PixelButton>
+          <PixelButton variant="primary" @click="revealAnswer">
+            <span v-if="isCollectOpinions">Reveal opinions</span>
+            <span v-else>{{ t('gameControl.revealAnswer') }}</span>
+          </PixelButton>
           <PixelButton variant="outline" @click="showEndConfirm = true">{{ t('gameControl.endGame') }}</PixelButton>
         </footer>
       </template>

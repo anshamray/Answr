@@ -29,6 +29,7 @@ const error = ref('');
 const players = ref([]);
 const starting = ref(false);
 const copied = ref(false);
+const sessionMode = ref('competitive');
 
 // Quick Settings (shared with GameControlPage)
 const { gameSettings, loadGameSettings, saveGameSettings } = useGameSettings();
@@ -60,6 +61,7 @@ const guestToken = sessionStorage.getItem(STORAGE_KEYS.GUEST_TOKEN);
 const isGuest = !auth.isAuthenticated && !!guestToken;
 
 const playerCount = computed(() => players.value.length);
+const isCollectOpinions = computed(() => sessionMode.value === 'collect-opinions');
 
 // Generate the join URL for QR code
 const joinUrl = computed(() => {
@@ -91,6 +93,7 @@ async function fetchSession() {
     quizTitle.value = session.quizId?.title || 'Quiz';
     quizId.value = typeof session.quizId === 'object' ? session.quizId._id : session.quizId;
     questionCount.value = session.quizId?.questions?.length || 0;
+    sessionMode.value = session.mode || 'competitive';
     status.value = 'lobby';
 
     connectAsModerator(session.pin);
@@ -225,16 +228,27 @@ function getAvatar(index) {
             </div>
 
             <div class="flex items-center justify-center gap-6 text-base lg:text-lg">
-              <div class="flex items-center gap-2">
-                <PixelUsers class="text-primary" :size="24" />
-                <span class="font-bold">{{ playerCount }}</span>
-                <span class="text-muted-foreground">{{ t('sessionLobby.players') }}</span>
-              </div>
-              <div class="w-px h-8 bg-border"></div>
-              <div class="flex items-center gap-2">
-                <span class="font-bold text-secondary">{{ questionCount }}</span>
-                <span class="text-muted-foreground">{{ t('libraryDetail.questions') }}</span>
-              </div>
+              <template v-if="isCollectOpinions">
+                <div class="flex items-center gap-2">
+                  <PixelUsers class="text-primary" :size="24" />
+                  <span class="font-bold">{{ playerCount }}</span>
+                  <span class="text-muted-foreground">
+                    participants ready to share opinions
+                  </span>
+                </div>
+              </template>
+              <template v-else>
+                <div class="flex items-center gap-2">
+                  <PixelUsers class="text-primary" :size="24" />
+                  <span class="font-bold">{{ playerCount }}</span>
+                  <span class="text-muted-foreground">{{ t('sessionLobby.players') }}</span>
+                </div>
+                <div class="w-px h-8 bg-border"></div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-secondary">{{ questionCount }}</span>
+                  <span class="text-muted-foreground">{{ t('libraryDetail.questions') }}</span>
+                </div>
+              </template>
             </div>
           </PixelCard>
         </div>

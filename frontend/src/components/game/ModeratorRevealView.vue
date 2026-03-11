@@ -80,7 +80,12 @@ const hasLeaderboard = computed(() =>
       <div class="flex items-center justify-between flex-wrap gap-3">
         <PixelBadge variant="success" class="text-base px-4 py-2">
           <PixelCheck class="inline mr-2" :size="16" />
-          {{ t('gameControl.correctAnswer') }}: {{ getCorrectAnswerLabel() }}
+          <span v-if="isCollectOpinions">
+            Opinions summary
+          </span>
+          <span v-else>
+            {{ t('gameControl.correctAnswer') }}: {{ getCorrectAnswerLabel() }}
+          </span>
         </PixelBadge>
 
         <PixelButton
@@ -105,6 +110,13 @@ const hasLeaderboard = computed(() =>
           </svg>
         </PixelButton>
       </div>
+
+      <p
+        v-if="isCollectOpinions"
+        class="text-xs text-muted-foreground mt-1"
+      >
+        Share results with care – comments may contain sensitive feedback.
+      </p>
 
       <div class="grid gap-4" :class="hasLeaderboard ? 'lg:grid-cols-3' : ''">
         <!-- Answer Distribution / Results -->
