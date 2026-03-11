@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   answers: {
@@ -18,6 +19,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:answers']);
+
+const { t } = useI18n();
 
 // Local answers copy
 const localAnswers = ref([...props.answers]);
@@ -122,7 +125,7 @@ function removeAnswer(index) {
           :value="answer.text"
           @input="updateAnswer(index, 'text', $event.target.value)"
           type="text"
-          placeholder="Enter answer..."
+          :placeholder="t('questionEditor.answerPlaceholder')"
           maxlength="200"
           class="w-full px-4 py-3 border-2 border-border bg-white focus:border-primary focus:outline-none"
         />
@@ -141,7 +144,7 @@ function removeAnswer(index) {
         :class="answer.isCorrect
           ? 'bg-success border-success text-white'
           : 'bg-white border-border text-muted-foreground hover:border-success hover:text-success'"
-        :title="answer.isCorrect ? 'Correct answer' : 'Mark as correct'"
+        :title="answer.isCorrect ? t('questionEditor.correctAnswerTooltip') : t('questionEditor.markCorrectTooltip')"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="20 6 9 17 4 12" />
@@ -173,11 +176,11 @@ function removeAnswer(index) {
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
       </svg>
-      Add Answer ({{ localAnswers.length }}/6)
+      {{ t('questionEditor.addAnswerButton', { count: localAnswers.length }) }}
     </button>
 
     <p v-if="mode === 'quiz'" class="text-xs text-muted-foreground">
-      Click the checkmark to mark an answer as correct. At least one answer must be correct.
+      {{ t('questionEditor.quizAnswerHint') }}
     </p>
   </div>
 </template>

@@ -919,7 +919,7 @@ onUnmounted(cleanup);
             <input
               v-model="textAnswer"
               type="text"
-              :placeholder="isWordCloud ? (t('playerGame.typeAWord') || 'Type a short word') : t('playerGame.typeYourAnswer')"
+              :placeholder="isWordCloud ? t('playerGame.typeAWord') : t('playerGame.typeYourAnswer')"
               class="w-full max-w-md px-6 py-4 text-2xl font-bold text-center border-[3px] border-black pixel-shadow bg-white focus:outline-none focus:border-primary"
               :maxlength="isWordCloud ? 20 : 50"
               autocomplete="off"

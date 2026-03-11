@@ -1,5 +1,6 @@
 <script setup>
 import MultipleChoiceEditor from './MultipleChoiceEditor.vue';
+import { useI18n } from 'vue-i18n';
 
 const props = defineProps({
   answers: {
@@ -13,6 +14,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:answers']);
+
+const { t } = useI18n();
 
 function handleUpdate(answers) {
   emit('update:answers', answers);
@@ -29,7 +32,7 @@ function handleUpdate(answers) {
     />
 
     <p class="text-xs text-muted-foreground">
-      Polls have no correct answer. Use them to collect opinions or quick check-ins.
+      {{ t('questionEditor.pollHint') }}
     </p>
   </div>
 </template>

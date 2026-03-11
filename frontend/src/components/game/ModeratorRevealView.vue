@@ -59,7 +59,16 @@ const emit = defineEmits(['next-question', 'end-button-click', 'toggle-pin-fulls
 
 const { t } = useI18n();
 
-const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && props.top5.length > 0);
+const isScoredQuestion = computed(() => {
+  const points = props.currentQuestion?.points;
+  return typeof points === 'number' && points > 0;
+});
+
+const hasLeaderboard = computed(() =>
+  props.gameSettings.showLeaderboard &&
+  props.top5.length > 0 &&
+  isScoredQuestion.value
+);
 </script>
 
 <template>
@@ -511,8 +520,8 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
             </p>
           </PixelCard>
 
-          <!-- Summary cards -->
-          <div class="grid grid-cols-3 gap-3">
+          <!-- Summary cards (only for scored questions) -->
+          <div v-if="isScoredQuestion" class="grid grid-cols-3 gap-3">
             <PixelCard class="text-center !p-3">
               <div class="text-2xl font-bold text-success">{{ getCorrectCount() }}</div>
               <div class="text-xs text-muted-foreground">{{ t('gameControl.gotItRight') }}</div>
@@ -529,8 +538,8 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
             </PixelCard>
           </div>
 
-          <!-- Per-player answers -->
-          <PixelCard v-if="playerAnswerRows.length > 0" class="space-y-2 !p-4">
+          <!-- Per-player answers (only for scored questions) -->
+          <PixelCard v-if="isScoredQuestion && playerAnswerRows.length > 0" class="space-y-2 !p-4">
             <h3 class="text-sm font-bold uppercase text-muted-foreground">
               {{ t('gameControl.playerAnswers') }}
             </h3>
