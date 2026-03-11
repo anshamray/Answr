@@ -75,7 +75,7 @@ export async function getQuiz(req, res) {
  */
 export async function createQuiz(req, res) {
   try {
-    const { title, description, category, tags, language } = req.body;
+    const { title, description, category, tags, language, mode } = req.body;
 
     if (!title) {
       return sendBadRequest(res, 'Title is required');
@@ -87,7 +87,8 @@ export async function createQuiz(req, res) {
       description: description || '',
       category: category || '',
       tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
-      language: language || 'en'
+      language: language || 'en',
+      mode: mode === 'collect-opinions' ? 'collect-opinions' : 'competitive'
     });
 
     await quiz.save();
@@ -105,7 +106,7 @@ export async function createQuiz(req, res) {
  */
 export async function updateQuiz(req, res) {
   try {
-    const { title, description, category, tags, language } = req.body;
+    const { title, description, category, tags, language, mode } = req.body;
 
     const quiz = await Quiz.findOne({
       _id: req.params.id,
@@ -122,6 +123,9 @@ export async function updateQuiz(req, res) {
     if (category !== undefined) quiz.category = category;
     if (tags !== undefined) quiz.tags = Array.isArray(tags) ? tags.slice(0, 10) : [];
     if (language !== undefined) quiz.language = language;
+    if (mode !== undefined) {
+      quiz.mode = mode === 'collect-opinions' ? 'collect-opinions' : 'competitive';
+    }
 
     await quiz.save();
 

@@ -110,11 +110,11 @@ function removeAnswer(index) {
     <div
       v-for="(answer, index) in localAnswers"
       :key="index"
-      class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3"
+      class="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-3"
     >
       <!-- Color indicator with shape -->
       <div
-        class="w-12 h-12 flex items-center justify-center flex-shrink-0 border-2"
+        class="w-12 h-12 sm:h-full flex items-center justify-center flex-shrink-0 border-2"
         :class="[answerColors[index].bg, answerColors[index].border, answerColors[index].text]"
         v-html="getShape(index)"
       ></div>
@@ -140,7 +140,7 @@ function removeAnswer(index) {
       <button
         v-if="mode === 'quiz'"
         @click="toggleCorrect(index)"
-        class="w-12 h-12 flex items-center justify-center border-2 transition-all"
+        class="w-12 h-12 sm:h-full flex items-center justify-center border-2 transition-all"
         :class="answer.isCorrect
           ? 'bg-success border-success text-white'
           : 'bg-white border-border text-muted-foreground hover:border-success hover:text-success'"
@@ -155,8 +155,8 @@ function removeAnswer(index) {
       <button
         v-if="localAnswers.length > 2"
         @click="removeAnswer(index)"
-        class="w-12 h-12 flex items-center justify-center border-2 border-border text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
-        title="Remove answer"
+        class="w-12 h-12 sm:h-full flex items-center justify-center border-2 border-border text-muted-foreground hover:border-destructive hover:text-destructive transition-colors"
+        :title="t('questionEditor.removeAnswerTooltip')"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6" />

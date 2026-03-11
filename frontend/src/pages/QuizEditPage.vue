@@ -27,7 +27,8 @@ const quiz = ref({
   category: '',
   language: 'en',
   tags: [],
-  isPublished: false
+  isPublished: false,
+  mode: 'competitive' // 'competitive' | 'collect-opinions'
 });
 const newTag = ref('');
 const questions = ref([]);
@@ -158,6 +159,17 @@ const languageOptions = [
   { value: 'ko', label: '한국어', flag: 'kr' }
 ];
 
+const modeOptions = [
+  {
+    value: 'competitive',
+    label: 'Competitive (scored)'
+  },
+  {
+    value: 'collect-opinions',
+    label: 'Collect opinions (no scores)'
+  }
+];
+
 // Tag management functions
 function addTag() {
   const tag = newTag.value.trim().toLowerCase();
@@ -224,7 +236,8 @@ async function fetchQuiz() {
     quiz.value = {
       ...loadedQuiz,
       tags: loadedQuiz.tags || [],
-      language: loadedQuiz.language || 'en'
+      language: loadedQuiz.language || 'en',
+      mode: loadedQuiz.mode || 'competitive'
     };
     questions.value = quiz.value.questions || [];
     syncQuestionOrders();
@@ -462,7 +475,8 @@ async function saveAll() {
           description: quiz.value.description,
           category: quiz.value.category,
           language: quiz.value.language,
-          tags: quiz.value.tags
+          tags: quiz.value.tags,
+          mode: quiz.value.mode || 'competitive'
         })
       });
       // Sync local quiz state with server response (includes generated title)
@@ -475,7 +489,8 @@ async function saveAll() {
         description: quiz.value.description,
         category: quiz.value.category,
         language: quiz.value.language,
-        tags: quiz.value.tags
+        tags: quiz.value.tags,
+        mode: quiz.value.mode || 'competitive'
       };
 
       // Only send title if it's non-empty to avoid validation errors
@@ -857,6 +872,30 @@ onUnmounted(() => {
         </div>
 
         <div class="p-4 space-y-5">
+          <!-- Quiz Mode -->
+          <div>
+            <label class="text-xs font-medium text-muted-foreground mb-2 block">
+              Quiz mode
+            </label>
+            <div class="inline-flex rounded-none border-2 border-border bg-muted/40">
+              <button
+                v-for="option in modeOptions"
+                :key="option.value"
+                type="button"
+                class="px-3 py-1.5 text-xs font-medium border-r-2 border-border last:border-r-0 transition-colors"
+                :class="quiz.mode === option.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-white hover:bg-muted/60 text-foreground'"
+                @click="() => { if (quiz.mode !== option.value) { quiz.mode = option.value; hasUnsavedChanges = true; } }"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+            <p class="mt-1 text-[11px] text-muted-foreground">
+              Use <strong>Collect opinions</strong> for survey-style sessions where players are not ranked by score.
+            </p>
+          </div>
+
           <!-- Description -->
           <div>
             <label class="text-xs font-medium text-muted-foreground mb-2 block">{{ t('quizEditor.description') }}</label>

@@ -26,6 +26,13 @@ const quizSchema = new mongoose.Schema({
     ref: 'Question'
   }],
 
+  // Quiz mode: competitive (scored) vs collect-opinions (survey-style)
+  mode: {
+    type: String,
+    enum: ['competitive', 'collect-opinions'],
+    default: 'competitive'
+  },
+
   // Library fields
   isPublished: {
     type: Boolean,
