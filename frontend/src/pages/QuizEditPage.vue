@@ -71,6 +71,8 @@ const saveButtonText = computed(() => {
 const hasUnsavedChanges = ref(false);
 const deletedQuestionIds = ref([]); // Track questions to delete on save
 const fieldValidationErrors = ref({}); // { [questionId]: string }
+// Snapshot of questions as last saved on the server, used to detect changes
+const originalQuestionsSnapshot = ref([]);
 
 // Drag-and-drop reordering
 const dragIndex = ref(null);
@@ -205,6 +207,29 @@ function generateTempId() {
   return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// Helper: normalize question objects for deep equality comparison,
+// ignoring server-managed metadata like _id, quizId, timestamps, etc.
+function normalizeQuestionForDiff(question) {
+  if (!question) return null;
+  const {
+    _id,
+    quizId,
+    createdAt,
+    updatedAt,
+    __v,
+    ...rest
+  } = question;
+  // Deep clone to avoid reactive refs affecting comparisons
+  return JSON.parse(JSON.stringify(rest));
+}
+
+function areQuestionsEqual(a, b) {
+  const normA = normalizeQuestionForDiff(a);
+  const normB = normalizeQuestionForDiff(b);
+  if (normA === null || normB === null) return false;
+  return JSON.stringify(normA) === JSON.stringify(normB);
+}
+
 // API helpers
 async function apiFetch(url, options = {}) {
   const res = await fetch(apiUrl(url), {
@@ -245,6 +270,8 @@ async function fetchQuiz() {
       showLiveResultsToPlayers: loadedQuiz.showLiveResultsToPlayers ?? true
     };
     questions.value = quiz.value.questions || [];
+    // Take a deep snapshot of the questions as they exist on the server.
+    originalQuestionsSnapshot.value = JSON.parse(JSON.stringify(questions.value));
     syncQuestionOrders();
 
     // Select first question if available
@@ -537,8 +564,13 @@ async function saveAll() {
     }
     deletedQuestionIds.value = [];
 
-    // Step 3: Create new questions and update existing ones
+    // Step 3: Create new questions and update only those existing questions
+    // whose content actually changed since the last successful save.
     const updatedQuestions = [];
+    const originalById = new Map(
+      (originalQuestionsSnapshot.value || []).map(q => [q._id, q])
+    );
+
     for (const question of questions.value) {
       const { _id, createdAt, updatedAt, ...questionData } = question;
 
@@ -550,12 +582,19 @@ async function saveAll() {
         });
         updatedQuestions.push(data.data.question);
       } else {
-        // Update existing question
-        const data = await apiFetch(`/api/questions/${_id}`, {
-          method: 'PUT',
-          body: JSON.stringify(questionData)
-        });
-        updatedQuestions.push(data.data.question);
+        const original = originalById.get(_id);
+
+        if (!original || !areQuestionsEqual(question, original)) {
+          // Update existing question only if it actually changed
+          const data = await apiFetch(`/api/questions/${_id}`, {
+            method: 'PUT',
+            body: JSON.stringify(questionData)
+          });
+          updatedQuestions.push(data.data.question);
+        } else {
+          // Question is unchanged; reuse the original server copy
+          updatedQuestions.push(original);
+        }
       }
     }
 
@@ -574,6 +613,8 @@ async function saveAll() {
 
     // Keep the local questions array in sync with exactly what we just saved.
     questions.value = updatedQuestions;
+    // Refresh the snapshot to represent the latest server state.
+    originalQuestionsSnapshot.value = JSON.parse(JSON.stringify(updatedQuestions));
 
     syncQuestionOrders();
 
