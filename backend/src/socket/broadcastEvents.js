@@ -264,6 +264,12 @@ function scoreCurrentQuestion(session) {
  */
 async function persistQuestionResults(sessionPin, session) {
   try {
+    // Practice sessions are for preview only; skip persistence to keep
+    // analytics and exports focused on real games.
+    if (session?.isPractice) {
+      return;
+    }
+
     const questionId = session.currentQuestionId;
     if (!questionId || !session.answers) return;
 

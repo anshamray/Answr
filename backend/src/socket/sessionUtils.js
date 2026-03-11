@@ -189,6 +189,34 @@ export function createPlayerEntry(name, socketId, avatar) {
 }
 
 /**
+ * Create a virtual bot player entry used for practice sessions.
+ * Bot players behave like normal players in scoring and leaderboards,
+ * but have no underlying socket connection.
+ *
+ * @param {string} name
+ * @returns {{ id: string, player: object }}
+ */
+export function createBotPlayerEntry(name) {
+  const playerId = generatePlayerId();
+  const now = new Date();
+
+  const player = {
+    id: playerId,
+    socketId: null,
+    nickname: name,
+    avatar: null,
+    score: 0,
+    isConnected: true,
+    joinedAt: now,
+    lastSeenAt: now,
+    disconnectedAt: null,
+    isBot: true
+  };
+
+  return { id: playerId, player };
+}
+
+/**
  * Replay the current session state to a reconnecting socket.
  * Used by both moderator and player reconnect flows to restore
  * game phase, question, leaderboard and timer in a consistent way.

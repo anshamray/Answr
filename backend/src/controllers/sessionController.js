@@ -30,7 +30,7 @@ function submissionCountsAsCorrect(submission) {
  */
 export async function createSession(req, res) {
   try {
-    const { quizId } = req.body;
+    const { quizId, practice } = req.body;
 
     if (!quizId) {
       return sendBadRequest(res, 'quizId is required');
@@ -51,17 +51,21 @@ export async function createSession(req, res) {
     const session = new Session({
       quizId,
       moderatorId: req.user.userId,
-      pin
+      pin,
+      isPractice: !!practice
     });
 
     await session.save();
 
-    // Track plays for every quiz session, including private quizzes shown on the dashboard.
-    await Quiz.findByIdAndUpdate(quiz._id, { $inc: { playCount: 1 } });
+    // Track plays for every non-practice quiz session, including private quizzes
+    // shown on the dashboard. Practice runs are excluded from play statistics.
+    if (!session.isPractice) {
+      await Quiz.findByIdAndUpdate(quiz._id, { $inc: { playCount: 1 } });
 
-    // If this quiz was cloned from a library quiz, also credit the original source quiz.
-    if (quiz.clonedFrom && quiz.clonedFrom.toString() !== quiz._id.toString()) {
-      await Quiz.findByIdAndUpdate(quiz.clonedFrom, { $inc: { playCount: 1 } });
+      // If this quiz was cloned from a library quiz, also credit the original source quiz.
+      if (quiz.clonedFrom && quiz.clonedFrom.toString() !== quiz._id.toString()) {
+        await Quiz.findByIdAndUpdate(quiz.clonedFrom, { $inc: { playCount: 1 } });
+      }
     }
 
     sendCreated(res, 'Session created', {

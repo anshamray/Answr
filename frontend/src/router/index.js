@@ -20,6 +20,7 @@ import DashboardPage from '../pages/DashboardPage.vue';
 import AccountPage from '../pages/AccountPage.vue';
 import QuizEditPage from '../pages/QuizEditPage.vue';
 import QuizPreviewPage from '../pages/QuizPreviewPage.vue';
+import PracticePreviewPage from '../pages/PracticePreviewPage.vue';
 import LibraryPage from '../pages/LibraryPage.vue';
 import LibraryDetailPage from '../pages/LibraryDetailPage.vue';
 import SessionLobbyPage from '../pages/SessionLobbyPage.vue';
@@ -58,6 +59,7 @@ const routes = [
   { path: '/analytics/:sessionId', component: SessionAnalyticsPage, meta: { requiresAuth: true } },
   { path: '/quiz/:id/edit', component: QuizEditPage, meta: { requiresAuth: true } },
   { path: '/quiz/:id/preview', component: QuizPreviewPage, meta: { requiresAuth: true } },
+  { path: '/quiz/:id/practice-preview', component: PracticePreviewPage, meta: { requiresAuth: true } },
   { path: '/session/:id/lobby', component: SessionLobbyPage, meta: { requiresGuestOrAuth: true } },
   { path: '/session/:id/control', component: GameControlPage, meta: { requiresGuestOrAuth: true } },
   { path: '/session/:id/results', component: SessionResultsPage, meta: { requiresGuestOrAuth: true } },

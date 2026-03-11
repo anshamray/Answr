@@ -18,7 +18,9 @@ import {
   emitModeratorError,
   getConnectedPlayers,
   assertIsHost,
-  replaySessionStateToSocket
+  replaySessionStateToSocket,
+  getOrInitPlayers,
+  createBotPlayerEntry
 } from './sessionUtils.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 
@@ -39,6 +41,225 @@ import {
 
 import Session from '../models/Session.js';
 import Participant from '../models/Participant.js';
+
+/**
+ * Ensure that a practice session has a set of virtual bot players.
+ * Bots are stored in the in-memory session just like real players but have
+ * no socket connection. They are used only for practice runs.
+ *
+ * @param {object} session
+ * @param {number} count
+ */
+function ensurePracticeBots(session, count = 6) {
+  if (!session || !session.isPractice) return;
+
+  const players = getOrInitPlayers(session);
+
+  // If bots already exist, do nothing
+  if (Array.from(players.values()).some((p) => p && p.isBot)) {
+    return;
+  }
+
+  for (let i = 0; i < count; i++) {
+    const label = `Demo Player ${i + 1}`;
+    const { id, player } = createBotPlayerEntry(label);
+    players.set(id, player);
+  }
+}
+
+/**
+ * Schedule simulated answers from bot players for the current question
+ * in a practice session. Answers are spread across the question duration
+ * and emitted using the same events as real players.
+ *
+ * @param {import('socket.io').Server} io
+ * @param {string} sessionPin
+ * @param {object} session
+ */
+function schedulePracticeBotAnswers(io, sessionPin, session) {
+  if (!session || !session.isPractice) return;
+  if (!session.currentQuestionId || !session.currentQuestionPayload) return;
+
+  const players = session.players ? Array.from(session.players.values()) : [];
+  const bots = players.filter((p) => p && p.isBot);
+  if (bots.length === 0) return;
+
+  const questionId = session.currentQuestionId;
+  const questionType = session.currentQuestionType || 'multiple-choice';
+  const timeLimitSec = session.currentTimeLimit || 30;
+  const options = Array.isArray(session.currentQuestionPayload.options)
+    ? session.currentQuestionPayload.options
+    : [];
+  const correctIds = Array.isArray(session.currentCorrectAnswerIds)
+    ? new Set(session.currentCorrectAnswerIds.map(String))
+    : new Set();
+
+  const sliderConfig = session.currentSliderConfig || null;
+  const pinConfig = session.currentPinConfig || null;
+  const acceptedAnswers = session.currentAcceptedAnswers || null;
+
+  const now = Date.now();
+  const minDelayMs = 4000; // Wait for intro to finish
+  const maxDelayMs = Math.max(minDelayMs + 2000, timeLimitSec * 1000 - 500);
+
+  function chooseAnswerForBot(botIndex) {
+    // Probability of a correct answer: vary a bit per bot
+    const baseChance = 0.55;
+    const variance = (botIndex % 3) * 0.1; // 0, 0.1, 0.2
+    const chanceCorrect = Math.min(0.9, Math.max(0.2, baseChance + variance));
+    const shouldBeCorrect = Math.random() < chanceCorrect;
+
+    if (questionType === 'slider' && sliderConfig) {
+      const { min = 0, max = 100, correctValue = (min + max) / 2 } = sliderConfig;
+      if (shouldBeCorrect) {
+        // Pick a value near the correct one
+        const spread = (max - min) * 0.05;
+        const value = correctValue + (Math.random() - 0.5) * 2 * spread;
+        return String(Math.min(max, Math.max(min, Math.round(value))));
+      }
+      // Clearly wrong: far from correct
+      const farSide = Math.random() < 0.5 ? min : max;
+      return String(farSide);
+    }
+
+    if (questionType === 'sort' && options.length > 0) {
+      const sorted = [...options].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      const correctOrder = sorted.map((o) => String(o.id));
+      if (shouldBeCorrect) {
+        return correctOrder;
+      }
+      // Wrong: shuffle order slightly
+      const wrongOrder = [...correctOrder];
+      if (wrongOrder.length > 1) {
+        const i = 0;
+        const j = 1;
+        [wrongOrder[i], wrongOrder[j]] = [wrongOrder[j], wrongOrder[i]];
+      }
+      return wrongOrder;
+    }
+
+    if (questionType === 'pin-answer' && pinConfig && typeof pinConfig.x === 'number' && typeof pinConfig.y === 'number') {
+      const radius = Number(pinConfig.radius || 10);
+      if (shouldBeCorrect) {
+        // Point within the radius
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.random() * radius * 0.7;
+        const x = pinConfig.x + Math.cos(angle) * r;
+        const y = pinConfig.y + Math.sin(angle) * r;
+        return JSON.stringify({
+          x: Math.max(0, Math.min(100, x)),
+          y: Math.max(0, Math.min(100, y))
+        });
+      }
+      // Clearly wrong: far away
+      const farAngle = Math.random() * Math.PI * 2;
+      const r = radius * 2.5;
+      const x = pinConfig.x + Math.cos(farAngle) * r;
+      const y = pinConfig.y + Math.sin(farAngle) * r;
+      return JSON.stringify({
+        x: Math.max(0, Math.min(100, x)),
+        y: Math.max(0, Math.min(100, y))
+      });
+    }
+
+    if (questionType === 'type-answer' && Array.isArray(acceptedAnswers) && acceptedAnswers.length > 0) {
+      if (shouldBeCorrect) {
+        const idx = Math.floor(Math.random() * acceptedAnswers.length);
+        return String(acceptedAnswers[idx] || '').trim();
+      }
+      // Roughly wrong answer
+      return 'demo answer';
+    }
+
+    // Multiple-choice / true-false / poll / default
+    const correctOptions = options.filter((o) => correctIds.has(String(o.id)));
+    const wrongOptions = options.filter((o) => !correctIds.has(String(o.id)));
+
+    if (session.currentAllowMultipleAnswers) {
+      const selected = [];
+      const pool = shouldBeCorrect ? correctOptions : options;
+      for (const opt of pool) {
+        if (Math.random() < 0.4) {
+          selected.push(String(opt.id));
+        }
+      }
+      if (selected.length === 0 && pool.length > 0) {
+        selected.push(String(pool[0].id));
+      }
+      return selected;
+    }
+
+    if (shouldBeCorrect && correctOptions.length > 0) {
+      const idx = Math.floor(Math.random() * correctOptions.length);
+      return String(correctOptions[idx].id);
+    }
+
+    if (wrongOptions.length > 0) {
+      const idx = Math.floor(Math.random() * wrongOptions.length);
+      return String(wrongOptions[idx].id);
+    }
+
+    // Fallback: any option id
+    if (options.length > 0) {
+      const idx = Math.floor(Math.random() * options.length);
+      return String(options[idx].id);
+    }
+
+    return null;
+  }
+
+  if (!session.answers) {
+    session.answers = new Map();
+  }
+  if (!session.answers.has(questionId)) {
+    session.answers.set(questionId, new Map());
+  }
+  const questionAnswers = session.answers.get(questionId);
+
+  bots.forEach((bot, index) => {
+    const delay = Math.floor(
+      minDelayMs + Math.random() * Math.max(1000, maxDelayMs - minDelayMs)
+    );
+
+    setTimeout(() => {
+      // Skip if question already ended or session changed
+      if (!session || session.questionEnded || session.currentQuestionId !== questionId) {
+        return;
+      }
+
+      const answerId = chooseAnswerForBot(index);
+      if (!answerId) return;
+
+      const submittedAt = new Date(now + delay);
+      const timeTakenMs = Math.max(0, submittedAt.getTime() - now);
+
+      questionAnswers.set(bot.id, {
+        playerId: bot.id,
+        questionId,
+        answerId,
+        timeTaken: timeTakenMs,
+        submittedAt
+      });
+
+      const answerCount = questionAnswers.size;
+
+      io.to(sessionPin).emit(PLAYER_EVENTS.ANSWER_RECEIVED, {
+        questionId,
+        answerCount
+      });
+
+      const hostSocketId = session.hostSocketId;
+      if (hostSocketId) {
+        io.to(hostSocketId).emit(PLAYER_EVENTS.ANSWER_DETAIL, {
+          playerId: bot.id,
+          questionId,
+          answerId,
+          answerCount
+        });
+      }
+    }, delay);
+  });
+}
 
 /**
  * Register all moderator-related Socket.io event handlers (WS-3)
@@ -71,18 +292,25 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         sessionPin = await generateUniquePin(activeSessions);
       }
 
+      // Look up the backing DB session (if any) so we can detect practice runs.
+      let dbSession = null;
+      if (sessionPin) {
+        dbSession = await Session.findOne({ pin: sessionPin }).select('quizId isPractice');
+      }
+
       let session = activeSessions.get(sessionPin);
 
       // Create a new session if it does not exist yet
       if (!session) {
         session = {
           pin: sessionPin,
-          quizId: typeof quizId === 'string' ? quizId : undefined,
+          quizId: typeof quizId === 'string' ? quizId : dbSession?.quizId?.toString(),
           hostSocketId: socket.id,
           status: 'lobby',
           currentQuestionIndex: 0,
           players: new Map(),
-          answers: new Map()
+          answers: new Map(),
+          isPractice: !!dbSession?.isPractice
         };
         activeSessions.set(sessionPin, session);
       } else {
@@ -112,8 +340,18 @@ export function registerModeratorEvents(io, socket, activeSessions) {
 
         if (typeof quizId === 'string') {
           session.quizId = quizId;
+        } else if (dbSession?.quizId) {
+          session.quizId = dbSession.quizId.toString();
+        }
+
+        if (typeof session.isPractice !== 'boolean') {
+          session.isPractice = !!dbSession?.isPractice;
         }
       }
+
+      // For practice sessions started from the editor, ensure demo bot
+      // players exist so the lobby and charts feel alive.
+      ensurePracticeBots(session);
 
       // Track moderator context on the socket
       socket.data.sessionPin = sessionPin;
@@ -229,6 +467,10 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         session.currentQuestionPayload = questionPayload;
         broadcastQuestion(io, sessionPin, questionPayload);
         startQuestionTimer(io, sessionPin, session);
+
+        // For practice runs, simulate a handful of bot answers so that
+        // answer counters, distributions and leaderboards look realistic.
+        schedulePracticeBotAnswers(io, sessionPin, session);
       }
     } catch (error) {
       console.error('Error in moderator:start handler:', error);
@@ -318,6 +560,8 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       session.currentQuestionPayload = questionPayload;
       broadcastQuestion(io, sessionPin, questionPayload);
       startQuestionTimer(io, sessionPin, session);
+
+      schedulePracticeBotAnswers(io, sessionPin, session);
     } catch (error) {
       console.error('Error in moderator:next handler:', error);
       emitModeratorError(

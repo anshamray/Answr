@@ -583,7 +583,7 @@ function goBack() {
   router.push('/dashboard');
 }
 
-// Open moderator preview page, then allow "practice as player" from there
+// Open combined host + player practice preview for this quiz
 async function openPlayerPreview() {
   // Ensure quiz exists on the server so preview has an ID to work with
   if (!quiz.value._id) {
@@ -593,7 +593,7 @@ async function openPlayerPreview() {
       return;
     }
   }
-  router.push(`/quiz/${quiz.value._id}/preview`);
+  router.push(`/quiz/${quiz.value._id}/practice-preview`);
 }
 
 // Initialize

@@ -28,6 +28,13 @@ const sessionSchema = new mongoose.Schema({
     enum: ['lobby', 'playing', 'paused', 'finished'],
     default: 'lobby'
   },
+  // Practice sessions are short-lived runs started from the editor or preview
+  // to let moderators test their quiz. They should not count towards normal
+  // analytics or play statistics.
+  isPractice: {
+    type: Boolean,
+    default: false
+  },
   currentQuestionIndex: {
     type: Number,
     default: 0
