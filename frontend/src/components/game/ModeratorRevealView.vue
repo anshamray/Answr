@@ -100,7 +100,7 @@ const revealMediaExpanded = ref(false);
               </div>
               <div class="flex flex-col">
                 <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {{ t('questionEditor.revealMediaOptional') }}
+                  {{ t('gameControl.revealMedia') }}
                 </span>
                 <span class="text-[11px] text-muted-foreground truncate max-w-xs sm:max-w-sm">
                   {{ revealMediaUrl }}
@@ -640,7 +640,7 @@ const revealMediaExpanded = ref(false);
                       {{ t('session.answer') }}
                     </th>
                     <th class="text-right px-3 py-2 font-semibold w-20">
-                      {{ t('session.correct') }}
+                      {{ t('gameControl.playerAnswers') }}
                     </th>
                   </tr>
                 </thead>
@@ -658,17 +658,25 @@ const revealMediaExpanded = ref(false);
                     </td>
                     <td class="px-3 py-1.5 text-right">
                       <span
-                        v-if="row.isCorrect"
+                        v-if="row.correctness === 'correct'"
                         class="inline-flex items-center gap-1 text-xs font-semibold text-success"
                       >
                         <PixelCheck :size="12" />
                         {{ t('session.correct') }}
                       </span>
                       <span
+                        v-else-if="row.correctness === 'partial'"
+                        class="inline-flex items-center gap-1 text-xs font-semibold text-warning"
+                      >
+                        ~
+                        {{ t('session.partialCorrect') }}
+                      </span>
+                      <span
                         v-else
                         class="inline-flex items-center gap-1 text-xs font-semibold text-destructive"
                       >
                         ✕
+                        {{ t('session.incorrect') }}
                       </span>
                     </td>
                   </tr>

@@ -417,26 +417,60 @@ const playerAnswerRows = computed(() => {
 
   return Object.entries(playerAnswers.value).map(([playerId, rawAnswer]) => {
     let displayAnswer = '';
+    let correctness = 'incorrect';
+
+    // Helper: build label map (A, B, C, ...) for MC-style answers
+    const answerLabelById = new Map(
+      (q.answers || []).map((answer, index) => [String(answer._id), barLabels[index] || ''])
+    );
 
     if (isSliderQuestion.value) {
       const numeric = Number(Array.isArray(rawAnswer) ? rawAnswer[0] : rawAnswer);
       displayAnswer = Number.isFinite(numeric) ? formatSliderValue(numeric) : '';
+      correctness = isAnswerCorrectForCurrentQuestion(rawAnswer) ? 'correct' : 'incorrect';
     } else if (isSortQuestion.value) {
       const orderIds = getSelectedAnswerIds(rawAnswer);
       displayAnswer = getSortOrderText(orderIds);
+       // Sort questions are either fully correct or incorrect
+      correctness = isAnswerCorrectForCurrentQuestion(rawAnswer) ? 'correct' : 'incorrect';
     } else if (qType === 'pin-answer') {
       const coords = parsePinAnswer(rawAnswer);
       displayAnswer = coords
         ? `(${coords.x.toFixed(1)}%, ${coords.y.toFixed(1)}%)`
         : '';
+      correctness = isAnswerCorrectForCurrentQuestion(rawAnswer) ? 'correct' : 'incorrect';
     } else if (qType === 'type-answer' || qType === 'word-cloud') {
       displayAnswer = String(rawAnswer || '');
+      correctness = isAnswerCorrectForCurrentQuestion(rawAnswer) ? 'correct' : 'incorrect';
     } else {
       const selectedIds = getSelectedAnswerIds(rawAnswer);
       if (selectedIds.length > 0) {
+        // Show only answer letters (A, B, C, ...) instead of full text
         displayAnswer = selectedIds
-          .map((id) => answerTextById.value.get(String(id)) || '—')
+          .map((id) => answerLabelById.get(String(id)) || '—')
           .join(', ');
+
+        // Compute correctness state for single- and multi-answer questions
+        const correctIds = (q.answers || [])
+          .filter((answer) => answer.isCorrect)
+          .map((answer) => String(answer._id));
+        const correctIdSet = new Set(correctIds);
+        const selectedIdSet = new Set(selectedIds.map((id) => String(id)));
+
+        const hasAnyCorrectSelected = selectedIds.some((id) => correctIdSet.has(String(id)));
+        const hasAnyWrongSelected = selectedIds.some((id) => !correctIdSet.has(String(id)));
+        const allCorrectSelected = correctIds.every((id) => selectedIdSet.has(id));
+
+        if (hasAnyCorrectSelected && allCorrectSelected && !hasAnyWrongSelected) {
+          correctness = 'correct';
+        } else if (questionAllowsMultipleAnswers(q) && hasAnyCorrectSelected) {
+          // Only multi-answer questions can be partially correct
+          correctness = 'partial';
+        } else {
+          correctness = 'incorrect';
+        }
+      } else {
+        correctness = 'incorrect';
       }
     }
 
@@ -444,7 +478,8 @@ const playerAnswerRows = computed(() => {
       playerId,
       name: getPlayerName(playerId),
       answer: displayAnswer,
-      isCorrect: isAnswerCorrectForCurrentQuestion(rawAnswer)
+      isCorrect: isAnswerCorrectForCurrentQuestion(rawAnswer),
+      correctness
     };
   }).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 });
