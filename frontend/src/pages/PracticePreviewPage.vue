@@ -201,9 +201,8 @@ onMounted(() => {
             </span>
           </div>
           <div class="flex-1 flex items-center justify-center">
-            <div class="relative w-full max-w-xs aspect-[9/19] bg-black rounded-[32px] border-[6px] border-black overflow-hidden shadow-[0_0_0_2px_rgba(0,0,0,0.6)]">
-              <div class="absolute inset-[6px] bg-black/90"></div>
-              <div class="relative inset-[6px] absolute bg-white overflow-hidden">
+            <div class="relative w-full max-w-xs aspect-[9/19] rounded-[32px] border-[6px] border-black overflow-hidden shadow-[0_0_0_2px_rgba(0,0,0,0.6)] bg-black">
+              <div class="absolute inset-[6px] rounded-[26px] overflow-hidden bg-white">
                 <iframe
                   v-if="playerUrl && showPlayerFrame"
                   :src="playerUrl"
