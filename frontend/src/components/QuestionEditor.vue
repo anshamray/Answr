@@ -288,13 +288,13 @@ async function handleFileSelect(event) {
 
   // Validate file type
   if (!file.type.startsWith('image/')) {
-    fileError.value = 'Please select an image file';
+    fileError.value = t('questionEditor.fileTypeError');
     return;
   }
 
   // Validate file size (max 5MB)
   if (file.size > 5 * 1024 * 1024) {
-    fileError.value = 'Image must be smaller than 5MB';
+    fileError.value = t('questionEditor.fileSizeError');
     return;
   }
 
@@ -309,7 +309,7 @@ async function handleFileSelect(event) {
     // Use the server URL instead of data URL
     updateMediaUrl(media.url);
   } catch (err) {
-    fileError.value = err.message || 'Upload failed';
+    fileError.value = err.message || t('questionEditor.uploadFailed');
   } finally {
     isUploading.value = false;
     uploadProgress.value = 0;
@@ -387,7 +387,7 @@ function getIcon(iconName) {
         <div>
           <h2 class="text-xl font-bold">{{ typeInfo.label }}</h2>
           <p class="text-sm text-muted-foreground">
-            {{ isScored ? 'Players earn points for correct answers' : 'Opinion question (no points)' }}
+            {{ isScored ? t('questionEditor.scoredHint') : t('questionEditor.opinionHint') }}
           </p>
         </div>
       </div>
@@ -395,7 +395,7 @@ function getIcon(iconName) {
       <button
         @click="$emit('delete', question._id)"
         class="p-2 text-muted-foreground hover:text-destructive transition"
-        title="Delete question"
+        :title="t('questionEditor.deleteQuestion')"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -438,8 +438,13 @@ function getIcon(iconName) {
           @click="mediaExpanded = !mediaExpanded"
         >
           <span class="text-sm font-medium">
-            Media (optional)
-            <span v-if="localQuestion.mediaUrl" class="text-muted-foreground font-normal">— 1 media item</span>
+            {{ t('questionEditor.mediaOptional') }}
+            <span
+              v-if="localQuestion.mediaUrl"
+              class="text-muted-foreground font-normal"
+            >
+              {{ t('questionEditor.mediaOneItem') }}
+            </span>
           </span>
           <svg
             width="20"
@@ -469,7 +474,9 @@ function getIcon(iconName) {
               <svg class="mx-auto mb-3 text-primary animate-pulse" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
               </svg>
-              <p class="text-sm text-muted-foreground">Uploading...</p>
+              <p class="text-sm text-muted-foreground">
+                {{ t('questionEditor.uploading') }}
+              </p>
               <div class="w-full max-w-xs mx-auto bg-border h-2">
                 <div
                   class="bg-primary h-full transition-all duration-200"
@@ -516,7 +523,9 @@ function getIcon(iconName) {
                 <svg class="mx-auto mb-3 text-muted-foreground" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
                 </svg>
-                <p class="text-sm text-muted-foreground mb-2">Drag and drop an image, or click to browse</p>
+                <p class="text-sm text-muted-foreground mb-2">
+                  {{ t('questionEditor.uploadHint') }}
+                </p>
                 <p v-if="fileError" class="text-sm text-destructive mb-2">{{ fileError }}</p>
               </div>
               <div class="flex items-center gap-2 justify-center">
@@ -525,12 +534,14 @@ function getIcon(iconName) {
                   class="px-3 py-2 text-sm border-2 border-primary text-primary hover:bg-primary/10 transition"
                   @click.stop="showMediaLibrary = true"
                 >
-                  Browse Library
+                  {{ t('questionEditor.browseLibrary') }}
                 </button>
-                <span class="text-sm text-muted-foreground">or</span>
+                <span class="text-sm text-muted-foreground">
+                  {{ t('common.or') }}
+                </span>
                 <input
                   type="text"
-                  placeholder="Paste URL"
+                  :placeholder="t('questionEditor.pasteUrlPlaceholder')"
                   class="w-48 px-3 py-2 border-2 border-border text-sm focus:border-primary focus:outline-none"
                   @click.stop
                   @blur="updateMediaUrl($event.target.value)"
@@ -550,7 +561,9 @@ function getIcon(iconName) {
 
       <!-- Type-Specific Editor -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
-        <label class="block text-sm font-medium mb-4">Answers</label>
+        <label class="block text-sm font-medium mb-4">
+          {{ t('questionEditor.answersLabel') }}
+        </label>
 
         <!-- Allow Multiple Answers (multiple-choice and polls) -->
         <div v-if="canHaveMultipleAnswers" class="mb-4">
@@ -561,7 +574,9 @@ function getIcon(iconName) {
               class="w-5 h-5 border-2 border-border accent-primary"
               @change="handleAllowMultipleChange"
             />
-            <span class="text-sm">Allow multiple answers</span>
+            <span class="text-sm">
+              {{ t('questionEditor.allowMultiple') }}
+            </span>
           </label>
         </div>
 
@@ -620,19 +635,35 @@ function getIcon(iconName) {
           @update:pin-config="updatePinConfig"
         />
 
+        <div
+          v-else-if="localQuestion.type === 'word-cloud'"
+          class="text-sm text-muted-foreground space-y-2"
+        >
+          <p>
+            {{ t('questionEditor.wordCloudDescription1') }}
+          </p>
+          <p>
+            {{ t('questionEditor.wordCloudDescription2') }}
+          </p>
+        </div>
+
         <div v-else class="text-center py-8 text-muted-foreground">
-          <p>Editor for this question type is coming soon.</p>
+          <p>{{ t('questionEditor.comingSoon') }}</p>
         </div>
       </div>
 
       <!-- Question Settings -->
       <div class="bg-white border-[3px] border-black pixel-shadow p-6">
-        <label class="block text-sm font-medium mb-4">Settings</label>
+        <label class="block text-sm font-medium mb-4">
+          {{ t('questionEditor.settingsLabel') }}
+        </label>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <!-- Time Limit -->
           <div>
-            <label class="block text-xs text-muted-foreground mb-1">Time Limit</label>
+            <label class="block text-xs text-muted-foreground mb-1">
+              {{ t('questionEditor.timeLimitLabel') }}
+            </label>
             <select
               v-model.number="localQuestion.timeLimit"
               class="w-full px-3 py-2 border-2 border-border bg-white focus:border-primary focus:outline-none"
@@ -646,14 +677,16 @@ function getIcon(iconName) {
 
           <!-- Points -->
           <div v-if="isScored">
-            <label class="block text-xs text-muted-foreground mb-1">Points</label>
+            <label class="block text-xs text-muted-foreground mb-1">
+              {{ t('questionEditor.pointsLabel') }}
+            </label>
             <select
               v-model.number="localQuestion.points"
               class="w-full px-3 py-2 border-2 border-border bg-white focus:border-primary focus:outline-none"
               @change="emitUpdate"
             >
               <option v-for="pts in pointsOptions" :key="pts" :value="pts">
-                {{ pts === 0 ? 'No points' : `${pts} points` }}
+                {{ pts === 0 ? t('questionEditor.noPoints') : t('questionEditor.pointsOption', { points: pts }) }}
               </option>
             </select>
           </div>

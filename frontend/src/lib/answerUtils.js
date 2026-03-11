@@ -52,7 +52,7 @@ export function getAnswerDistributionKeysForQuestion(question, answerId) {
     return [getSelectedAnswerIds(answerId).join(',')];
   }
 
-  if (qType === 'type-answer') {
+  if (qType === 'type-answer' || qType === 'word-cloud') {
     const normalized = normalizeTextAnswer(answerId);
     return normalized ? [normalized] : [];
   }

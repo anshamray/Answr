@@ -651,7 +651,7 @@ onUnmounted(() => {
               :disabled="saving"
               @click="openPlayerPreview"
             >
-              Preview as player
+              {{ t('quizEditor.previewAsPlayer') }}
             </PixelButton>
 
             <PixelButton
@@ -900,7 +900,7 @@ onUnmounted(() => {
               </option>
             </select>
             <p class="mt-1 text-[11px] text-muted-foreground">
-              This language applies to the quiz title, questions, and what players see when they join.
+              {{ t('quizEditor.languageHint') }}
             </p>
           </div>
 
@@ -952,14 +952,18 @@ onUnmounted(() => {
           <!-- Per-quiz defaults explanation -->
           <div class="pt-4 mt-2 border-t border-dashed border-border space-y-2">
             <h4 class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-              Quiz defaults
+              {{ t('quizEditor.quizDefaultsTitle') }}
             </h4>
             <p class="text-xs text-muted-foreground">
-              New questions start with a <span class="font-semibold">30s time limit</span> and <span class="font-semibold">1000 points</span>.
-              You can override time and points for individual questions in their settings.
+              {{
+                t('quizEditor.quizDefaultsDescription1', {
+                  timeLimit: 30,
+                  points: 1000
+                })
+              }}
             </p>
             <p class="text-[11px] text-muted-foreground">
-              Shorter time limits make questions feel more intense. Higher points make a question more important for the final leaderboard.
+              {{ t('quizEditor.quizDefaultsDescription2') }}
             </p>
           </div>
         </div>

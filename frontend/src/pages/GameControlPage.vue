@@ -77,6 +77,7 @@ const isSliderQuestion = computed(() =>
 const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
 const isPinAnswerQuestion = computed(() => currentQuestion.value?.type === 'pin-answer');
 const isTypeAnswerQuestion = computed(() => currentQuestion.value?.type === 'type-answer');
+const isWordCloudQuestion = computed(() => currentQuestion.value?.type === 'word-cloud');
 const questionMediaUrl = computed(() => {
   const url = currentQuestion.value?.mediaUrl;
   if (!url) return null;
@@ -222,6 +223,33 @@ const textAnswerEntries = computed(() => {
     .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }));
 });
 
+const wordCloudEntries = computed(() => {
+  if (!isWordCloudQuestion.value) return [];
+
+  const groupedAnswers = new Map();
+
+  for (const rawAnswer of Object.values(playerAnswers.value)) {
+    const text = String(rawAnswer || '').trim();
+    const normalized = normalizeTextAnswer(text);
+    if (!normalized) continue;
+
+    const existingEntry = groupedAnswers.get(normalized);
+    if (existingEntry) {
+      existingEntry.count += 1;
+      continue;
+    }
+
+    groupedAnswers.set(normalized, {
+      key: normalized,
+      text,
+      count: 1
+    });
+  }
+
+  return Array.from(groupedAnswers.values())
+    .sort((a, b) => b.count - a.count || a.text.localeCompare(b.text, undefined, { sensitivity: 'base' }));
+});
+
 const pinAnswerEntries = computed(() => {
   if (!isPinAnswerQuestion.value) return [];
 
@@ -301,6 +329,11 @@ function getCorrectCount() {
     ), 0);
   }
 
+  if (qType === 'word-cloud') {
+    // Opinion question – no correct answers
+    return 0;
+  }
+
   const correctIds = (currentQuestion.value.answers || [])
     .filter((answer) => answer.isCorrect)
     .map((answer) => String(answer._id));
@@ -351,6 +384,11 @@ function isAnswerCorrectForCurrentQuestion(answerId) {
     return acceptedTypeAnswerSet.value.has(normalizeTextAnswer(answerId));
   }
 
+  if (qType === 'word-cloud') {
+    // Opinion question – never marked as correct
+    return false;
+  }
+
   const correctIds = (currentQuestion.value.answers || [])
     .filter((answer) => answer.isCorrect)
     .map((answer) => String(answer._id));
@@ -389,7 +427,7 @@ const playerAnswerRows = computed(() => {
       displayAnswer = coords
         ? `(${coords.x.toFixed(1)}%, ${coords.y.toFixed(1)}%)`
         : '';
-    } else if (qType === 'type-answer') {
+    } else if (qType === 'type-answer' || qType === 'word-cloud') {
       displayAnswer = String(rawAnswer || '');
     } else {
       const selectedIds = getSelectedAnswerIds(rawAnswer);
@@ -438,6 +476,11 @@ function getCorrectAnswerLabel() {
   }
   if (qType === 'type-answer') {
     return (q.answers || []).map(a => a.text).join(' / ');
+  }
+
+  if (qType === 'word-cloud') {
+    // Opinion question – no single correct answer
+    return '—';
   }
 
   return q.answers.map((a, i) => a.isCorrect ? barLabels[i] : null).filter(Boolean).join(', ') || '?';
@@ -1135,6 +1178,7 @@ onUnmounted(cleanup);
         :is-sort-question="isSortQuestion"
         :is-pin-answer-question="isPinAnswerQuestion"
         :is-type-answer-question="isTypeAnswerQuestion"
+        :is-word-cloud-question="isWordCloudQuestion"
         :bar-bg="barBg"
         :bar-labels="barLabels"
         :answer-gradients="answerGradients"
@@ -1146,6 +1190,7 @@ onUnmounted(cleanup);
         :get-correct-answer-label="getCorrectAnswerLabel"
         :accepted-type-answers="acceptedTypeAnswers"
         :text-answer-entries="textAnswerEntries"
+        :word-cloud-entries="wordCloudEntries"
         :correct-sort-order-ids="correctSortOrderIds"
         :top-sort-answer-entries="topSortAnswerEntries"
         :answer-text-by-id="answerTextById"

@@ -51,6 +51,7 @@ const isSlider = computed(() =>
 const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
+const isWordCloud = computed(() => question.value?.type === 'word-cloud');
 const questionMediaUrl = computed(() => {
   const url = question.value?.mediaUrl;
   if (!url) return null;
@@ -386,7 +387,7 @@ function submitPendingAnswerOnTimeout() {
     return;
   }
 
-  if (isTypeAnswer.value && textAnswer.value.trim()) {
+  if ((isTypeAnswer.value || isWordCloud.value) && textAnswer.value.trim()) {
     submitTypeAnswer();
   }
 }
@@ -551,7 +552,7 @@ onUnmounted(cleanup);
   <div class="min-h-screen flex flex-col bg-background">
     <!-- Header (hidden during shape buttons mode in answering phase) -->
     <header
-      v-if="phase === 'intro' || game.playerSettings.showAnswerText || questionEnded || isSlider || isSort || isPinAnswer || isTypeAnswer"
+      v-if="phase === 'intro' || game.playerSettings.showAnswerText || questionEnded || isSlider || isSort || isPinAnswer || isTypeAnswer || isWordCloud"
       class="px-4 py-3 border-b-[3px] border-black bg-white flex items-center justify-between"
     >
       <PixelBadge variant="primary">
@@ -876,8 +877,8 @@ onUnmounted(cleanup);
         </div>
       </template>
 
-      <!-- Type-answer mode -->
-      <template v-else-if="isTypeAnswer">
+      <!-- Type-answer / Word cloud mode -->
+      <template v-else-if="isTypeAnswer || isWordCloud">
         <div class="flex-1 flex flex-col px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
           <PixelCard class="mb-4">
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
@@ -909,16 +910,18 @@ onUnmounted(cleanup);
             <p class="text-xl font-bold text-destructive">{{ t('playerGame.timesUp') }}</p>
           </div>
           <div v-else-if="submitted" class="mb-6 text-center">
-            <p class="text-success font-bold text-lg">{{ t('playerGame.answerSubmitted') }}: {{ textAnswer }}</p>
+            <p class="text-success font-bold text-lg">
+              {{ t('playerGame.answerSubmitted') }}: {{ textAnswer }}
+            </p>
           </div>
 
           <div v-if="!submitted && !timedOut" class="flex-1 flex flex-col items-center justify-center gap-6">
             <input
               v-model="textAnswer"
               type="text"
-              :placeholder="t('playerGame.typeYourAnswer')"
+              :placeholder="isWordCloud ? (t('playerGame.typeAWord') || 'Type a short word') : t('playerGame.typeYourAnswer')"
               class="w-full max-w-md px-6 py-4 text-2xl font-bold text-center border-[3px] border-black pixel-shadow bg-white focus:outline-none focus:border-primary"
-              maxlength="50"
+              :maxlength="isWordCloud ? 20 : 50"
               autocomplete="off"
               @keyup.enter="submitTypeAnswer"
             />
@@ -1143,7 +1146,7 @@ onUnmounted(cleanup);
 
           <!-- Answer reveal (MC/TF/Poll only) -->
           <div
-            v-if="options.length > 0 && !isSlider && !isSort && !isPinAnswer && !isTypeAnswer"
+            v-if="options.length > 0 && !isSlider && !isSort && !isPinAnswer && !isTypeAnswer && !isWordCloud"
             class="grid gap-2 w-full"
             :class="options.length <= 2 ? 'grid-cols-1' : 'grid-cols-2'"
           >

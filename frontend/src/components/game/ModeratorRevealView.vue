@@ -17,6 +17,7 @@ const props = defineProps({
   isSortQuestion: { type: Boolean, required: true },
   isPinAnswerQuestion: { type: Boolean, required: true },
   isTypeAnswerQuestion: { type: Boolean, required: true },
+  isWordCloudQuestion: { type: Boolean, required: true },
   barBg: { type: Array, required: true },
   barLabels: { type: Array, required: true },
   answerGradients: { type: Array, required: true },
@@ -30,6 +31,7 @@ const props = defineProps({
   // Computed collections
   acceptedTypeAnswers: { type: Array, required: true },
   textAnswerEntries: { type: Array, required: true },
+  wordCloudEntries: { type: Array, required: true },
   correctSortOrderIds: { type: Array, required: true },
   topSortAnswerEntries: { type: Array, required: true },
   answerTextById: { type: Object, required: true },
@@ -397,6 +399,44 @@ const hasLeaderboard = computed(() => props.gameSettings.showLeaderboard && prop
               class="border-[3px] border-dashed border-border bg-muted/30 px-4 py-6 text-center text-muted-foreground"
             >
               {{ t('gameControl.noPinSubmissions') }}
+            </div>
+          </PixelCard>
+
+          <!-- Word cloud results -->
+          <PixelCard v-else-if="isWordCloudQuestion" class="space-y-4 !p-4">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <h2 class="text-xl lg:text-2xl font-bold">{{ t('gameControl.howPlayersAnswered') }}</h2>
+              <PixelBadge variant="secondary" class="text-xs">
+                {{ answersReceived }} / {{ playerCount }} {{ t('gameControl.answered') }}
+              </PixelBadge>
+            </div>
+
+            <div class="space-y-3">
+              <h3 class="text-sm font-bold uppercase text-muted-foreground">
+                {{ t('gameControl.submittedAnswers') }}
+              </h3>
+
+              <div v-if="wordCloudEntries.length > 0" class="flex flex-wrap gap-3">
+                <div
+                  v-for="entry in wordCloudEntries"
+                  :key="entry.key"
+                  class="px-3 py-2 border-[3px] border-black bg-white shadow-sm flex items-center gap-2"
+                >
+                  <span class="font-bold text-base md:text-lg break-words">
+                    {{ entry.text }}
+                  </span>
+                  <span class="text-xs text-muted-foreground">
+                    ×{{ entry.count }}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                v-else
+                class="border-[3px] border-dashed border-border bg-muted/30 px-4 py-6 text-center text-muted-foreground"
+              >
+                {{ t('gameControl.noTypeSubmissions') }}
+              </div>
             </div>
           </PixelCard>
 

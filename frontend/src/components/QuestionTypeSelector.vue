@@ -65,9 +65,9 @@ const opinionTypes = [
   {
     type: 'word-cloud',
     name: 'Word Cloud',
-    description: 'Collect single-word responses, display as cloud',
+    description: 'Players type one or two words; you see the most common ones.',
     icon: 'cloud',
-    comingSoon: true
+    comingSoon: false
   },
   {
     type: 'brainstorm',
