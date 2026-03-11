@@ -112,27 +112,29 @@ function removeAnswer(index) {
       :key="index"
       class="flex flex-col sm:flex-row items-stretch gap-2 sm:gap-3"
     >
-      <!-- Color indicator with shape -->
-      <div
-        class="w-12 h-12 sm:h-full flex items-center justify-center flex-shrink-0 border-2"
-        :class="[answerColors[index].bg, answerColors[index].border, answerColors[index].text]"
-        v-html="getShape(index)"
-      ></div>
+      <!-- Color indicator + text as aligned block -->
+      <div class="flex-1 min-w-0 flex items-start gap-3">
+        <div
+          class="w-12 h-12 flex items-center justify-center flex-shrink-0 border-2"
+          :class="[answerColors[index].bg, answerColors[index].border, answerColors[index].text]"
+          v-html="getShape(index)"
+        ></div>
 
-      <!-- Answer text input + counter -->
-      <div class="flex-1 min-w-0 space-y-1">
-        <input
-          :value="answer.text"
-          @input="updateAnswer(index, 'text', $event.target.value)"
-          type="text"
-          :placeholder="t('questionEditor.answerPlaceholder')"
-          maxlength="200"
-          class="w-full px-4 py-3 border-2 border-border bg-white focus:border-primary focus:outline-none"
-        />
-        <div class="flex justify-end">
-          <span class="text-[11px] leading-tight text-muted-foreground">
-            {{ answer.text?.length || 0 }}/200
-          </span>
+        <!-- Answer text input + counter -->
+        <div class="flex-1 min-w-0 space-y-1">
+          <input
+            :value="answer.text"
+            @input="updateAnswer(index, 'text', $event.target.value)"
+            type="text"
+            :placeholder="t('questionEditor.answerPlaceholder')"
+            maxlength="200"
+            class="w-full px-4 py-3 border-2 border-border bg-white focus:border-primary focus:outline-none"
+          />
+          <div class="flex justify-end">
+            <span class="text-[11px] leading-tight text-muted-foreground">
+              {{ answer.text?.length || 0 }}/200
+            </span>
+          </div>
         </div>
       </div>
 

@@ -52,7 +52,12 @@ export async function createSession(req, res) {
       quizId,
       moderatorId: req.user.userId,
       pin,
-      isPractice: !!practice
+      isPractice: !!practice,
+      mode: quiz.mode || 'competitive',
+      isAnonymous: !!quiz.isAnonymous,
+      showLiveResultsToPlayers: quiz.showLiveResultsToPlayers !== undefined
+        ? !!quiz.showLiveResultsToPlayers
+        : true
     });
 
     await session.save();
@@ -100,7 +105,7 @@ export async function getSession(req, res) {
 
     const populateQuiz = {
       path: 'quizId',
-      select: 'title questions',
+      select: 'title questions mode isAnonymous showLiveResultsToPlayers',
       populate: {
         path: 'questions',
         options: { sort: { order: 1 } }
@@ -220,11 +225,13 @@ export async function getSessionResults(req, res) {
         quizTitle: session.quizId?.title || '',
         pin: session.pin,
         status: session.status,
+        mode: session.mode || 'competitive',
         totalParticipants: rankings.length,
         totalQuestions: session.quizId?.questions?.length || 0,
         avgScore,
         finishedAt: session.finishedAt,
         stats: {
+          mode: session.mode || 'competitive',
           totalPlayers: rankings.length,
           totalQuestions: session.quizId?.questions?.length || 0,
           avgScore
@@ -379,7 +386,7 @@ export async function getSessionAnalytics(req, res) {
 
     if (quizQuestionIds.length > 0) {
       const quizQuestions = await Question.find({ _id: { $in: quizQuestionIds } })
-        .select('text type order')
+        .select('text type order answers')
         .lean();
 
       quizQuestions
@@ -394,6 +401,12 @@ export async function getSessionAnalytics(req, res) {
             correctCount: 0,
             totalTime: 0,
             answerDistribution: {},
+            options: Array.isArray(q.answers)
+              ? q.answers.map((a) => ({
+                id: a._id.toString(),
+                text: a.text
+              }))
+              : [],
             order: q.order ?? 0
           };
           questionMap.set(qId, baseStat);
@@ -452,6 +465,7 @@ export async function getSessionAnalytics(req, res) {
           quizTitle: session.quizId?.title || 'Deleted Quiz',
           pin: session.pin,
           status: session.status,
+          mode: session.mode || 'competitive',
           startedAt: session.startedAt,
           finishedAt: session.finishedAt,
           duration: durationMs

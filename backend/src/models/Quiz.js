@@ -33,6 +33,16 @@ const quizSchema = new mongoose.Schema({
     default: 'competitive'
   },
 
+  // Opinion-mode defaults
+  isAnonymous: {
+    type: Boolean,
+    default: false
+  },
+  showLiveResultsToPlayers: {
+    type: Boolean,
+    default: true
+  },
+
   // Library fields
   isPublished: {
     type: Boolean,

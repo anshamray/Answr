@@ -55,6 +55,7 @@ const playerAnswers = ref({});
 const playerNameById = ref({});
 const leaderboard = ref([]);
 const previousLeaderboard = ref([]);
+const sessionMode = ref('competitive');
 let endGameRedirectTimer = null;
 
 // Intro phase: 'intro' (question only) -> 'answering' (answers visible) -> handled by status='reveal'
@@ -508,6 +509,7 @@ async function fetchSession() {
     pin.value = session.pin;
     quizTitle.value = session.quizId?.title || 'Quiz';
     questions.value = session.quizId?.questions || [];
+    sessionMode.value = session.mode || 'competitive';
     playerCount.value = session.participants?.length || 0;
 
     // Wait for socket to join the room before starting.
@@ -1207,6 +1209,7 @@ onUnmounted(cleanup);
         :player-answer-rows="playerAnswerRows"
         :top5="top5"
         :game-settings="gameSettings"
+        :is-collect-opinions="sessionMode === 'collect-opinions'"
         :pin-question-media-url="pinQuestionMediaUrl"
         :show-pin-results-fullscreen="showPinResultsFullscreen"
         @next-question="sendNextQuestion"

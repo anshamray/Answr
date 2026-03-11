@@ -98,22 +98,28 @@ export function endCurrentQuestion(io, sessionPin, session) {
   if (session.questionEnded) return;
   session.questionEnded = true;
 
-  // 1. Score all submitted answers for this question
-  scoreCurrentQuestion(session);
+  const isCollectOpinions = session.mode === 'collect-opinions';
+
+  // 1. Score all submitted answers for this question (competitive mode only)
+  if (!isCollectOpinions) {
+    scoreCurrentQuestion(session);
+  }
 
   // 1b. Persist results for this question so analytics survives restarts
   persistQuestionResults(sessionPin, session).catch((err) => {
     console.error('Failed to persist question results:', err);
   });
 
-  // 2. Tell every client which answers were correct
+  // 2. Tell every client which answers were correct (empty for collect-opinions)
   broadcastQuestionEnd(io, sessionPin, {
-    correctAnswerIds: session.currentCorrectAnswerIds || []
+    correctAnswerIds: isCollectOpinions ? [] : (session.currentCorrectAnswerIds || [])
   });
 
-  // 3. Compute and broadcast the leaderboard
-  const leaderboard = computeLeaderboard(session);
-  broadcastLeaderboard(io, sessionPin, leaderboard);
+  // 3. Compute and broadcast the leaderboard (competitive mode only)
+  if (!isCollectOpinions) {
+    const leaderboard = computeLeaderboard(session);
+    broadcastLeaderboard(io, sessionPin, leaderboard);
+  }
 }
 
 // ─── Scoring ────────────────────────────────────────────────────────────
@@ -434,7 +440,8 @@ export function computeFinalResults(session) {
     stats: {
       totalPlayers: leaderboard.length,
       totalQuestions: (session.currentQuestionIndex ?? 0) + 1,
-      reason: 'game_complete'
+      reason: 'game_complete',
+      mode: session.mode || 'competitive'
     }
   };
 }

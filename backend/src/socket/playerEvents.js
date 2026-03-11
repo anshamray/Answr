@@ -86,7 +86,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       // to validate the PIN even if the moderator socket has not connected.
       if (!session) {
         const dbSession = await Session.findOne({ pin: sessionPin })
-          .select('quizId status isPractice')
+          .select('quizId status isPractice mode isAnonymous showLiveResultsToPlayers')
           .lean();
 
         if (!dbSession) {
@@ -102,7 +102,12 @@ export function registerPlayerEvents(io, socket, activeSessions) {
           currentQuestionIndex: 0,
           players: new Map(),
           answers: new Map(),
-          isPractice: !!dbSession.isPractice
+          isPractice: !!dbSession.isPractice,
+          mode: dbSession.mode || 'competitive',
+          isAnonymous: !!dbSession.isAnonymous,
+          showLiveResultsToPlayers: dbSession.showLiveResultsToPlayers !== undefined
+            ? !!dbSession.showLiveResultsToPlayers
+            : true
         };
         activeSessions.set(sessionPin, session);
       }

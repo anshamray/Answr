@@ -22,8 +22,10 @@ const rankings = ref([]);
 const resultStats = ref({
   totalPlayers: null,
   totalQuestions: null,
-  avgScore: null
+  avgScore: null,
+  mode: null
 });
+const questionAnalytics = ref([]);
 let isDisposed = false;
 
 const leaderboard = computed(() => {
@@ -61,6 +63,13 @@ const avgScore = computed(() => {
   return Math.round(sum / leaderboard.value.length);
 });
 
+const isCollectOpinions = computed(() =>
+  resultStats.value.mode === 'collect-opinions' ||
+  session.value?.mode === 'collect-opinions'
+);
+
+const opinionQuestions = computed(() => questionAnalytics.value || []);
+
 function wait(ms) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
@@ -79,11 +88,13 @@ function applyDedicatedResults(data) {
   resultStats.value = {
     totalPlayers: data?.stats?.totalPlayers ?? data?.totalParticipants ?? rankings.value.length,
     totalQuestions: data?.stats?.totalQuestions ?? data?.totalQuestions ?? 0,
-    avgScore: data?.stats?.avgScore ?? data?.avgScore ?? 0
+    avgScore: data?.stats?.avgScore ?? data?.avgScore ?? 0,
+    mode: data?.stats?.mode ?? data?.mode ?? null
   };
   session.value = {
     quizId: { title: data?.quizTitle },
     status: data?.status,
+    mode: data?.mode ?? data?.stats?.mode ?? null,
     finishedAt: data?.finishedAt
   };
 }
@@ -93,7 +104,8 @@ function applySessionFallback(sessionData) {
   resultStats.value = {
     totalPlayers: sessionData?.participants?.length ?? null,
     totalQuestions: sessionData?.quizId?.questions?.length ?? null,
-    avgScore: null
+    avgScore: null,
+    mode: sessionData?.mode ?? null
   };
 }
 
@@ -163,17 +175,44 @@ async function fetchResults() {
     if (authToken) {
       const loadedDedicatedResults = await fetchDedicatedResults(headers);
       if (loadedDedicatedResults || isDisposed) {
+        // If this is a collect-opinions session, load analytics for distributions.
+        if (isCollectOpinions.value && !isDisposed) {
+          await fetchOpinionAnalytics(headers);
+        }
         return;
       }
     }
 
     await fetchSessionFallback(headers, guestToken);
+
+    // After fallback fetch, try analytics for collect-opinions if authenticated.
+    if (authToken && isCollectOpinions.value && !isDisposed) {
+      await fetchOpinionAnalytics(headers);
+    }
   } catch (err) {
     error.value = err.message;
   } finally {
     if (!isDisposed) {
       loading.value = false;
     }
+  }
+}
+
+async function fetchOpinionAnalytics(headers) {
+  try {
+    const { res, json } = await fetchJson(apiUrl(`/api/sessions/${sessionId}/analytics`), { headers });
+    if (!res.ok) {
+      return;
+    }
+    const data = json?.data;
+    if (data?.questions) {
+      questionAnalytics.value = data.questions;
+    }
+    if (data?.session?.mode && !resultStats.value.mode) {
+      resultStats.value.mode = data.session.mode;
+    }
+  } catch {
+    // Soft-fail; results page should still work without detailed opinion charts.
   }
 }
 
@@ -230,9 +269,19 @@ onUnmounted(() => {
                 <span class="text-muted-foreground">Questions</span>
                 <span class="text-2xl font-bold text-secondary">{{ totalQuestions }}</span>
               </div>
-              <div class="flex justify-between items-center">
+              <div
+                v-if="!isCollectOpinions"
+                class="flex justify-between items-center"
+              >
                 <span class="text-muted-foreground">Avg. Score</span>
                 <span class="text-2xl font-bold text-accent">{{ avgScore.toLocaleString() }}</span>
+              </div>
+              <div
+                v-else
+                class="flex justify-between items-center"
+              >
+                <span class="text-muted-foreground">Mode</span>
+                <span class="text-base font-bold text-foreground">Collect opinions</span>
               </div>
             </div>
           </PixelCard>
@@ -254,7 +303,8 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <PixelCard v-if="topTen.length > 0" class="space-y-4">
+        <!-- Competitive: show leaderboard -->
+        <PixelCard v-if="!isCollectOpinions && topTen.length > 0" class="space-y-4">
           <h2 class="text-2xl font-bold flex items-center gap-2">
             <svg class="text-warning" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" /><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
@@ -278,6 +328,70 @@ onUnmounted(() => {
               <div class="flex-1">
                 <div class="font-bold">{{ player.name || player.nickname || 'Player' }}</div>
                 <div class="text-sm text-muted-foreground">{{ (player.score || 0).toLocaleString() }} pts</div>
+              </div>
+            </div>
+          </div>
+        </PixelCard>
+
+        <!-- Collect opinions: show per-question distributions -->
+        <PixelCard v-else-if="isCollectOpinions" class="space-y-4">
+          <h2 class="text-2xl font-bold">
+            Opinion Overview
+          </h2>
+          <div v-if="opinionQuestions.length === 0" class="text-sm text-muted-foreground">
+            No detailed opinion data available yet.
+          </div>
+          <div v-else class="space-y-4 max-h-[480px] overflow-y-auto pr-1">
+            <div
+              v-for="q in opinionQuestions"
+              :key="q.questionId"
+              class="border-2 border-border bg-card/80 px-3 py-3 space-y-2"
+            >
+              <div class="text-sm font-semibold">
+                {{ q.text }}
+              </div>
+              <div class="text-xs text-muted-foreground flex justify-between">
+                <span>Responses: {{ q.totalAnswers }}</span>
+              </div>
+
+              <!-- Choice-style distribution -->
+              <div
+                v-if="q.options && q.options.length > 0 && ['multiple-choice','true-false','poll'].includes(q.type)"
+                class="mt-2 space-y-1"
+              >
+                <div
+                  v-for="opt in q.options"
+                  :key="opt.id"
+                  class="space-y-1"
+                >
+                  <div class="flex justify-between text-xs">
+                    <span class="truncate max-w-[60%]">{{ opt.text }}</span>
+                    <span class="text-muted-foreground">
+                      {{ q.answerDistribution?.[opt.id] || 0 }}
+                      <template v-if="q.totalAnswers > 0">
+                        ({{ Math.round(((q.answerDistribution?.[opt.id] || 0) / q.totalAnswers) * 100) }}%)
+                      </template>
+                    </span>
+                  </div>
+                  <div class="h-2 bg-muted border border-border">
+                    <div
+                      class="h-full bg-primary"
+                      :style="{
+                        width: q.totalAnswers > 0
+                          ? Math.max(((q.answerDistribution?.[opt.id] || 0) / q.totalAnswers) * 100, 4) + '%'
+                          : '0%'
+                      }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fallback for non-choice opinion questions -->
+              <div
+                v-else
+                class="text-xs text-muted-foreground mt-1"
+              >
+                Opinion data captured for this question (see detailed analytics for breakdown).
               </div>
             </div>
           </div>

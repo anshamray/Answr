@@ -28,6 +28,20 @@ const sessionSchema = new mongoose.Schema({
     enum: ['lobby', 'playing', 'paused', 'finished'],
     default: 'lobby'
   },
+  // Copied from quiz at session creation to freeze behavior per run
+  mode: {
+    type: String,
+    enum: ['competitive', 'collect-opinions'],
+    default: 'competitive'
+  },
+  isAnonymous: {
+    type: Boolean,
+    default: false
+  },
+  showLiveResultsToPlayers: {
+    type: Boolean,
+    default: true
+  },
   // Practice sessions are short-lived runs started from the editor or preview
   // to let moderators test their quiz. They should not count towards normal
   // analytics or play statistics.

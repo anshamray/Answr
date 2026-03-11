@@ -235,7 +235,8 @@ export function replaySessionStateToSocket(socket, session) {
   }
 
   socket.emit(GAME_EVENTS.STARTED, {
-    status: session.status
+    status: session.status,
+    mode: session.mode || 'competitive'
   });
 
   if (session.currentQuestionPayload) {

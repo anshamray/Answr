@@ -197,6 +197,10 @@ const totalPlays = computed(() =>
   quizzes.value.reduce((sum, q) => sum + (q.playCount || 0), 0)
 );
 
+const collectOpinionCount = computed(() =>
+  quizzes.value.filter(q => q.mode === 'collect-opinions').length
+);
+
 const favoritesCount = computed(() => favoriteQuizzes.value.length);
 
 const verificationSending = ref(false);
@@ -287,6 +291,10 @@ onMounted(fetchQuizzes);
         <PixelCard class="text-center cursor-pointer hover:border-accent transition-colors" @click="handleFilterChange('favorites')">
           <div class="text-4xl font-bold text-accent">{{ favoritesCount }}</div>
           <div class="text-sm text-muted-foreground">{{ t('dashboard.favorites') }}</div>
+        </PixelCard>
+        <PixelCard class="text-center">
+          <div class="text-4xl font-bold text-foreground">{{ collectOpinionCount }}</div>
+          <div class="text-sm text-muted-foreground">Opinion quizzes</div>
         </PixelCard>
       </div>
 
@@ -506,9 +514,14 @@ onMounted(fetchQuizzes);
                   <span>{{ t('common.plays', quiz.playCount || 0) }}</span>
                 </div>
               </div>
-              <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
-                {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
-              </PixelBadge>
+              <div class="flex flex-col items-end gap-1">
+                <PixelBadge :variant="quiz.isPublished ? 'success' : 'warning'">
+                  {{ quiz.isPublished ? t('dashboard.published') : t('dashboard.private') }}
+                </PixelBadge>
+                <PixelBadge v-if="quiz.mode === 'collect-opinions'" variant="secondary" class="text-[10px] mt-1">
+                  Collect opinions
+                </PixelBadge>
+              </div>
             </div>
 
             <!-- Details section -->

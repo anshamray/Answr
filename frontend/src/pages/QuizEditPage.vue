@@ -28,7 +28,9 @@ const quiz = ref({
   language: 'en',
   tags: [],
   isPublished: false,
-  mode: 'competitive' // 'competitive' | 'collect-opinions'
+  mode: 'competitive', // 'competitive' | 'collect-opinions'
+  isAnonymous: false,
+  showLiveResultsToPlayers: true
 });
 const newTag = ref('');
 const questions = ref([]);
@@ -237,7 +239,9 @@ async function fetchQuiz() {
       ...loadedQuiz,
       tags: loadedQuiz.tags || [],
       language: loadedQuiz.language || 'en',
-      mode: loadedQuiz.mode || 'competitive'
+      mode: loadedQuiz.mode || 'competitive',
+      isAnonymous: loadedQuiz.isAnonymous ?? false,
+      showLiveResultsToPlayers: loadedQuiz.showLiveResultsToPlayers ?? true
     };
     questions.value = quiz.value.questions || [];
     syncQuestionOrders();
@@ -476,7 +480,9 @@ async function saveAll() {
           category: quiz.value.category,
           language: quiz.value.language,
           tags: quiz.value.tags,
-          mode: quiz.value.mode || 'competitive'
+          mode: quiz.value.mode || 'competitive',
+          isAnonymous: quiz.value.isAnonymous,
+          showLiveResultsToPlayers: quiz.value.showLiveResultsToPlayers
         })
       });
       // Sync local quiz state with server response (includes generated title)
@@ -490,7 +496,9 @@ async function saveAll() {
         category: quiz.value.category,
         language: quiz.value.language,
         tags: quiz.value.tags,
-        mode: quiz.value.mode || 'competitive'
+        mode: quiz.value.mode || 'competitive',
+        isAnonymous: quiz.value.isAnonymous,
+        showLiveResultsToPlayers: quiz.value.showLiveResultsToPlayers
       };
 
       // Only send title if it's non-empty to avoid validation errors
@@ -894,6 +902,31 @@ onUnmounted(() => {
             <p class="mt-1 text-[11px] text-muted-foreground">
               Use <strong>Collect opinions</strong> for survey-style sessions where players are not ranked by score.
             </p>
+          </div>
+
+          <!-- Opinion settings -->
+          <div class="space-y-2">
+            <label class="text-xs font-medium text-muted-foreground mb-1 block">
+              Opinion settings
+            </label>
+            <label class="flex items-center gap-2 text-xs cursor-pointer">
+              <input
+                v-model="quiz.isAnonymous"
+                type="checkbox"
+                class="w-4 h-4 border-2 border-border accent-primary"
+                @change="hasUnsavedChanges = true"
+              />
+              <span>Hide player names in analytics</span>
+            </label>
+            <label class="flex items-center gap-2 text-xs cursor-pointer">
+              <input
+                v-model="quiz.showLiveResultsToPlayers"
+                type="checkbox"
+                class="w-4 h-4 border-2 border-border accent-primary"
+                @change="hasUnsavedChanges = true"
+              />
+              <span>Show aggregated results on player devices</span>
+            </label>
           </div>
 
           <!-- Description -->

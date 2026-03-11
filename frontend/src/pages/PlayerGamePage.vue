@@ -22,6 +22,8 @@ const { t } = useI18n();
 const router = useRouter();
 const game = useGameStore();
 
+const isCollectOpinions = computed(() => game.mode === 'collect-opinions');
+
 const selectedAnswer = ref(null);
 const selectedAnswers = ref([]); // For multi-answer questions
 const submitted = ref(false);
@@ -105,6 +107,9 @@ const pinMediaUrl = computed(() => {
 const textAnswer = ref('');
 
 const wasCorrect = computed(() => {
+  if (isCollectOpinions.value) {
+    return null;
+  }
   // For non-MC types, use points earned from leaderboard
   const qType = question.value?.type;
   if (['slider', 'pin-answer', 'type-answer', 'sort'].includes(qType)) {
@@ -463,6 +468,12 @@ function setup() {
   // Start intro countdown for initial question
   startIntroCountdown();
 
+  socket.on('game:started', (data) => {
+    if (data?.mode) {
+      game.mode = data.mode === 'collect-opinions' ? 'collect-opinions' : 'competitive';
+    }
+  });
+
   socket.on('game:questionIntro', (data) => {
     // Start the intro countdown (3-2-1-Go!)
     startIntroCountdown(data?.countdownSeconds || 3);
@@ -503,6 +514,12 @@ function setup() {
   });
 
   socket.on('game:leaderboard', (data) => {
+    if (game.mode === 'collect-opinions') {
+      leaderboard.value = [];
+      pointsEarned.value = null;
+      previousScore = 0;
+      return;
+    }
     leaderboard.value = data?.leaderboard || [];
     const me = leaderboard.value.find((e) => e.playerId === game.playerId);
     if (me) {
@@ -521,6 +538,9 @@ function setup() {
   socket.on('game:end', (data) => {
     stopTimer();
     game.status = 'finished';
+    if (data?.stats?.mode) {
+      game.mode = data.stats.mode === 'collect-opinions' ? 'collect-opinions' : 'competitive';
+    }
     game.leaderboard = data?.leaderboard || [];
     router.push('/play/results');
   });
@@ -559,8 +579,8 @@ onUnmounted(cleanup);
         Q{{ question?.questionNumber || '?' }} / {{ question?.totalQuestions || '?' }}
       </PixelBadge>
       <div class="flex items-center gap-2">
-        <!-- Streak Counter -->
-        <StreakCounter v-if="game.currentStreak >= 2 && !questionEnded" />
+        <!-- Streak Counter (competitive mode only) -->
+        <StreakCounter v-if="!isCollectOpinions && game.currentStreak >= 2 && !questionEnded" />
         <div
           v-if="timeRemaining != null && !questionEnded && phase === 'answering'"
           class="flex items-center gap-2 px-4 py-2 border-2 border-black font-bold"
@@ -1091,6 +1111,8 @@ onUnmounted(cleanup);
 
     <!-- ── Question ended (results) ────────────────── -->
     <template v-else>
+      <!-- Competitive mode: show correctness, points, and rankings -->
+      <template v-if="!isCollectOpinions">
       <div class="flex-1 flex flex-col items-center justify-center px-4 py-6 bg-gradient-to-br from-success/20 to-primary/20">
         <div class="w-full max-w-sm space-y-4">
           <!-- Feedback -->
@@ -1202,6 +1224,21 @@ onUnmounted(cleanup);
           </div>
         </div>
       </div>
+      </template>
+
+      <!-- Collect-opinions mode: simple thank-you, no scores or rankings -->
+      <template v-else>
+        <div class="flex-1 flex flex-col items-center justify-center px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10">
+          <PixelCard class="w-full max-w-md text-center !p-6 space-y-4">
+            <h2 class="text-3xl font-bold text-primary">
+              {{ t('playerGame.answerSubmitted') }}
+            </h2>
+            <p class="text-muted-foreground text-lg">
+              {{ t('playerGame.waitingForNextQuestion') }}
+            </p>
+          </PixelCard>
+        </div>
+      </template>
     </template>
   </div>
 </template>

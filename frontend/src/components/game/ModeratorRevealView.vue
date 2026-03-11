@@ -52,7 +52,8 @@ const props = defineProps({
   gameSettings: { type: Object, required: true },
   // Media
   pinQuestionMediaUrl: { type: String, required: false, default: null },
-  showPinResultsFullscreen: { type: Boolean, required: true }
+  showPinResultsFullscreen: { type: Boolean, required: true },
+  isCollectOpinions: { type: Boolean, required: false, default: false }
 });
 
 const emit = defineEmits(['next-question', 'end-button-click', 'toggle-pin-fullscreen']);
@@ -60,6 +61,7 @@ const emit = defineEmits(['next-question', 'end-button-click', 'toggle-pin-fulls
 const { t } = useI18n();
 
 const isScoredQuestion = computed(() => {
+  if (props.isCollectOpinions) return false;
   const points = props.currentQuestion?.points;
   return typeof points === 'number' && points > 0;
 });

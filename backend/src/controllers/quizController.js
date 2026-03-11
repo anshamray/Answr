@@ -75,7 +75,16 @@ export async function getQuiz(req, res) {
  */
 export async function createQuiz(req, res) {
   try {
-    const { title, description, category, tags, language, mode } = req.body;
+    const {
+      title,
+      description,
+      category,
+      tags,
+      language,
+      mode,
+      isAnonymous,
+      showLiveResultsToPlayers
+    } = req.body;
 
     if (!title) {
       return sendBadRequest(res, 'Title is required');
@@ -88,7 +97,9 @@ export async function createQuiz(req, res) {
       category: category || '',
       tags: Array.isArray(tags) ? tags.slice(0, 10) : [],
       language: language || 'en',
-      mode: mode === 'collect-opinions' ? 'collect-opinions' : 'competitive'
+      mode: mode === 'collect-opinions' ? 'collect-opinions' : 'competitive',
+      isAnonymous: !!isAnonymous,
+      showLiveResultsToPlayers: showLiveResultsToPlayers !== undefined ? !!showLiveResultsToPlayers : true
     });
 
     await quiz.save();
@@ -106,7 +117,16 @@ export async function createQuiz(req, res) {
  */
 export async function updateQuiz(req, res) {
   try {
-    const { title, description, category, tags, language, mode } = req.body;
+    const {
+      title,
+      description,
+      category,
+      tags,
+      language,
+      mode,
+      isAnonymous,
+      showLiveResultsToPlayers
+    } = req.body;
 
     const quiz = await Quiz.findOne({
       _id: req.params.id,
@@ -125,6 +145,12 @@ export async function updateQuiz(req, res) {
     if (language !== undefined) quiz.language = language;
     if (mode !== undefined) {
       quiz.mode = mode === 'collect-opinions' ? 'collect-opinions' : 'competitive';
+    }
+    if (isAnonymous !== undefined) {
+      quiz.isAnonymous = !!isAnonymous;
+    }
+    if (showLiveResultsToPlayers !== undefined) {
+      quiz.showLiveResultsToPlayers = !!showLiveResultsToPlayers;
     }
 
     await quiz.save();

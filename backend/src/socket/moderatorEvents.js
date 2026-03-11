@@ -295,7 +295,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       // Look up the backing DB session (if any) so we can detect practice runs.
       let dbSession = null;
       if (sessionPin) {
-        dbSession = await Session.findOne({ pin: sessionPin }).select('quizId isPractice');
+        dbSession = await Session.findOne({ pin: sessionPin }).select('quizId isPractice mode isAnonymous showLiveResultsToPlayers');
       }
 
       let session = activeSessions.get(sessionPin);
@@ -310,7 +310,12 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           currentQuestionIndex: 0,
           players: new Map(),
           answers: new Map(),
-          isPractice: !!dbSession?.isPractice
+          isPractice: !!dbSession?.isPractice,
+          mode: dbSession?.mode || 'competitive',
+          isAnonymous: !!dbSession?.isAnonymous,
+          showLiveResultsToPlayers: dbSession?.showLiveResultsToPlayers !== undefined
+            ? !!dbSession.showLiveResultsToPlayers
+            : true
         };
         activeSessions.set(sessionPin, session);
       } else {
@@ -347,6 +352,17 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         if (typeof session.isPractice !== 'boolean') {
           session.isPractice = !!dbSession?.isPractice;
         }
+        if (!session.mode) {
+          session.mode = dbSession?.mode || 'competitive';
+        }
+        if (session.isAnonymous === undefined) {
+          session.isAnonymous = !!dbSession?.isAnonymous;
+        }
+        if (session.showLiveResultsToPlayers === undefined) {
+          session.showLiveResultsToPlayers = dbSession?.showLiveResultsToPlayers !== undefined
+            ? !!dbSession.showLiveResultsToPlayers
+            : true;
+        }
       }
 
       // For practice sessions started from the editor, ensure demo bot
@@ -364,7 +380,8 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       socket.emit(MODERATOR_EVENTS.JOINED, {
         sessionId: sessionPin,
         quizId: session.quizId ?? null,
-        status: session.status
+        status: session.status,
+        mode: session.mode || 'competitive'
       });
 
       // Optionally send current lobby state to moderator
@@ -431,7 +448,8 @@ export function registerModeratorEvents(io, socket, activeSessions) {
 
       // Inform all clients that the game has started
       broadcastToSession(io, sessionPin, GAME_EVENTS.STARTED, {
-        status: 'playing'
+        status: 'playing',
+        mode: session.mode || 'competitive'
       });
 
       const { firstQuestion } = payload || {};

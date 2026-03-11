@@ -19,6 +19,7 @@ export const useGameStore = defineStore('game', () => {
   const currentQuestion = ref(persistedSession?.currentQuestion ?? null);
   const leaderboard = ref(Array.isArray(persistedSession?.leaderboard) ? persistedSession.leaderboard : []);
   const answerResult = ref(null);
+  const mode = ref(persistedSession?.mode ?? 'competitive'); // 'competitive' | 'collect-opinions'
 
   // Streak tracking
   const currentStreak = ref(0);
@@ -56,6 +57,7 @@ export const useGameStore = defineStore('game', () => {
     currentQuestion.value = null;
     leaderboard.value = [];
     answerResult.value = null;
+    mode.value = 'competitive';
     currentStreak.value = 0;
     maxStreak.value = 0;
     streakLabel.value = null;
@@ -99,14 +101,15 @@ export const useGameStore = defineStore('game', () => {
         playerEmoji: playerEmoji.value,
         status: status.value,
         currentQuestion: currentQuestion.value,
-        leaderboard: leaderboard.value
+        leaderboard: leaderboard.value,
+        mode: mode.value
       });
       persistTimeout = null;
     }, 150);
   }
 
   watch(
-    [pin, playerId, sessionId, playerName, playerEmoji, status, currentQuestion, leaderboard],
+    [pin, playerId, sessionId, playerName, playerEmoji, status, currentQuestion, leaderboard, mode],
     schedulePersist,
     { deep: true }
   );
@@ -122,6 +125,7 @@ export const useGameStore = defineStore('game', () => {
     currentQuestion,
     leaderboard,
     answerResult,
+    mode,
     playerSettings,
     currentStreak,
     maxStreak,
