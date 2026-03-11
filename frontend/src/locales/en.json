@@ -508,7 +508,9 @@
     "leaveConfirm": "You have unsaved changes. Are you sure you want to leave?",
     "pasteHint": "💡 Tip: Paste a question with answers to auto-fill",
     "questionText": "Question Text",
-    "questionPlaceholder": "Enter your question here..."
+    "questionPlaceholder": "Enter your question here...",
+    "previewAsPlayer": "Preview as player",
+    "previewHostHint": "Exactly what you will see when hosting live."
   },
   "questionValidation": {
     "textRequired": "Question text is required for type \"{type}\"",

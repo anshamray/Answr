@@ -21,6 +21,10 @@ const error = ref('');
 const sessionId = ref('');
 const pin = ref('');
 
+// Delay rendering of the player iframe slightly so the host control page
+// has time to connect its websocket and register the in-memory session.
+const showPlayerFrame = ref(false);
+
 const quizId = computed(() => route.params.id);
 
 const hostUrl = computed(() => {
@@ -67,6 +71,13 @@ async function createPracticeSession() {
     if (!sessionId.value || !pin.value) {
       throw new Error('Missing session data for practice preview');
     }
+
+    // Give the host iframe a brief head start before we render the player
+    // iframe so that the websocket-backed session exists when the player
+    // performs its PIN check.
+    setTimeout(() => {
+      showPlayerFrame.value = true;
+    }, 1500);
   } catch (err) {
     error.value = err.message || 'Failed to create practice session';
   } finally {
@@ -86,6 +97,10 @@ onMounted(() => {
   if (typeof initialSessionId === 'string' && typeof initialPin === 'string') {
     sessionId.value = initialSessionId;
     pin.value = initialPin;
+    // Assume host will connect quickly; still delay player iframe slightly.
+    setTimeout(() => {
+      showPlayerFrame.value = true;
+    }, 1000);
     return;
   }
 
@@ -165,7 +180,7 @@ onMounted(() => {
               {{ t('quizEditor.previewHostHint') || 'Exactly what you will see when hosting live.' }}
             </span>
           </div>
-          <div class="relative flex-1 border-[3px] border-black bg-black/5 overflow-hidden">
+          <div class="relative flex-1 border-[3px] border-black bg-black/5 overflow-auto">
             <iframe
               v-if="hostUrl"
               :src="hostUrl"
@@ -190,11 +205,17 @@ onMounted(() => {
               <div class="absolute inset-[6px] bg-black/90"></div>
               <div class="relative inset-[6px] absolute bg-white overflow-hidden">
                 <iframe
-                  v-if="playerUrl"
+                  v-if="playerUrl && showPlayerFrame"
                   :src="playerUrl"
                   title="Player preview"
                   class="w-full h-full border-0"
                 ></iframe>
+                <div
+                  v-else
+                  class="w-full h-full flex items-center justify-center text-xs text-muted-foreground"
+                >
+                  {{ t('common.loading') }}
+                </div>
               </div>
             </div>
           </div>

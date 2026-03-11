@@ -508,7 +508,9 @@
     "leaveConfirm": "Du hast ungespeicherte Änderungen. Möchtest du wirklich gehen?",
     "pasteHint": "💡 Tipp: Frage mit Antworten einfügen zum automatischen Ausfüllen",
     "questionText": "Fragentext",
-    "questionPlaceholder": "Gib hier deine Frage ein..."
+    "questionPlaceholder": "Gib hier deine Frage ein...",
+    "previewAsPlayer": "Als Spieler testen",
+    "previewHostHint": "Genau das, was du beim Live-Hosting siehst."
   },
   "questionValidation": {
     "textRequired": "Fragetext ist erforderlich für Typ \"{type}\"",
