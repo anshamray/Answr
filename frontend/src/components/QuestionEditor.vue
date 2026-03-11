@@ -381,6 +381,7 @@ async function handleRevealFileSelect(event) {
       revealFileInputRef.value.value = '';
     }
   }
+}
 
 // Get icon for question type
 function getIcon(iconName) {
