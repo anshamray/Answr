@@ -49,6 +49,7 @@ import {
   computeLeaderboard,
   computeFinalResults
 } from './broadcastEvents.js';
+import Session from '../models/Session.js';
 
 /**
  * Register all player-related Socket.io event handlers (WS-2)
@@ -68,7 +69,7 @@ export function registerPlayerEvents(io, socket, activeSessions) {
    *   - player:pin-valid   { pin }            on success
    *   - player:pin-invalid { code, message }  on failure
    */
-  socket.on(PLAYER_EVENTS.CHECK_PIN, (payload) => {
+  socket.on(PLAYER_EVENTS.CHECK_PIN, async (payload) => {
     try {
       const { pin: rawPin } = payload || {};
 
@@ -78,11 +79,32 @@ export function registerPlayerEvents(io, socket, activeSessions) {
       }
 
       const sessionPin = rawPin.trim();
-      const session = activeSessions.get(sessionPin);
+      let session = activeSessions.get(sessionPin);
 
+      // For practice preview (and resilience in general), fall back to the
+      // database if no in-memory session exists yet. This allows the player
+      // to validate the PIN even if the moderator socket has not connected.
       if (!session) {
-        socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.PIN_INVALID, message: 'No session found for this PIN.' });
-        return;
+        const dbSession = await Session.findOne({ pin: sessionPin })
+          .select('quizId status isPractice')
+          .lean();
+
+        if (!dbSession) {
+          socket.emit(PLAYER_EVENTS.PIN_INVALID, { code: ERROR_CODES.PIN_INVALID, message: 'No session found for this PIN.' });
+          return;
+        }
+
+        session = {
+          pin: sessionPin,
+          quizId: dbSession.quizId ? dbSession.quizId.toString() : undefined,
+          hostSocketId: null,
+          status: dbSession.status || 'lobby',
+          currentQuestionIndex: 0,
+          players: new Map(),
+          answers: new Map(),
+          isPractice: !!dbSession.isPractice
+        };
+        activeSessions.set(sessionPin, session);
       }
 
       // Allow PIN validation if in lobby OR if late joins are enabled during game

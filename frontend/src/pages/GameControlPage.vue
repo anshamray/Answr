@@ -34,6 +34,13 @@ const auth = useAuthStore();
 const sessionId = route.params.id;
 const guestToken = sessionStorage.getItem(STORAGE_KEYS.GUEST_TOKEN);
 
+const isPracticeMode = computed(() => {
+  const flag = route.query.practice;
+  if (flag === '1' || flag === 'true') return true;
+  if (flag === '0' || flag === 'false') return false;
+  return false;
+});
+
 const pin = ref('');
 const quizTitle = ref('');
 const questions = ref([]);
@@ -460,9 +467,17 @@ async function fetchSession() {
     questions.value = session.quizId?.questions || [];
     playerCount.value = session.participants?.length || 0;
 
-    // Wait for socket to join the room before starting
+    // Wait for socket to join the room before starting.
     await ensureSocket(session.pin);
-    sendFirstQuestion();
+
+    // In normal games, immediately start the first question as before.
+    // In practice preview mode, let the moderator explicitly start so
+    // players (and the preview phone) have time to join.
+    if (!isPracticeMode.value) {
+      sendFirstQuestion();
+    } else {
+      status.value = 'loading';
+    }
   } catch (err) {
     error.value = err.message;
     status.value = 'error';
@@ -876,7 +891,17 @@ onUnmounted(cleanup);
 
     <!-- Loading -->
     <div v-if="status === 'loading'" class="flex-1 flex items-center justify-center">
-      <p class="text-muted-foreground text-lg">{{ t('gameControl.loadingQuestions') }}</p>
+      <div v-if="isPracticeMode" class="text-center space-y-4">
+        <p class="text-muted-foreground text-lg">
+          {{ t('gameControl.loadingQuestions') }}
+        </p>
+        <PixelButton variant="primary" size="lg" @click="sendFirstQuestion">
+          {{ t('sessionLobby.startGame') }}
+        </PixelButton>
+      </div>
+      <p v-else class="text-muted-foreground text-lg">
+        {{ t('gameControl.loadingQuestions') }}
+      </p>
     </div>
 
     <!-- Error -->
