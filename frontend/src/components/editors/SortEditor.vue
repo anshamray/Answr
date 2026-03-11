@@ -131,7 +131,7 @@ function moveDown(index) {
 
         <!-- Number + answer text as one aligned block -->
         <div class="flex-1 min-w-0 flex items-start gap-3">
-          <div class="w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground font-bold text-sm flex-shrink-0">
+          <div class="w-12 h-12 flex items-center justify-center bg-primary text-primary-foreground font-bold text-sm flex-shrink-0">
             {{ index + 1 }}
           </div>
 
@@ -141,8 +141,8 @@ function moveDown(index) {
               @input="updateAnswerText(index, $event.target.value)"
               type="text"
               placeholder="Enter item text..."
-              maxlength="200"
-              class="w-full px-3 py-2 border-2 border-border bg-white focus:border-primary focus:outline-none"
+            maxlength="200"
+            class="w-full h-12 px-3 border-2 border-border bg-white focus:border-primary focus:outline-none"
             />
             <div class="flex justify-end">
               <span class="text-[11px] leading-tight text-muted-foreground">

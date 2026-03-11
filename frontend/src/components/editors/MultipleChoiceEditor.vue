@@ -128,7 +128,7 @@ function removeAnswer(index) {
             type="text"
             :placeholder="t('questionEditor.answerPlaceholder')"
             maxlength="200"
-            class="w-full px-4 py-3 border-2 border-border bg-white focus:border-primary focus:outline-none"
+            class="w-full h-12 px-4 border-2 border-border bg-white focus:border-primary focus:outline-none"
           />
           <div class="flex justify-end">
             <span class="text-[11px] leading-tight text-muted-foreground">
