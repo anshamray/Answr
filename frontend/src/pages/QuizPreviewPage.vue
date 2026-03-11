@@ -120,6 +120,12 @@ function goBack() {
   router.push('/dashboard');
 }
 
+function resolveMediaUrl(url) {
+  if (!url) return null;
+  if (!url.startsWith('/')) return url;
+  return apiUrl(url);
+}
+
 onMounted(fetchQuiz);
 </script>
 
@@ -221,26 +227,101 @@ onMounted(fetchQuiz);
                       class="flex items-center gap-3 p-2 border-2"
                       :class="answer.isCorrect ? 'border-success bg-success/10' : 'border-border'"
                     >
-                      <span class="w-6 h-6 flex items-center justify-center border-2 border-current text-xs font-bold shrink-0"
-                        :class="answer.isCorrect ? 'bg-success text-white border-success' : 'bg-white'">
+                      <span
+                        class="w-6 h-6 flex items-center justify-center border-2 border-current text-xs font-bold shrink-0"
+                        :class="answer.isCorrect ? 'bg-success text-white border-success' : 'bg-white'"
+                      >
                         {{ String.fromCharCode(65 + ai) }}
                       </span>
                       <span :class="answer.isCorrect ? 'font-medium' : ''">{{ answer.text }}</span>
-                      <svg v-if="answer.isCorrect" class="w-5 h-5 text-success ml-auto shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                      <svg
+                        v-if="answer.isCorrect"
+                        class="w-5 h-5 text-success ml-auto shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="3"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>
                   </div>
 
                   <!-- Slider config -->
-                  <div v-else-if="q.sliderConfig" class="ml-12 p-3 bg-muted/50 border-2 border-border">
-                    <div class="text-sm">
-                      <span class="text-muted-foreground">Range:</span> {{ q.sliderConfig.min }} - {{ q.sliderConfig.max }}
+                  <div
+                    v-else-if="q.sliderConfig"
+                    class="ml-12 mt-1 border-2 border-black bg-gradient-to-b from-muted/40 to-muted/70 px-4 py-3 pixel-shadow"
+                  >
+                    <div class="flex items-center justify-between gap-3 mb-2">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide bg-black text-white border border-white">
+                        {{ t('questionTypes.slider') || 'Slider' }}
+                      </span>
+                      <span class="text-xs text-muted-foreground font-mono">
+                        {{ q.timeLimit }}s
+                      </span>
                     </div>
-                    <div class="text-sm">
-                      <span class="text-muted-foreground">Correct value:</span>
-                      <span class="font-bold text-success"> {{ q.sliderConfig.correctValue }}</span>
+                    <div class="flex items-center justify-between text-sm font-semibold">
+                      <div class="flex flex-col">
+                        <span class="text-[11px] text-muted-foreground uppercase">Range</span>
+                        <span class="inline-flex items-center gap-1 font-mono">
+                          <span class="px-2 py-0.5 bg-black text-white text-xs">
+                            {{ q.sliderConfig.min }}
+                          </span>
+                          <span class="text-xs text-muted-foreground">–</span>
+                          <span class="px-2 py-0.5 bg-black text-white text-xs">
+                            {{ q.sliderConfig.max }}
+                          </span>
+                        </span>
+                      </div>
+                      <div class="flex flex-col items-end">
+                        <span class="text-[11px] text-muted-foreground uppercase">Correct</span>
+                        <span class="px-2 py-0.5 border-2 border-success bg-success/10 text-success text-sm font-bold font-mono">
+                          {{ q.sliderConfig.correctValue }}
+                        </span>
+                      </div>
                     </div>
+                  </div>
+
+                  <!-- Pin-answer preview -->
+                  <div
+                    v-else-if="q.type === 'pin-answer' && q.mediaUrl"
+                    class="ml-12 mt-1 border-2 border-black bg-black px-3 py-3 pixel-shadow"
+                  >
+                    <div class="relative w-full max-w-md max-h-64 mx-auto overflow-hidden bg-black border-2 border-white">
+                      <img
+                        :src="resolveMediaUrl(q.mediaUrl)"
+                        :alt="q.text"
+                        class="w-full h-full object-contain"
+                      />
+                      <div
+                        v-if="q.pinConfig"
+                        class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 border-[3px] border-success bg-success/20 shadow-[3px_3px_0_rgba(0,0,0,0.9)] rotate-45"
+                        :style="{
+                          left: `${q.pinConfig.x}%`,
+                          top: `${q.pinConfig.y}%`,
+                          width: `${(q.pinConfig.radius || 8) * 2}%`,
+                          height: `${(q.pinConfig.radius || 8) * 2}%`
+                        }"
+                      />
+                      <div
+                        v-if="q.pinConfig"
+                        class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                        :style="{ left: `${q.pinConfig.x}%`, top: `${q.pinConfig.y}%` }"
+                      >
+                        <div
+                          class="flex h-7 w-7 items-center justify-center border-[3px] border-black bg-success text-xs font-bold text-white shadow-[3px_3px_0_#000] rotate-45"
+                        >
+                          <div class="-rotate-45">
+                            ✓
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <p class="mt-2 text-[11px] text-muted-foreground text-center">
+                      Players must tap inside the highlighted area on the image to be counted as correct.
+                    </p>
                   </div>
                 </div>
               </div>
