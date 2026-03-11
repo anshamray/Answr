@@ -194,7 +194,7 @@ onMounted(fetchQuiz);
                     </div>
                   </div>
 
-                  <div v-if="quiz.tags?.length" class="flex flex-wrap items-start gap-2">
+                  <div v-if="quiz.tags?.length" class="flex flex-wrap items-center gap-2">
                     <PixelBadge v-for="tag in quiz.tags" :key="tag" variant="primary">{{ tag }}</PixelBadge>
                   </div>
                 </div>

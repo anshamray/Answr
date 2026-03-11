@@ -282,11 +282,11 @@ onMounted(fetchLibrary);
                   </div>
                 </div>
 
-                <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                <div v-if="quiz.tags?.length" class="flex flex-wrap items-center gap-2">
                   <span
                     v-for="tag in quiz.tags.slice(0, 3)"
                     :key="tag"
-                    class="px-3 py-1 bg-primary/10 border border-primary text-primary text-xs font-medium"
+                    class="inline-flex items-center px-3 py-1 bg-primary/10 border border-primary text-primary text-xs font-medium leading-none whitespace-nowrap"
                   >{{ tag }}</span>
                 </div>
 
@@ -331,11 +331,11 @@ onMounted(fetchLibrary);
                 </div>
                 <p class="text-sm text-muted-foreground line-clamp-2">{{ quiz.description || t('common.noDescription') }}</p>
 
-                <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+                <div v-if="quiz.tags?.length" class="flex flex-wrap items-center gap-2">
                   <span
                     v-for="tag in quiz.tags.slice(0, 3)"
                     :key="tag"
-                    class="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium"
+                    class="inline-flex items-center px-2 py-1 bg-muted text-muted-foreground text-xs font-medium leading-none whitespace-nowrap"
                   >{{ tag }}</span>
                 </div>
 

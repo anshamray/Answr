@@ -437,11 +437,11 @@ onMounted(fetchQuizzes);
               </svg>
             </div>
 
-            <div v-if="quiz.tags?.length" class="flex flex-wrap gap-2">
+            <div v-if="quiz.tags?.length" class="flex flex-wrap items-center gap-2">
               <span
                 v-for="tag in quiz.tags.slice(0, 3)"
                 :key="tag"
-                class="px-2 py-1 bg-muted text-muted-foreground text-xs font-medium"
+                class="inline-flex items-center px-2 py-1 bg-muted text-muted-foreground text-xs font-medium leading-none whitespace-nowrap"
               >{{ tag }}</span>
             </div>
 
@@ -538,11 +538,11 @@ onMounted(fetchQuizzes);
               </div>
 
               <!-- Tags — fixed height for one row -->
-              <div class="flex flex-wrap gap-2 min-h-[1.75rem]">
+              <div class="flex flex-wrap items-center gap-2 min-h-[1.75rem]">
                 <span
                   v-for="tag in (quiz.tags || [])"
                   :key="tag"
-                  class="px-2 py-1 bg-primary/10 text-primary text-xs font-medium"
+                  class="inline-flex items-center px-2 py-1 bg-primary/10 text-primary text-xs font-medium leading-none whitespace-nowrap"
                 >{{ tag }}</span>
               </div>
 
@@ -708,7 +708,7 @@ onMounted(fetchQuizzes);
               <span
                 v-for="tag in publishDialogQuiz.tags"
                 :key="tag"
-                class="inline-block bg-primary/10 text-primary px-2 py-0.5 mr-1 mb-1 text-xs"
+                class="inline-flex items-center bg-primary/10 text-primary px-2 py-0.5 mr-1 mb-1 text-xs leading-none whitespace-nowrap"
               >
                 {{ tag }}
               </span>

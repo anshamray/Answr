@@ -522,3 +522,34 @@ export async function exportSessionCSV(req, res) {
     sendServerError(res, 'Failed to export session data');
   }
 }
+
+/**
+ * Permanently delete a session and its related data (participants + submissions).
+ * DELETE /api/sessions/:id/permanent
+ */
+export async function deleteSessionPermanently(req, res) {
+  try {
+    const session = await Session.findOne({
+      _id: req.params.id,
+      moderatorId: req.user.userId
+    }).select('_id status');
+
+    if (!session) {
+      return sendNotFound(res, 'Session not found');
+    }
+
+    // Avoid deleting sessions while they are actively running.
+    if (session.status === 'playing' || session.status === 'paused') {
+      return sendConflict(res, 'Session is currently active');
+    }
+
+    await Submission.deleteMany({ sessionId: session._id });
+    await Participant.deleteMany({ sessionId: session._id });
+    await Session.deleteOne({ _id: session._id });
+
+    return sendSuccess(res, { message: 'Session deleted', data: { id: req.params.id } });
+  } catch (error) {
+    console.error('Delete session error:', error);
+    return sendServerError(res, 'Failed to delete session');
+  }
+}

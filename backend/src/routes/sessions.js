@@ -8,7 +8,8 @@ import {
   getSessionResults,
   getSessionHistory,
   getSessionAnalytics,
-  exportSessionCSV
+  exportSessionCSV,
+  deleteSessionPermanently
 } from '../controllers/sessionController.js';
 
 const router = Router();
@@ -21,6 +22,7 @@ router.get('/:id', optionalAuth, getSession);
 
 // All other session routes require full authentication
 router.post('/', authenticate, createSession);
+router.delete('/:id/permanent', authenticate, deleteSessionPermanently);
 router.delete('/:id', authenticate, endSession);
 router.get('/:id/results', authenticate, getSessionResults);
 router.get('/:id/analytics', authenticate, getSessionAnalytics);

@@ -560,6 +560,27 @@ export function registerModeratorEvents(io, socket, activeSessions) {
 
       session.status = 'finished';
 
+      // Persist final session state to the database so analytics can
+      // correctly show status and duration. We look up by PIN because
+      // the WebSocket layer does not know the DB id.
+      const finishedAt = new Date();
+      Session.findOneAndUpdate(
+        { pin: sessionPin },
+        {
+          $set: {
+            status: 'finished',
+            finishedAt
+          },
+          // Backfill startedAt if for some reason it was never set
+          $setOnInsert: {
+            startedAt: session.startedAt || null
+          }
+        },
+        { upsert: false }
+      ).catch((err) => {
+        console.error('Failed to persist finished session state:', err);
+      });
+
       // Compute real final leaderboard with all player scores
       const finalResults = computeFinalResults(session);
 

@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
-import { getPersistedPlayerRoute, hasPersistedPlayerSession } from '../lib/playerSession.js';
+import {
+  getPersistedPlayerRoute,
+  hasPersistedPlayerSession,
+  readPersistedPlayerSession,
+  clearPersistedPlayerSession
+} from '../lib/playerSession.js';
 
 import LandingPage from '../pages/LandingPage.vue';
 import LoginPage from '../pages/LoginPage.vue';
@@ -81,10 +86,23 @@ const router = createRouter({
 // Routes with `requiresGuestOrAuth` also accept a guest session token
 // (stored in sessionStorage by LibraryDetailPage when starting as guest).
 router.beforeEach((to) => {
-  if (to.path === '/play' && hasPersistedPlayerSession()) {
-    const persistedRoute = getPersistedPlayerRoute();
-    if (persistedRoute && persistedRoute !== to.path) {
-      return { path: persistedRoute };
+  // Player join flow:
+  // - If user explicitly navigates with a PIN (e.g. QR code `/play?pin=123456`),
+  //   do NOT auto-redirect to a previously persisted player route (like results).
+  // - If the PIN differs from the persisted session PIN, drop the old session.
+  if (to.path === '/play') {
+    const incomingPin = typeof to.query?.pin === 'string' ? to.query.pin.trim() : '';
+    if (incomingPin) {
+      const persisted = readPersistedPlayerSession();
+      const persistedPin = typeof persisted?.pin === 'string' ? persisted.pin.trim() : '';
+      if (persistedPin && persistedPin !== incomingPin) {
+        clearPersistedPlayerSession();
+      }
+    } else if (hasPersistedPlayerSession()) {
+      const persistedRoute = getPersistedPlayerRoute();
+      if (persistedRoute && persistedRoute !== to.path) {
+        return { path: persistedRoute };
+      }
     }
   }
 

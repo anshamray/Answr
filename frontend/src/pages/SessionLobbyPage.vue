@@ -210,21 +210,23 @@ function getAvatar(index) {
                   {{ pin }}
                 </div>
                 <button
-                  class="inline-flex items-center gap-2 px-4 py-2 border-2 border-primary bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors text-sm"
+                  class="inline-flex items-center justify-center w-11 h-11 border-2 border-primary bg-primary/10 hover:bg-primary/20 text-primary font-medium transition-colors"
+                  type="button"
+                  :title="copied ? t('sessionLobby.copied') : t('sessionLobby.copyPin')"
+                  :aria-label="copied ? t('sessionLobby.copied') : t('sessionLobby.copyPin')"
                   @click="copyPin"
                 >
-                  <svg v-if="!copied" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <svg v-if="!copied" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
                   </svg>
-                  <PixelCheck v-else :size="16" class="text-primary" />
-                  {{ copied ? t('sessionLobby.copied') : t('sessionLobby.copyPin') }}
+                  <PixelCheck v-else :size="18" class="text-primary" />
                 </button>
               </div>
 
               <!-- QR Code -->
               <div class="flex flex-col items-center gap-2 px-6 border-l-2 border-border">
                 <div class="text-xs font-medium text-muted-foreground">{{ t('sessionLobby.scanToJoin') }}</div>
-                <QRCode :data="joinUrl" :size="128" />
+                <QRCode :data="joinUrl" :size="180" />
               </div>
             </div>
 
