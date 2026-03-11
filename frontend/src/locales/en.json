@@ -509,6 +509,7 @@
     "pasteHint": "💡 Tip: Paste a question with answers to auto-fill",
     "questionText": "Question Text",
     "questionPlaceholder": "Enter your question here...",
+    "answerPlaceholder": "Type answer option...",
     "previewAsPlayer": "Preview as player",
     "previewHostHint": "Exactly what you will see when hosting live.",
     "languageHint": "This language applies to the quiz title, questions, and what players see when they join.",

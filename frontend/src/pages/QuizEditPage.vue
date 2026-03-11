@@ -333,8 +333,8 @@ function getDefaultQuestionData(type) {
         ...base,
         points: 0,
         answers: [
-          { text: 'Option 1' },
-          { text: 'Option 2' }
+          { text: '' },
+          { text: '' }
         ]
       };
     case 'word-cloud':
