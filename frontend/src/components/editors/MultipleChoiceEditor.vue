@@ -9,6 +9,11 @@ const props = defineProps({
   allowMultiple: {
     type: Boolean,
     default: false
+  },
+  // mode = 'quiz' (default, with correct toggles) or 'poll' (no correct answers)
+  mode: {
+    type: String,
+    default: 'quiz'
   }
 });
 
@@ -56,6 +61,8 @@ function updateAnswer(index, field, value) {
 }
 
 function toggleCorrect(index) {
+  if (props.mode === 'poll') return;
+
   if (props.allowMultiple) {
     // Toggle this answer's isCorrect
     updateAnswer(index, 'isCorrect', !localAnswers.value[index].isCorrect);
@@ -84,9 +91,11 @@ function removeAnswer(index) {
 
   localAnswers.value.splice(index, 1);
 
-  // Ensure at least one correct answer
-  if (!localAnswers.value.some(a => a.isCorrect)) {
-    localAnswers.value[0].isCorrect = true;
+  if (props.mode === 'quiz') {
+    // Ensure at least one correct answer for quiz questions
+    if (!localAnswers.value.some(a => a.isCorrect)) {
+      localAnswers.value[0].isCorrect = true;
+    }
   }
 
   emit('update:answers', localAnswers.value);
@@ -124,8 +133,9 @@ function removeAnswer(index) {
         </div>
       </div>
 
-      <!-- Correct toggle -->
+      <!-- Correct toggle (quiz mode only) -->
       <button
+        v-if="mode === 'quiz'"
         @click="toggleCorrect(index)"
         class="w-12 h-12 flex items-center justify-center border-2 transition-all"
         :class="answer.isCorrect
@@ -166,7 +176,7 @@ function removeAnswer(index) {
       Add Answer ({{ localAnswers.length }}/6)
     </button>
 
-    <p class="text-xs text-muted-foreground">
+    <p v-if="mode === 'quiz'" class="text-xs text-muted-foreground">
       Click the checkmark to mark an answer as correct. At least one answer must be correct.
     </p>
   </div>

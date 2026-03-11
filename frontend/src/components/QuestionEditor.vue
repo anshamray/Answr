@@ -590,6 +590,7 @@ function getIcon(iconName) {
         <PollEditor
           v-else-if="localQuestion.type === 'poll'"
           :answers="localQuestion.answers"
+          :allow-multiple="localQuestion.allowMultipleAnswers"
           @update:answers="updateAnswers"
         />
 
