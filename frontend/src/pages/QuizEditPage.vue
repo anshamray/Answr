@@ -37,6 +37,7 @@ const questions = ref([]);
 const selectedQuestionId = ref(null);
 const showTypeSelector = ref(false);
 const showSettings = ref(true); // Right sidebar settings panel
+const advancedSettingsExpanded = ref(false); // Foldable "Advanced settings" group
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
@@ -904,29 +905,58 @@ onUnmounted(() => {
             </p>
           </div>
 
-          <!-- Opinion settings -->
-          <div class="space-y-2">
-            <label class="text-xs font-medium text-muted-foreground mb-1 block">
-              Opinion settings
-            </label>
-            <label class="flex items-center gap-2 text-xs cursor-pointer">
-              <input
-                v-model="quiz.isAnonymous"
-                type="checkbox"
-                class="w-4 h-4 border-2 border-border accent-primary"
-                @change="hasUnsavedChanges = true"
-              />
-              <span>Hide player names in analytics</span>
-            </label>
-            <label class="flex items-center gap-2 text-xs cursor-pointer">
-              <input
-                v-model="quiz.showLiveResultsToPlayers"
-                type="checkbox"
-                class="w-4 h-4 border-2 border-border accent-primary"
-                @change="hasUnsavedChanges = true"
-              />
-              <span>Show aggregated results on player devices</span>
-            </label>
+          <!-- Advanced / Opinion settings (folded by default) -->
+          <div class="border border-dashed border-border/70 p-3 space-y-2 bg-muted/20">
+            <button
+              type="button"
+              class="w-full flex items-center justify-between text-left"
+              @click="advancedSettingsExpanded = !advancedSettingsExpanded"
+            >
+              <div class="flex flex-col">
+                <span class="text-xs font-semibold uppercase tracking-wide">
+                  Advanced settings
+                </span>
+                <span class="text-[11px] text-muted-foreground">
+                  Opinion settings & privacy (most quizzes don’t need changes)
+                </span>
+              </div>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class="flex-shrink-0 transition-transform"
+                :class="{ 'rotate-180': advancedSettingsExpanded }"
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+
+            <div v-show="advancedSettingsExpanded" class="mt-3 space-y-2">
+              <label class="text-xs font-medium text-muted-foreground mb-1 block">
+                Opinion settings
+              </label>
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input
+                  v-model="quiz.isAnonymous"
+                  type="checkbox"
+                  class="w-4 h-4 border-2 border-border accent-primary"
+                  @change="hasUnsavedChanges = true"
+                />
+                <span>Hide player names in analytics</span>
+              </label>
+              <label class="flex items-center gap-2 text-xs cursor-pointer">
+                <input
+                  v-model="quiz.showLiveResultsToPlayers"
+                  type="checkbox"
+                  class="w-4 h-4 border-2 border-border accent-primary"
+                  @change="hasUnsavedChanges = true"
+                />
+                <span>Show aggregated results on player devices</span>
+              </label>
+            </div>
           </div>
 
           <!-- Description -->

@@ -1091,15 +1091,15 @@ onUnmounted(cleanup);
               <!-- MC / True-False / Poll: answer grid -->
               <div
                 v-if="currentQuestion.answers && currentQuestion.answers.length > 0 && ![ 'pin-answer', 'type-answer', 'sort' ].includes(currentQuestion.type) && !isSliderQuestion"
-                class="grid grid-cols-2 gap-3"
+                class="grid grid-cols-2 gap-3 items-stretch"
               >
                 <div
                   v-for="(answer, i) in currentQuestion.answers"
                   :key="answer._id"
-                  class="group relative p-4 lg:p-5 text-white border-[3px] border-black pixel-shadow transition-all"
+                  class="group relative p-4 lg:p-5 text-white border-[3px] border-black pixel-shadow transition-all h-full"
                   :class="'bg-gradient-to-br ' + (answerGradients[i] || answerGradients[0])"
                 >
-                  <div class="flex items-center gap-3">
+                  <div class="flex items-center gap-3 h-full">
                     <div class="w-10 h-10 lg:w-12 lg:h-12 bg-white/20 border-2 border-white flex items-center justify-center text-lg lg:text-xl font-bold pixel-font">
                       {{ barLabels[i] }}
                     </div>

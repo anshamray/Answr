@@ -18,10 +18,8 @@ watch(() => gameStore.currentStreak, (newStreak, oldStreak) => {
 
 const streakEmoji = computed(() => {
   const streak = gameStore.currentStreak;
-  if (streak >= 8) return '\u{1F525}\u{1F525}\u{1F525}'; // Fire x3
-  if (streak >= 5) return '\u{1F525}\u{1F525}'; // Fire x2
-  if (streak >= 3) return '\u{1F525}'; // Fire
-  if (streak >= 2) return '\u{2B50}'; // Star
+  if (streak >= 3) return '\u{1F525}'; // 🔥 for hot streaks
+  if (streak >= 2) return '\u{2B50}'; // ⭐ for early streaks
   return '';
 });
 
@@ -63,6 +61,8 @@ const showStreak = computed(() => gameStore.currentStreak >= 2);
 .streak-emoji {
   font-size: 1.5rem;
   line-height: 1;
+  min-width: 1.5rem;
+  text-align: center;
 }
 
 .streak-info {
