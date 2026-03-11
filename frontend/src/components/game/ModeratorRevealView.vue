@@ -88,22 +88,19 @@ const revealMediaExpanded = ref(false);
     <div class="max-w-7xl mx-auto space-y-4">
       <!-- Optional reveal media (collapsed preview card, expandable on click) -->
       <div v-if="revealMediaUrl" class="w-full">
-        <PixelCard class="!p-3 sm:!p-4 space-y-2">
+        <PixelCard class="!p-2 sm:!p-3 space-y-2">
           <button
             type="button"
             class="w-full flex items-center justify-between gap-2 text-left"
             @click="revealMediaExpanded = !revealMediaExpanded"
           >
             <div class="flex items-center gap-2">
-              <div class="w-7 h-7 flex items-center justify-center border-[2px] border-black bg-primary text-primary-foreground text-xs font-bold pixel-font">
+              <div class="w-6 h-6 flex items-center justify-center border-[2px] border-black bg-primary text-primary-foreground text-[10px] font-bold pixel-font">
                 ▶
               </div>
               <div class="flex flex-col">
-                <span class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                <span class="text-xs font-medium text-muted-foreground">
                   {{ t('gameControl.revealMedia') }}
-                </span>
-                <span class="text-[11px] text-muted-foreground truncate max-w-xs sm:max-w-sm">
-                  {{ revealMediaUrl }}
                 </span>
               </div>
             </div>
