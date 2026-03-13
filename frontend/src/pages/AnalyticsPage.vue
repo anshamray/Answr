@@ -66,7 +66,23 @@ async function deleteSession(sessionId) {
 
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
-      throw new Error(json.message || t('errors.failedToDeleteSession'));
+
+      if (res.status === 409 && json.code === 'SESSION_ACTIVE_CONFIRM_REQUIRED') {
+        const allowForceDelete = confirm(t('analytics.deleteActiveConfirm'));
+        if (!allowForceDelete) return;
+
+        const forceRes = await fetch(apiUrl(`/api/sessions/${sessionId}/permanent?confirmActive=true`), {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${auth.token}` }
+        });
+
+        if (!forceRes.ok) {
+          const forceJson = await forceRes.json().catch(() => ({}));
+          throw new Error(forceJson.error || forceJson.message || t('errors.failedToDeleteSession'));
+        }
+      } else {
+        throw new Error(json.error || json.message || t('errors.failedToDeleteSession'));
+      }
     }
 
     sessions.value = sessions.value.filter(s => s.id !== sessionId);

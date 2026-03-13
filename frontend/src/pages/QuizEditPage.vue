@@ -317,6 +317,7 @@ function getDefaultQuestionData(type) {
       return {
         ...base,
         revealMediaUrl: '',
+        allowMultipleCorrectAnswers: false,
         answers: [
           { text: '', isCorrect: true },
           { text: '', isCorrect: false }

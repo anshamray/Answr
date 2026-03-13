@@ -47,6 +47,9 @@ let cleanupReconnect = () => {};
 const question = computed(() => game.currentQuestion);
 const options = computed(() => question.value?.options || []);
 const isMultiAnswer = computed(() => question.value?.allowMultipleAnswers || false);
+const hasMultipleCorrectAnswers = computed(() =>
+  question.value?.allowMultipleCorrectAnswers || false
+);
 const isSlider = computed(() =>
   question.value?.type === 'slider' ||
   (question.value?.sliderConfig?.min != null && question.value?.sliderConfig?.max != null)
@@ -1265,6 +1268,11 @@ onUnmounted(cleanup);
               {{ t('playerGame.submitAnswer') }} ({{ selectedAnswers.length }})
             </button>
             <p class="text-sm text-muted-foreground text-center mt-2">{{ t('playerGame.selectMultiple') }}</p>
+          </div>
+          <div v-else-if="hasMultipleCorrectAnswers && !submitted && !timedOut" class="mt-4">
+            <p class="text-sm text-muted-foreground text-center">
+              {{ t('playerGame.singlePickMultipleCorrect') }}
+            </p>
           </div>
 
           <!-- Footer -->

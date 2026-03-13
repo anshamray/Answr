@@ -48,6 +48,7 @@ export function broadcastQuestion(io, sessionPin, questionData) {
     options: questionData.options,
     timeLimit: questionData.timeLimit,
     allowMultipleAnswers: questionData.allowMultipleAnswers || false,
+    allowMultipleCorrectAnswers: questionData.allowMultipleCorrectAnswers || false,
     sliderConfig: questionData.sliderConfig || null,
     mediaUrl: questionData.mediaUrl || null,
     mediaUrls: Array.isArray(questionData.mediaUrls)

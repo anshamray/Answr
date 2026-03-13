@@ -222,6 +222,7 @@ onMounted(fetchAdminStats);
         "timeLimit": 30,
         "points": 1000,
         "allowMultipleAnswers": false,
+        "allowMultipleCorrectAnswers": false,
         "answers": [
           { "text": "3", "isCorrect": false },
           { "text": "4", "isCorrect": true }

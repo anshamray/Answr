@@ -11,6 +11,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  allowMultipleCorrect: {
+    type: Boolean,
+    default: false
+  },
   // mode = 'quiz' (default, with correct toggles) or 'poll' (no correct answers)
   mode: {
     type: String,
@@ -66,17 +70,25 @@ function updateAnswer(index, field, value) {
 function toggleCorrect(index) {
   if (props.mode === 'poll') return;
 
-  if (props.allowMultiple) {
-    // Toggle this answer's isCorrect
-    updateAnswer(index, 'isCorrect', !localAnswers.value[index].isCorrect);
-  } else {
-    // Single correct: set this one to correct, others to false
-    localAnswers.value = localAnswers.value.map((a, i) => ({
-      ...a,
-      isCorrect: i === index
-    }));
-    emit('update:answers', localAnswers.value);
+  if (props.allowMultipleCorrect) {
+    const nextValue = !localAnswers.value[index].isCorrect;
+
+    // Keep at least one correct answer selected.
+    if (!nextValue) {
+      const currentCorrectCount = localAnswers.value.filter((answer) => answer?.isCorrect).length;
+      if (currentCorrectCount <= 1) return;
+    }
+
+    updateAnswer(index, 'isCorrect', nextValue);
+    return;
   }
+
+  // Single correct: set this one to correct, others to false
+  localAnswers.value = localAnswers.value.map((a, i) => ({
+    ...a,
+    isCorrect: i === index
+  }));
+  emit('update:answers', localAnswers.value);
 }
 
 function addAnswer() {

@@ -35,6 +35,29 @@ describe('getQuestionValidationErrors', () => {
     expect(validErrors).toHaveLength(0);
   });
 
+  it('requires explicit multiple-correct flag when more than one answer is correct', () => {
+    const question = {
+      type: 'multiple-choice',
+      text: 'Pick one',
+      timeLimit: 30,
+      answers: [
+        { text: 'A', isCorrect: true },
+        { text: 'B', isCorrect: true },
+        { text: 'C', isCorrect: false }
+      ]
+    };
+
+    const errors = getQuestionValidationErrors(question).map((e) => e.code);
+    expect(errors).toContain('mcMultipleCorrectRequiresFlag');
+
+    const allowed = {
+      ...question,
+      allowMultipleCorrectAnswers: true
+    };
+    const allowedErrors = getQuestionValidationErrors(allowed).map((e) => e.code);
+    expect(allowedErrors).not.toContain('mcMultipleCorrectRequiresFlag');
+  });
+
   it('enforces true-false answer count', () => {
     const invalid = {
       type: 'true-false',

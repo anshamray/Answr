@@ -839,7 +839,8 @@ function buildQuestionPayload(q) {
     options,
     timeLimit: q.timeLimit,
     correctAnswerIds,
-    allowMultipleAnswers: q.allowMultipleAnswers || correctAnswerIds.length > 1,
+    allowMultipleAnswers: !!q.allowMultipleAnswers,
+    allowMultipleCorrectAnswers: !!q.allowMultipleCorrectAnswers || correctAnswerIds.length > 1,
     allowPartialPoints: q.allowPartialPoints || false,
     sliderConfig: q.sliderConfig || null,
     revealMediaUrl: q.revealMediaUrl || null

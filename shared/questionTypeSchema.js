@@ -103,9 +103,13 @@ export function getQuestionValidationErrors(question) {
       if (answerCount < 2 || answerCount > 6) {
         errors.push({ code: 'mcAnswerCount' });
       }
-      const hasCorrect = answers.some(a => a && a.isCorrect === true);
-      if (!hasCorrect) {
+      const correctCount = answers.filter(a => a && a.isCorrect === true).length;
+      if (correctCount === 0) {
         errors.push({ code: 'mcNeedsCorrect' });
+      }
+      const allowsMultipleCorrect = !!question.allowMultipleCorrectAnswers || !!question.allowMultipleAnswers;
+      if (correctCount > 1 && !allowsMultipleCorrect) {
+        errors.push({ code: 'mcMultipleCorrectRequiresFlag' });
       }
       break;
     }
@@ -234,6 +238,8 @@ export function getBackendValidationMessages(question) {
         return 'Multiple-choice requires 2–6 answers';
       case 'mcNeedsCorrect':
         return 'Multiple-choice requires at least 1 correct answer';
+      case 'mcMultipleCorrectRequiresFlag':
+        return 'Multiple-choice with more than 1 correct answer requires allowMultipleCorrectAnswers=true';
       case 'tfAnswerCount':
         return 'True/false requires exactly 2 answers';
       case 'taAnswerCount':

@@ -556,9 +556,16 @@ export async function deleteSessionPermanently(req, res) {
       return sendNotFound(res, 'Session not found');
     }
 
-    // Avoid deleting sessions while they are actively running.
-    if (session.status === 'playing' || session.status === 'paused') {
-      return sendConflict(res, 'Session is currently active');
+    const isActiveSession = session.status === 'playing' || session.status === 'paused';
+    const confirmActiveDelete = req.query.confirmActive === 'true';
+
+    // Keep active sessions protected unless the user explicitly confirms force deletion.
+    if (isActiveSession && !confirmActiveDelete) {
+      return res.status(409).json({
+        success: false,
+        error: 'Session is currently active',
+        code: 'SESSION_ACTIVE_CONFIRM_REQUIRED'
+      });
     }
 
     await Submission.deleteMany({ sessionId: session._id });

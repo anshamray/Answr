@@ -99,25 +99,38 @@ const supportsPartialPoints = computed(() =>
   partialPointsTypes.includes(localQuestion.value.type)
 );
 
-const canHaveMultipleAnswers = computed(() =>
-  localQuestion.value.type === 'multiple-choice' ||
-  localQuestion.value.type === 'poll'
+const canHaveMultipleCorrectAnswers = computed(() =>
+  localQuestion.value.type === 'multiple-choice'
 );
+
+const allowsMultipleCorrectAnswers = computed(() => {
+  if (localQuestion.value.type !== 'multiple-choice') return false;
+  if (localQuestion.value.allowMultipleCorrectAnswers) return true;
+
+  // Backward compatibility for existing questions that only used allowMultipleAnswers.
+  const hasMultipleCorrect = Array.isArray(localQuestion.value.answers) &&
+    localQuestion.value.answers.filter((answer) => answer?.isCorrect).length > 1;
+  return !!localQuestion.value.allowMultipleAnswers || hasMultipleCorrect;
+});
 
 function handleAllowMultipleChange(event) {
   const checked = event.target.checked;
   localQuestion.value.allowMultipleAnswers = checked;
+  emitUpdate();
+}
 
-  // When disabling multiple answers, clear existing selections
-  // if more than one answer is currently marked correct.
+function handleAllowMultipleCorrectChange(event) {
+  const checked = event.target.checked;
+  localQuestion.value.allowMultipleCorrectAnswers = checked;
+
+  // Switching back to single-correct keeps the first selected correct answer.
   if (!checked && Array.isArray(localQuestion.value.answers)) {
-    const correctCount = localQuestion.value.answers.filter(a => a && a.isCorrect).length;
-    if (correctCount > 1) {
-      localQuestion.value.answers = localQuestion.value.answers.map(answer => ({
-        ...answer,
-        isCorrect: false
-      }));
-    }
+    const firstCorrectIndex = localQuestion.value.answers.findIndex((answer) => answer?.isCorrect);
+    const targetIndex = firstCorrectIndex >= 0 ? firstCorrectIndex : 0;
+    localQuestion.value.answers = localQuestion.value.answers.map((answer, index) => ({
+      ...answer,
+      isCorrect: index === targetIndex
+    }));
   }
 
   emitUpdate();
@@ -327,11 +340,11 @@ function handlePaste(event) {
   } else {
     // multiple-choice, true-false, poll
     localQuestion.value.answers = answers;
-    // Auto-enable "allow multiple answers" if more than one correct
+    // Auto-enable "multiple correct answers" if more than one is marked correct.
     if (effectiveType === 'multiple-choice') {
       const correctCount = answers.filter(a => a.isCorrect).length;
       if (correctCount > 1) {
-        localQuestion.value.allowMultipleAnswers = true;
+        localQuestion.value.allowMultipleCorrectAnswers = true;
       }
     }
   }
@@ -691,8 +704,45 @@ function getIcon(iconName) {
           {{ t('questionEditor.answersLabel') }}
         </label>
 
-        <!-- Allow Multiple Answers (multiple-choice and polls) -->
-        <div v-if="canHaveMultipleAnswers" class="mb-4">
+        <!-- Multiple-choice answer behavior -->
+        <div v-if="canHaveMultipleCorrectAnswers" class="mb-4 space-y-2">
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              :checked="allowsMultipleCorrectAnswers"
+              class="mt-0.5 w-5 h-5 border-2 border-border accent-primary"
+              @change="handleAllowMultipleCorrectChange"
+            />
+            <div>
+              <div class="text-sm font-medium">
+                {{ t('questionEditor.allowMultipleCorrectAnswers') }}
+              </div>
+              <p class="text-xs text-muted-foreground">
+                {{ t('questionEditor.allowMultipleCorrectAnswersHint') }}
+              </p>
+            </div>
+          </label>
+
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="localQuestion.allowMultipleAnswers"
+              class="mt-0.5 w-5 h-5 border-2 border-border accent-primary"
+              @change="handleAllowMultipleChange"
+            />
+            <div>
+              <div class="text-sm font-medium">
+                {{ t('questionEditor.allowMultiple') }}
+              </div>
+              <p class="text-xs text-muted-foreground">
+                {{ t('questionEditor.allowMultipleHint') }}
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Poll answer behavior -->
+        <div v-if="localQuestion.type === 'poll'" class="mb-4">
           <label class="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -710,6 +760,7 @@ function getIcon(iconName) {
           v-if="localQuestion.type === 'multiple-choice'"
           :answers="localQuestion.answers"
           :allow-multiple="localQuestion.allowMultipleAnswers"
+          :allow-multiple-correct="allowsMultipleCorrectAnswers"
           @update:answers="updateAnswers"
         />
 

@@ -45,6 +45,7 @@ import {
  *           "points": 1000,
  *           "order": 1,
  *           "allowMultipleAnswers": false,
+ *           "allowMultipleCorrectAnswers": false,
  *           "answers": [
  *             { "text": "3", "isCorrect": false },
  *             { "text": "4", "isCorrect": true }
@@ -133,6 +134,7 @@ export async function importOfficialQuizzes(req, res) {
             order: questionInput.order ?? autoOrder,
             answers,
             allowMultipleAnswers: questionInput.allowMultipleAnswers ?? false,
+            allowMultipleCorrectAnswers: questionInput.allowMultipleCorrectAnswers ?? false,
             sliderConfig: questionInput.sliderConfig ?? undefined,
             pinConfig: questionInput.pinConfig ?? undefined,
             scaleConfig: questionInput.scaleConfig ?? undefined,
@@ -406,6 +408,7 @@ export async function cloneLibraryQuiz(req, res) {
           order: a.order
         })),
         allowMultipleAnswers: question.allowMultipleAnswers,
+        allowMultipleCorrectAnswers: question.allowMultipleCorrectAnswers,
         sliderConfig: question.sliderConfig,
         pinConfig: question.pinConfig,
         scaleConfig: question.scaleConfig,

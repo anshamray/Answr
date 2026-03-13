@@ -6,8 +6,7 @@
 
 export function questionAllowsMultipleAnswers(question) {
   if (!question) return false;
-  if (question.allowMultipleAnswers) return true;
-  return (question.answers || []).filter((answer) => answer.isCorrect).length > 1;
+  return !!question.allowMultipleAnswers;
 }
 
 export function normalizeTextAnswer(value) {

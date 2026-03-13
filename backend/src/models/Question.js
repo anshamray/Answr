@@ -122,6 +122,10 @@ const questionSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  allowMultipleCorrectAnswers: {
+    type: Boolean,
+    default: false
+  },
 
   // Slider-specific
   sliderConfig: {

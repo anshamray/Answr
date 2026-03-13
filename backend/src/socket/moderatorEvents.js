@@ -465,6 +465,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         session.totalQuestions = firstQuestion.totalQuestions ?? 1;
         session.questionEnded = false;
         session.currentAllowMultipleAnswers = firstQuestion.allowMultipleAnswers || false;
+        session.currentAllowMultipleCorrectAnswers = firstQuestion.allowMultipleCorrectAnswers || false;
         session.currentQuestionType = firstQuestion.type || 'multiple-choice';
         session.currentSliderConfig = firstQuestion.sliderConfig || null;
         session.currentPinConfig = firstQuestion.pinConfig || null;
@@ -484,6 +485,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           options: firstQuestion.options,
           timeLimit: firstQuestion.timeLimit,
           allowMultipleAnswers: session.currentAllowMultipleAnswers,
+          allowMultipleCorrectAnswers: session.currentAllowMultipleCorrectAnswers,
           sliderConfig: session.currentSliderConfig,
           mediaUrl: firstQuestion.mediaUrl || null,
           points: session.currentPoints,
@@ -565,6 +567,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       }
       session.questionEnded = false;
       session.currentAllowMultipleAnswers = question.allowMultipleAnswers || false;
+      session.currentAllowMultipleCorrectAnswers = question.allowMultipleCorrectAnswers || false;
       session.currentQuestionType = question.type || 'multiple-choice';
       session.currentSliderConfig = question.sliderConfig || null;
       session.currentPinConfig = question.pinConfig || null;
@@ -584,6 +587,7 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         options: question.options,
         timeLimit: question.timeLimit,
         allowMultipleAnswers: session.currentAllowMultipleAnswers,
+        allowMultipleCorrectAnswers: session.currentAllowMultipleCorrectAnswers,
         sliderConfig: session.currentSliderConfig,
         mediaUrl: question.mediaUrl || null,
         points: session.currentPoints,
