@@ -41,15 +41,27 @@ const toleranceRange = computed(() => {
     low: 0.05,
     medium: 0.1,
     high: 0.2,
-    max: 0.3
+    max: 0.5
   };
   const margin = margins[localConfig.value.margin] || 0;
   const tolerance = range * margin;
-  const minAccepted = Math.max(localConfig.value.min, localConfig.value.correctValue - tolerance);
-  const maxAccepted = Math.min(localConfig.value.max, localConfig.value.correctValue + tolerance);
+  const rawMinAccepted = Math.max(localConfig.value.min, localConfig.value.correctValue - tolerance);
+  const rawMaxAccepted = Math.min(localConfig.value.max, localConfig.value.correctValue + tolerance);
+  let minAccepted = Math.ceil(rawMinAccepted);
+  let maxAccepted = Math.floor(rawMaxAccepted);
+
+  if (maxAccepted < minAccepted) {
+    const nearestValid = Math.min(
+      localConfig.value.max,
+      Math.max(localConfig.value.min, Math.round(localConfig.value.correctValue))
+    );
+    minAccepted = nearestValid;
+    maxAccepted = nearestValid;
+  }
+
   return {
-    min: Math.round(minAccepted * 100) / 100,
-    max: Math.round(maxAccepted * 100) / 100
+    min: minAccepted,
+    max: maxAccepted
   };
 });
 

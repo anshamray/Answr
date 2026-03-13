@@ -48,43 +48,43 @@ export const ANSWER_COLORS = {
   // Gradients for answer buttons (player view)
   BUTTON_GRADIENTS: [
     // A
-    'bg-gradient-to-br from-purple-500 to-purple-600 text-white',
+    'bg-gradient-to-br from-answer-a to-answer-a-dark text-white',
     // B
-    'bg-gradient-to-br from-sky-500 to-sky-600 text-white',
+    'bg-gradient-to-br from-answer-b to-answer-b-dark text-white',
     // C
-    'bg-gradient-to-br from-rose-500 to-rose-600 text-white',
+    'bg-gradient-to-br from-answer-c to-answer-c-dark text-white',
     // D
-    'bg-gradient-to-br from-amber-400 to-amber-500 text-black',
+    'bg-gradient-to-br from-answer-d to-answer-d-dark text-black',
     // E
-    'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white',
+    'bg-gradient-to-br from-answer-e to-answer-e-dark text-white',
     // F
-    'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-white'
+    'bg-gradient-to-br from-answer-f to-answer-f-dark text-white'
   ],
 
   // Bar colors for answer distribution chart
   BAR_COLORS: [
-    'bg-purple-500',  // A
-    'bg-sky-500',     // B
-    'bg-rose-500',    // C
-    'bg-amber-400',   // D
-    'bg-emerald-500', // E
-    'bg-fuchsia-500'  // F
+    'bg-answer-a',  // A
+    'bg-answer-b',  // B
+    'bg-answer-c',  // C
+    'bg-answer-d',  // D
+    'bg-answer-e',  // E
+    'bg-answer-f'   // F
   ],
 
   // Gradients for moderator view
   MODERATOR_GRADIENTS: [
     // A
-    'from-purple-500 to-purple-600',
+    'from-answer-a to-answer-a-dark',
     // B
-    'from-sky-500 to-sky-600',
+    'from-answer-b to-answer-b-dark',
     // C
-    'from-rose-500 to-rose-600',
+    'from-answer-c to-answer-c-dark',
     // D
-    'from-amber-400 to-amber-500',
+    'from-answer-d to-answer-d-dark',
     // E
-    'from-emerald-500 to-emerald-600',
+    'from-answer-e to-answer-e-dark',
     // F
-    'from-fuchsia-500 to-fuchsia-600'
+    'from-answer-f to-answer-f-dark'
   ],
 
   // Answer labels (A, B, C, D, E, F)
@@ -93,3 +93,9 @@ export const ANSWER_COLORS = {
 
 // PIN validation
 export const PIN_REGEX = /^\d{6}$/;
+
+// Player answer limits
+export const ANSWER_LIMITS = {
+  WORD_CLOUD_MAX_LENGTH: 60,
+  TYPE_ANSWER_MAX_LENGTH: 50
+};

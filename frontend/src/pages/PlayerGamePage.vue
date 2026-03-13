@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { useGameStore } from '../stores/gameStore.js';
 import { connectSocket, getSocket } from '../lib/socket.js';
 import { usePlayerReconnect } from '../composables/usePlayerReconnect.js';
-import { ANSWER_COLORS, AVATARS } from '../constants/index.js';
+import { ANSWER_COLORS, AVATARS, ANSWER_LIMITS } from '../constants/index.js';
 import { apiUrl } from '../lib/api.js';
 import { isLocalMediaUrl, isExternalVideoUrl, getExternalVideoEmbedUrl } from '../lib/mediaService.js';
 import { useSliderQuestion, DEFAULT_SLIDER_CONFIG } from '../composables/useSliderQuestion.js';
@@ -33,6 +33,7 @@ const questionEnded = ref(false);
 const correctAnswerIds = ref([]);
 const leaderboard = ref([]);
 const pointsEarned = ref(null);
+const questionResultsByPlayer = ref({});
 
 // Intro phase state
 const phase = ref('answering'); // 'intro' | 'answering'
@@ -122,6 +123,12 @@ const wasCorrect = computed(() => {
   if (isCollectOpinions.value) {
     return null;
   }
+
+  // Prefer server-authoritative correctness from the scored question result.
+  if (myQuestionResult.value && typeof myQuestionResult.value.isCorrect === 'boolean') {
+    return myQuestionResult.value.isCorrect;
+  }
+
   // For non-MC types, use points earned from leaderboard
   const qType = question.value?.type;
   if (['slider', 'pin-answer', 'type-answer', 'sort'].includes(qType)) {
@@ -144,6 +151,11 @@ const wasCorrect = computed(() => {
 const myEntry = computed(() =>
   leaderboard.value.find((e) => e.playerId === game.playerId)
 );
+const myQuestionResult = computed(() => questionResultsByPlayer.value?.[game.playerId] || null);
+const hasCorrectnessFeedback = computed(() => {
+  const qType = question.value?.type;
+  return qType !== 'poll' && qType !== 'word-cloud';
+});
 
 const top5 = computed(() => leaderboard.value.slice(0, 5));
 
@@ -160,6 +172,10 @@ const shapeAnswerLabelClass = computed(() => (
     ? 'text-6xl sm:text-8xl'
     : 'text-4xl sm:text-5xl'
 ));
+const maxTextAnswerLength = computed(() => (
+  isWordCloud.value ? ANSWER_LIMITS.WORD_CLOUD_MAX_LENGTH : ANSWER_LIMITS.TYPE_ANSWER_MAX_LENGTH
+));
+const answerTextLength = computed(() => textAnswer.value.length);
 
 // Grid layout for shape buttons based on number of options
 const shapeButtonGridClass = computed(() => {
@@ -435,6 +451,7 @@ function initializeQuestionState(data = question.value) {
   correctAnswerIds.value = [];
   leaderboard.value = [];
   pointsEarned.value = null;
+  questionResultsByPlayer.value = {};
   sliderValue.value = getSliderMidpoint(data.sliderConfig);
   sortOrder.value = [];
   draggedSortIndex.value = null;
@@ -597,9 +614,15 @@ function setup() {
       return;
     }
     leaderboard.value = data?.leaderboard || [];
+    questionResultsByPlayer.value = data?.questionResults || {};
     const me = leaderboard.value.find((e) => e.playerId === game.playerId);
+    const myResult = questionResultsByPlayer.value?.[game.playerId];
     if (me) {
-      pointsEarned.value = me.score - previousScore;
+      if (myResult && typeof myResult.pointsAwarded === 'number') {
+        pointsEarned.value = myResult.pointsAwarded;
+      } else {
+        pointsEarned.value = me.score - previousScore;
+      }
       previousScore = me.score;
 
       // Update streak state
@@ -800,9 +823,9 @@ onUnmounted(cleanup);
             </button>
           </div>
 
-          <div class="mt-6 text-center">
+          <div v-if="!submitted && !timedOut" class="mt-6 text-center">
             <div class="text-sm text-muted-foreground">
-              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary inline-block max-w-full break-all align-bottom">{{ game.playerName || t('game.player') }}</span>
             </div>
           </div>
         </div>
@@ -928,9 +951,9 @@ onUnmounted(cleanup);
             </div>
           </div>
 
-          <div class="mt-4 text-center">
+          <div v-if="!submitted && !timedOut" class="mt-4 text-center">
             <div class="text-sm text-muted-foreground">
-              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary inline-block max-w-full break-all align-bottom">{{ game.playerName || t('game.player') }}</span>
             </div>
           </div>
         </div>
@@ -1000,9 +1023,9 @@ onUnmounted(cleanup);
             </div>
           </div>
 
-          <div class="mt-4 text-center">
+          <div v-if="!submitted && !timedOut" class="mt-4 text-center">
             <div class="text-sm text-muted-foreground">
-              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary inline-block max-w-full break-all align-bottom">{{ game.playerName || t('game.player') }}</span>
             </div>
           </div>
         </div>
@@ -1066,10 +1089,16 @@ onUnmounted(cleanup);
               type="text"
               :placeholder="isWordCloud ? t('playerGame.typeAWord') : t('playerGame.typeYourAnswer')"
               class="w-full max-w-md px-6 py-4 text-2xl font-bold text-center border-[3px] border-black pixel-shadow bg-white focus:outline-none focus:border-primary"
-              :maxlength="isWordCloud ? 20 : 50"
+              :maxlength="maxTextAnswerLength"
               autocomplete="off"
               @keyup.enter="submitTypeAnswer"
             />
+            <p
+              class="text-sm font-medium"
+              :class="answerTextLength >= maxTextAnswerLength ? 'text-warning' : 'text-muted-foreground'"
+            >
+              {{ t('playerGame.answerCharactersCount', { count: answerTextLength, max: maxTextAnswerLength }) }}
+            </p>
 
             <button
               class="px-8 py-4 bg-success text-white border-[3px] border-black pixel-shadow font-bold text-xl transition-all"
@@ -1081,9 +1110,9 @@ onUnmounted(cleanup);
             </button>
           </div>
 
-          <div class="mt-6 text-center">
+          <div v-if="!submitted && !timedOut" class="mt-6 text-center">
             <div class="text-sm text-muted-foreground">
-              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary inline-block max-w-full break-all align-bottom">{{ game.playerName || t('game.player') }}</span>
             </div>
           </div>
         </div>
@@ -1239,9 +1268,9 @@ onUnmounted(cleanup);
           </div>
 
           <!-- Footer -->
-          <div class="mt-6 text-center">
+          <div v-if="!submitted && !timedOut" class="mt-6 text-center">
             <div class="text-sm text-muted-foreground">
-              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+              {{ t('playerGame.playingAs') }} <span class="font-bold text-primary inline-block max-w-full break-all align-bottom">{{ game.playerName || t('game.player') }}</span>
             </div>
           </div>
         </div>
@@ -1271,6 +1300,13 @@ onUnmounted(cleanup);
               </div>
               <h2 class="text-4xl font-bold text-destructive mb-2">{{ t('playerGame.wrong') }}</h2>
               <p class="text-xl text-muted-foreground">{{ t('playerGame.betterLuckNextTime') }}</p>
+            </div>
+            <div v-else-if="submitted && !hasCorrectnessFeedback">
+              <div class="inline-flex items-center justify-center w-16 h-16 bg-primary border-[3px] border-black pixel-shadow mb-4">
+                <PixelCheck class="text-white" :size="32" />
+              </div>
+              <h2 class="text-3xl font-bold text-primary mb-2">{{ t('playerGame.answerSubmitted') }}</h2>
+              <p class="text-lg text-muted-foreground">{{ t('playerGame.waitingForNextQuestion') }}</p>
             </div>
             <div v-else>
               <div class="inline-flex items-center justify-center w-16 h-16 bg-muted border-[3px] border-black pixel-shadow mb-4">

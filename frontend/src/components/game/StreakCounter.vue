@@ -51,7 +51,7 @@ const showStreak = computed(() => gameStore.currentStreak >= 2);
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--warning) 100%);
   border: 3px solid black;
   box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
   color: white;

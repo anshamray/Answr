@@ -10,59 +10,71 @@
   --font-main: 'Space Grotesk', sans-serif;
 
   /* Background & Foreground */
-  --background: #FAF9FF;
-  --foreground: #1E1B3D;
+  --background: #F8F7FF;
+  --foreground: #1F1B3A;
 
   --card: #FFFFFF;
-  --card-foreground: #1E1B3D;
+  --card-foreground: #1F1B3A;
 
   --popover: #FFFFFF;
-  --popover-foreground: #1E1B3D;
+  --popover-foreground: #1F1B3A;
 
-  /* Primary — Electric Purple */
-  --primary: #8B5CF6;
+  /* Primary */
+  --primary: #7C5CFF;
   --primary-foreground: #FFFFFF;
-  --primary-light: #A78BFA;
-  --primary-dark: #7C3AED;
+  --primary-light: #7C5CFF;
+  --primary-dark: #6648E6;
 
-  /* Secondary — Cyber Cyan */
-  --secondary: #06B6D4;
+  /* Secondary */
+  --secondary: #0EA5E9;
   --secondary-foreground: #FFFFFF;
-  --secondary-light: #22D3EE;
-  --secondary-dark: #0891B2;
+  --secondary-light: #0EA5E9;
+  --secondary-dark: #0284C7;
 
-  /* Accent — Coral Energy */
-  --accent: #FF6B6B;
+  /* Accent */
+  --accent: #F43F5E;
   --accent-foreground: #FFFFFF;
-  --accent-light: #FF8787;
-  --accent-dark: #EE5A52;
+  --accent-light: #F43F5E;
+  --accent-dark: #E11D48;
 
-  /* Success — Mint Fresh */
-  --success: #10B981;
+  --success: #16A34A;
   --success-foreground: #FFFFFF;
 
-  /* Warning — Amber Glow */
   --warning: #F59E0B;
-  --warning-foreground: #1E1B3D;
+  --warning-foreground: #1F1B3A;
 
-  --muted: #F3F4F6;
-  --muted-foreground: #595959;
+  --muted: #E6E4F0;
+  --muted-foreground: #6B6880;
 
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
 
-  --border: #E5E7EB;
+  --border: #E6E4F0;
   --input: transparent;
-  --input-background: #F9FAFB;
+  --input-background: #FFFFFF;
 
-  --ring: #8B5CF6;
+  --ring: #7C5CFF;
 
   /* Chart Colors */
-  --chart-1: #8B5CF6;
-  --chart-2: #06B6D4;
-  --chart-3: #FF6B6B;
-  --chart-4: #10B981;
+  --chart-1: #7C5CFF;
+  --chart-2: #0EA5E9;
+  --chart-3: #F43F5E;
+  --chart-4: #16A34A;
   --chart-5: #F59E0B;
+
+  /* Answer Option Colors (A-F) */
+  --answer-a: #7C5CFF;
+  --answer-a-dark: #6648E6;
+  --answer-b: #0EA5E9;
+  --answer-b-dark: #0284C7;
+  --answer-c: #F43F5E;
+  --answer-c-dark: #E11D48;
+  --answer-d: #F59E0B;
+  --answer-d-dark: #D97706;
+  --answer-e: #22C55E;
+  --answer-e-dark: #16A34A;
+  --answer-f: #D946EF;
+  --answer-f-dark: #C026D3;
 
   /* Pixel-specific */
   --pixel-shadow: 4px 4px 0px rgba(0, 0, 0, 0.1);
@@ -111,6 +123,18 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-answer-a: var(--answer-a);
+  --color-answer-a-dark: var(--answer-a-dark);
+  --color-answer-b: var(--answer-b);
+  --color-answer-b-dark: var(--answer-b-dark);
+  --color-answer-c: var(--answer-c);
+  --color-answer-c-dark: var(--answer-c-dark);
+  --color-answer-d: var(--answer-d);
+  --color-answer-d-dark: var(--answer-d-dark);
+  --color-answer-e: var(--answer-e);
+  --color-answer-e-dark: var(--answer-e-dark);
+  --color-answer-f: var(--answer-f);
+  --color-answer-f-dark: var(--answer-f-dark);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

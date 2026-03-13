@@ -5,8 +5,8 @@
  * Eliminates code duplication and provides consistent behavior.
  */
 
+import { computeLeaderboard, computeFinalResults, computeCurrentQuestionResults } from './broadcastEvents.js';
 import { PLAYER_EVENTS, MODERATOR_EVENTS, GAME_EVENTS, ERROR_CODES } from './events.js';
-import { computeLeaderboard, computeFinalResults } from './broadcastEvents.js';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -244,11 +244,13 @@ export function replaySessionStateToSocket(socket, session) {
   }
 
   if (session.questionEnded) {
+    const questionResults = computeCurrentQuestionResults(session);
     socket.emit(GAME_EVENTS.QUESTION_END, {
       correctAnswerIds: session.currentCorrectAnswerIds || []
     });
     socket.emit(GAME_EVENTS.LEADERBOARD, {
-      leaderboard: computeLeaderboard(session)
+      leaderboard: computeLeaderboard(session),
+      questionResults
     });
     return;
   }

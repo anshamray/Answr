@@ -108,10 +108,12 @@ export function broadcastQuestionEnd(io, sessionPin, data) {
  * @param {Server} io - Socket.io server instance
  * @param {string} sessionPin - The session PIN
  * @param {Array} leaderboard - Array of player scores [{ nickname, score, position }]
+ * @param {Object<string, { pointsAwarded?: number, isCorrect?: boolean }>} [questionResults]
  */
-export function broadcastLeaderboard(io, sessionPin, leaderboard) {
+export function broadcastLeaderboard(io, sessionPin, leaderboard, questionResults = null) {
   io.to(sessionPin).emit(GAME_EVENTS.LEADERBOARD, {
-    leaderboard
+    leaderboard,
+    questionResults: questionResults || undefined
   });
 }
 

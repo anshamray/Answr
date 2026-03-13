@@ -21,6 +21,66 @@ import {
   INTRO_DURATION
 } from './gameEvents.js';
 
+const SLIDER_MARGINS = {
+  none: 0,
+  low: 0.05,
+  medium: 0.1,
+  high: 0.2,
+  max: 0.5
+};
+
+function getAcceptedSliderIntegerRange(config) {
+  const min = Number.isFinite(config?.min) ? Number(config.min) : 0;
+  const max = Number.isFinite(config?.max) ? Number(config.max) : 100;
+  const safeMin = Math.min(min, max);
+  const safeMax = Math.max(min, max);
+  const correctValue = Number.isFinite(config?.correctValue)
+    ? Number(config.correctValue)
+    : Math.round((safeMin + safeMax) / 2);
+
+  const range = safeMax - safeMin;
+  const marginPct = SLIDER_MARGINS[config?.margin] || 0;
+  const tolerance = range * marginPct;
+
+  const rawMinAccepted = Math.max(safeMin, correctValue - tolerance);
+  const rawMaxAccepted = Math.min(safeMax, correctValue + tolerance);
+
+  let minAccepted = Math.ceil(rawMinAccepted);
+  let maxAccepted = Math.floor(rawMaxAccepted);
+
+  // Ensure at least one reachable integer answer is accepted.
+  if (maxAccepted < minAccepted) {
+    const nearestValid = Math.min(
+      safeMax,
+      Math.max(safeMin, Math.round(correctValue))
+    );
+    minAccepted = nearestValid;
+    maxAccepted = nearestValid;
+  }
+
+  return { minAccepted, maxAccepted };
+}
+
+/**
+ * Defensive guard for ghost players that left before the game started.
+ * These players should never affect leaderboard ranks or final stats.
+ *
+ * @param {object} session
+ * @param {object} player
+ * @returns {boolean}
+ */
+function isPreStartLeaver(session, player) {
+  if (!player || player.isBot) return false;
+  if (!session?.startedAt) return false;
+  if (player.isConnected) return false;
+  if (!player.disconnectedAt) return false;
+
+  const leftAt = new Date(player.disconnectedAt).getTime();
+  const startedAt = new Date(session.startedAt).getTime();
+
+  return Number.isFinite(leftAt) && Number.isFinite(startedAt) && leftAt < startedAt;
+}
+
 // ─── Timer ──────────────────────────────────────────────────────────────
 
 /**
@@ -118,8 +178,32 @@ export function endCurrentQuestion(io, sessionPin, session) {
   // 3. Compute and broadcast the leaderboard (competitive mode only)
   if (!isCollectOpinions) {
     const leaderboard = computeLeaderboard(session);
-    broadcastLeaderboard(io, sessionPin, leaderboard);
+    const questionResults = computeCurrentQuestionResults(session);
+    broadcastLeaderboard(io, sessionPin, leaderboard, questionResults);
   }
+}
+
+/**
+ * Build per-player results for the just-ended question.
+ * This lets clients render correctness/points from authoritative server state.
+ *
+ * @param {object} session
+ * @returns {Object<string, { pointsAwarded: number, isCorrect: boolean|null }>}
+ */
+export function computeCurrentQuestionResults(session) {
+  const questionId = session.currentQuestionId;
+  const questionAnswers = questionId ? session.answers?.get(questionId) : null;
+  if (!questionAnswers) return {};
+
+  const results = {};
+  for (const [playerId, answer] of questionAnswers.entries()) {
+    results[playerId] = {
+      pointsAwarded: Number(answer?.pointsAwarded || 0),
+      isCorrect: typeof answer?.isCorrect === 'boolean' ? answer.isCorrect : null
+    };
+  }
+
+  return results;
 }
 
 // ─── Scoring ────────────────────────────────────────────────────────────
@@ -187,12 +271,12 @@ function scoreCurrentQuestion(session) {
       // Slider: compare numeric value against correctValue with margin
       const config = session.currentSliderConfig;
       if (config && config.correctValue != null) {
-        const playerValue = parseFloat(answer.answerId);
-        const margins = { none: 0, low: 0.05, medium: 0.1, high: 0.2, max: 0.5 };
-        const marginPct = margins[config.margin] || 0;
-        const range = (config.max || 100) - (config.min || 0);
-        const tolerance = range * marginPct;
-        isCorrect = Math.abs(playerValue - config.correctValue) <= tolerance;
+        const playerValue = Number(answer.answerId);
+        const roundedPlayerValue = Math.round(playerValue);
+        const { minAccepted, maxAccepted } = getAcceptedSliderIntegerRange(config);
+        isCorrect = Number.isFinite(roundedPlayerValue) &&
+          roundedPlayerValue >= minAccepted &&
+          roundedPlayerValue <= maxAccepted;
       } else {
         isCorrect = false;
       }
@@ -357,6 +441,7 @@ async function persistQuestionResults(sessionPin, session) {
     if (session.players) {
       for (const [playerId, player] of session.players) {
         if (!player) continue;
+        if (isPreStartLeaver(session, player)) continue;
 
         let participant = await Participant.findOne({
           sessionId,
@@ -416,7 +501,9 @@ async function persistQuestionResults(sessionPin, session) {
         if (questionType === 'slider' || questionType === 'scale' || questionType === 'nps-scale') {
           const num = Number(rawAnswer);
           if (Number.isFinite(num)) {
-            baseUpdate.numericAnswer = num;
+            baseUpdate.numericAnswer = questionType === 'slider'
+              ? Math.round(num)
+              : num;
           }
         } else if (questionType === 'type-answer' || questionType === 'word-cloud' || questionType === 'open-ended' || questionType === 'brainstorm') {
           baseUpdate.textAnswer = typeof rawAnswer === 'string' ? rawAnswer : null;
@@ -475,6 +562,7 @@ export function computeLeaderboard(session) {
   if (!session.players) return [];
 
   const players = Array.from(session.players.values())
+    .filter((player) => !isPreStartLeaver(session, player))
     .sort((a, b) => (b.score || 0) - (a.score || 0));
 
   return players.map((p, i) => ({

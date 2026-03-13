@@ -333,7 +333,7 @@
     "question": "Frage",
     "getReadyToAnswer": "Mach dich bereit zu antworten!",
     "waitingForQuestion": "Warte auf Frage...",
-    "answerSubmitted": "Antwort abgeschickt!",
+    "answerSubmitted": "Antwort abgeschickt",
     "submitAnswer": "Antwort absenden",
     "selectMultiple": "Wähle alle richtigen Antworten, dann absenden",
     "timesUp": "Zeit abgelaufen!",
@@ -357,7 +357,9 @@
     "tapOnImage": "Tippe auf das Bild, um deinen Pin zu setzen",
     "zoomImage": "Zoom",
     "imageNotAvailable": "Bild nicht verfügbar",
-    "typeYourAnswer": "Deine Antwort eingeben..."
+    "typeAWord": "Gib ein Wort ein...",
+    "typeYourAnswer": "Deine Antwort eingeben...",
+    "answerCharactersCount": "{count}/{max} Zeichen"
   },
   "sessionLobby": {
     "loadingSession": "Lade Sitzung...",

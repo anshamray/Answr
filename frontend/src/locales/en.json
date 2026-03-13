@@ -334,7 +334,7 @@
     "question": "Question",
     "getReadyToAnswer": "Get ready to answer!",
     "waitingForQuestion": "Waiting for question...",
-    "answerSubmitted": "Answer submitted!",
+    "answerSubmitted": "Answer submitted",
     "submitAnswer": "Submit Answer",
     "selectMultiple": "Select all correct answers, then submit",
     "timesUp": "Time's up!",
@@ -358,7 +358,9 @@
     "tapOnImage": "Tap on the image to place your pin",
     "zoomImage": "Zoom",
     "imageNotAvailable": "Image not available",
-    "typeYourAnswer": "Type your answer..."
+    "typeAWord": "Type a word...",
+    "typeYourAnswer": "Type your answer...",
+    "answerCharactersCount": "{count}/{max} characters"
   },
   "sessionLobby": {
     "loadingSession": "Loading session...",

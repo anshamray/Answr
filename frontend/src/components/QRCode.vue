@@ -10,6 +10,14 @@ const props = defineProps({
 const qrDataUrl = ref('');
 const error = ref(false);
 
+function getThemeColor(variableName, fallback) {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement)
+    .getPropertyValue(variableName)
+    .trim();
+  return value || fallback;
+}
+
 async function generateQR() {
   if (!props.data) {
     qrDataUrl.value = '';
@@ -18,12 +26,14 @@ async function generateQR() {
 
   try {
     error.value = false;
+    const dark = getThemeColor('--foreground', '#1E1B3D');
+    const light = getThemeColor('--card', '#FFFFFF');
     qrDataUrl.value = await QRCodeLib.toDataURL(props.data, {
       width: props.size,
       margin: 1,
       color: {
-        dark: '#1E1B3D',
-        light: '#ffffff'
+        dark,
+        light
       },
       errorCorrectionLevel: 'M'
     });

@@ -127,9 +127,11 @@ onUnmounted(cleanup);
 
         <div class="py-6 px-8 bg-primary/10 border-2 border-primary">
           <div class="text-sm text-muted-foreground mb-2">{{ t('game.playingAs') }}</div>
-          <div class="flex items-center justify-center gap-3">
+          <div class="flex items-center justify-center gap-3 w-full min-w-0 flex-wrap">
             <span v-if="game.playerEmoji" class="text-4xl">{{ game.playerEmoji }}</span>
-            <span class="text-3xl font-bold text-primary">{{ game.playerName || t('game.player') }}</span>
+            <span class="text-3xl font-bold text-primary min-w-0 max-w-full break-all text-center leading-tight">
+              {{ game.playerName || t('game.player') }}
+            </span>
           </div>
         </div>
 

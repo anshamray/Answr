@@ -6,6 +6,7 @@
 import { logger } from '../utils/logger.js';
 
 import { PLAYER_EVENTS, SESSION_EVENTS } from './events.js';
+import { broadcastLobbyUpdate } from './gameEvents.js';
 import { registerModeratorEvents } from './moderatorEvents.js';
 import { registerPlayerEvents } from './playerEvents.js';
 
@@ -40,19 +41,38 @@ export function initializeSocket(io) {
         if (session && session.players && session.players.has(playerId)) {
           const player = session.players.get(playerId);
           if (player && player.socketId === socket.id) {
-            player.isConnected = false;
-            player.disconnectedAt = new Date();
-            logger.info('Player disconnected from session', { playerId, sessionPin });
+            const isLobbyState = !session.status || session.status === 'lobby';
 
-            const connectedCount = Array.from(session.players.values()).filter(
-              (p) => p.isConnected
-            ).length;
+            if (isLobbyState) {
+              // Before game start, fully remove players who leave so they
+              // don't show up in game leaderboards later.
+              session.players.delete(playerId);
+              logger.info('Player left lobby and was removed from session', { playerId, sessionPin });
 
-            // Notify remaining players in the session
-            io.to(sessionPin).emit(PLAYER_EVENTS.LEFT, {
-              playerId,
-              playerCount: connectedCount
-            });
+              const connectedPlayers = Array.from(session.players.values())
+                .filter((p) => p.isConnected)
+                .map((p) => ({
+                  id: p.id,
+                  nickname: p.nickname,
+                  avatar: p.avatar
+                }));
+
+              broadcastLobbyUpdate(io, sessionPin, connectedPlayers);
+            } else {
+              player.isConnected = false;
+              player.disconnectedAt = new Date();
+              logger.info('Player disconnected from session', { playerId, sessionPin });
+
+              const connectedCount = Array.from(session.players.values()).filter(
+                (p) => p.isConnected
+              ).length;
+
+              // Notify remaining players in the session
+              io.to(sessionPin).emit(PLAYER_EVENTS.LEFT, {
+                playerId,
+                playerCount: connectedCount
+              });
+            }
           }
         }
       }

@@ -18,6 +18,10 @@ const SLIDER_MARGINS = {
   max: 0.5
 };
 
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
 /**
  * Shared helpers for slider questions, used by both the host
  * (`GameControlPage.vue`) and player (`PlayerGamePage.vue`) UIs.
@@ -37,13 +41,26 @@ export function useSliderQuestion({ configRef, distributionRef }) {
 
   const sliderAcceptedRange = computed(() => {
     const config = sliderConfig.value;
-    const range = Math.max(1, (config.max ?? 100) - (config.min ?? 0));
+    const min = Number(config.min ?? 0);
+    const max = Number(config.max ?? 100);
+    const safeMin = Math.min(min, max);
+    const safeMax = Math.max(min, max);
+    const correctValue = Number(config.correctValue ?? 0);
+    const range = Math.max(1, safeMax - safeMin);
     const tolerance = range * (SLIDER_MARGINS[config.margin] || 0);
+    const rawMinAccepted = Math.max(safeMin, correctValue - tolerance);
+    const rawMaxAccepted = Math.min(safeMax, correctValue + tolerance);
 
-    return {
-      min: Math.max(config.min ?? 0, (config.correctValue ?? 0) - tolerance),
-      max: Math.min(config.max ?? 100, (config.correctValue ?? 0) + tolerance)
-    };
+    let minAccepted = Math.ceil(rawMinAccepted);
+    let maxAccepted = Math.floor(rawMaxAccepted);
+
+    if (maxAccepted < minAccepted) {
+      const nearestValid = clamp(Math.round(correctValue), safeMin, safeMax);
+      minAccepted = nearestValid;
+      maxAccepted = nearestValid;
+    }
+
+    return { min: minAccepted, max: maxAccepted };
   });
 
   const hasSliderAcceptedRangeWidth = computed(
@@ -74,7 +91,7 @@ export function useSliderQuestion({ configRef, distributionRef }) {
     const weightedTotal = sliderEntries.value
       .reduce((sum, entry) => sum + (entry.value * entry.count), 0);
 
-    return Math.round((weightedTotal / totalDistributionAnswers.value) * 10) / 10;
+    return Math.round(weightedTotal / totalDistributionAnswers.value);
   });
 
   function getSliderPosition(value) {
@@ -94,12 +111,13 @@ export function useSliderQuestion({ configRef, distributionRef }) {
   }
 
   function formatSliderValue(value) {
+    const normalized = Math.round(Number(value) || 0);
     const unit = sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : '';
-    return `${value}${unit}`;
+    return `${normalized}${unit}`;
   }
 
   function formatSliderRangeValue(value) {
-    return `${Math.round(value * 10) / 10}${sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : ''}`;
+    return `${Math.round(Number(value) || 0)}${sliderConfig.value.unit ? ` ${sliderConfig.value.unit}` : ''}`;
   }
 
   function formatAcceptedSliderRange() {

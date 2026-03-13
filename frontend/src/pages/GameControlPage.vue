@@ -358,7 +358,7 @@ function getCorrectCount() {
     return answers.reduce((sum, answerId) => {
       const selectedIds = getSelectedAnswerIds(answerId);
 
-      if (questionAllowsMultipleAnswers()) {
+      if (questionAllowsMultipleAnswers(currentQuestion.value)) {
         const selectedIdSet = new Set(selectedIds);
         const isCorrect = selectedIdSet.size === correctIdSet.size &&
           correctIds.every((id) => selectedIdSet.has(id));
@@ -411,7 +411,7 @@ function isAnswerCorrectForCurrentQuestion(answerId) {
   const selectedIds = getSelectedAnswerIds(answerId);
   const correctIdSet = new Set(correctIds);
 
-  if (questionAllowsMultipleAnswers()) {
+  if (questionAllowsMultipleAnswers(currentQuestion.value)) {
     const selectedIdSet = new Set(selectedIds);
     if (selectedIdSet.size !== correctIdSet.size) return false;
     return correctIds.every((id) => selectedIdSet.has(id));
