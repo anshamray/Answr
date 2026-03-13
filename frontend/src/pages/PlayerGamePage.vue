@@ -54,17 +54,24 @@ const isSort = computed(() => question.value?.type === 'sort');
 const isPinAnswer = computed(() => question.value?.type === 'pin-answer');
 const isTypeAnswer = computed(() => question.value?.type === 'type-answer');
 const isWordCloud = computed(() => question.value?.type === 'word-cloud');
-const questionMediaUrl = computed(() => {
-  const url = question.value?.mediaUrl;
-  if (!url) return null;
-  // External videos/images: don't rewrite or append sessionPin
-  if (!url.startsWith('/') || isExternalVideoUrl(url)) {
-    return url;
-  }
-  const full = apiUrl(url);
-  const sessionPin = game.pin;
-  return sessionPin ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${sessionPin}` : full;
+const questionMediaUrls = computed(() => {
+  const rawUrls = Array.isArray(question.value?.mediaUrls)
+    ? question.value.mediaUrls
+    : (question.value?.mediaUrl ? [question.value.mediaUrl] : []);
+
+  return rawUrls
+    .filter(Boolean)
+    .map((url) => {
+      // External videos/images: don't rewrite or append sessionPin
+      if (!url.startsWith('/') || isExternalVideoUrl(url)) {
+        return url;
+      }
+      const full = apiUrl(url);
+      const sessionPin = game.pin;
+      return sessionPin ? `${full}${full.includes('?') ? '&' : '?'}sessionPin=${sessionPin}` : full;
+    });
 });
+const questionMediaUrl = computed(() => questionMediaUrls.value[0] || null);
 const questionMediaEmbedUrl = computed(() => {
   const url = question.value?.mediaUrl;
   if (!url || !isExternalVideoUrl(url)) return null;
@@ -95,6 +102,7 @@ const orderedItems = computed(() =>
 const pinX = ref(null);
 const pinY = ref(null);
 const pinImageFailed = ref(false);
+const showPinZoom = ref(false);
 const pinMediaUrl = computed(() => {
   const url = question.value?.mediaUrl;
   if (!url) return null;
@@ -636,13 +644,27 @@ onUnmounted(cleanup);
                 ></iframe>
               </div>
             </div>
-            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div
+              v-else-if="questionMediaUrls && questionMediaUrls.length"
+              class="mt-3 flex justify-center"
+            >
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <img
-                  :src="questionMediaUrl"
-                  :alt="question?.text"
-                  class="max-h-full w-full object-contain"
-                />
+                <div
+                  class="w-full h-full grid gap-2"
+                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
+                >
+                  <div
+                    v-for="url in questionMediaUrls"
+                    :key="url"
+                    class="flex items-center justify-center bg-black"
+                  >
+                    <img
+                      :src="url"
+                      :alt="question?.text"
+                      class="max-h-52 w-full object-contain"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </PixelCard>
@@ -736,13 +758,27 @@ onUnmounted(cleanup);
                 ></iframe>
               </div>
             </div>
-            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div
+              v-else-if="questionMediaUrls && questionMediaUrls.length"
+              class="mt-3 flex justify-center"
+            >
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <img
-                  :src="questionMediaUrl"
-                  :alt="question?.text"
-                  class="max-h-full w-full object-contain"
-                />
+                <div
+                  class="w-full h-full grid gap-2"
+                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
+                >
+                  <div
+                    v-for="url in questionMediaUrls"
+                    :key="url"
+                    class="flex items-center justify-center bg-black"
+                  >
+                    <img
+                      :src="url"
+                      :alt="question?.text"
+                      class="max-h-52 w-full object-contain"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </PixelCard>
@@ -855,6 +891,13 @@ onUnmounted(cleanup);
               @click="handlePinClick"
               @touchstart="handlePinTouch"
             >
+              <button
+                type="button"
+                class="absolute top-2 right-2 z-10 px-2 py-1 text-[11px] font-bold border-[3px] border-black bg-white/90 hover:bg-white cursor-zoom-in"
+                @click.stop="showPinZoom = true"
+              >
+                {{ t('playerGame.zoomImage') || 'Zoom' }}
+              </button>
               <img
                 v-if="pinMediaUrl && !pinImageFailed"
                 :src="pinMediaUrl"
@@ -915,13 +958,27 @@ onUnmounted(cleanup);
                 ></iframe>
               </div>
             </div>
-            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div
+              v-else-if="questionMediaUrls && questionMediaUrls.length"
+              class="mt-3 flex justify-center"
+            >
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <img
-                  :src="questionMediaUrl"
-                  :alt="question?.text"
-                  class="max-h-full w-full object-contain"
-                />
+                <div
+                  class="w-full h-full grid gap-2"
+                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
+                >
+                  <div
+                    v-for="url in questionMediaUrls"
+                    :key="url"
+                    class="flex items-center justify-center bg-black"
+                  >
+                    <img
+                      :src="url"
+                      :alt="question?.text"
+                      class="max-h-52 w-full object-contain"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </PixelCard>
@@ -1039,13 +1096,27 @@ onUnmounted(cleanup);
                 ></iframe>
               </div>
             </div>
-            <div v-else-if="questionMediaUrl" class="mt-3 flex justify-center">
+            <div
+              v-else-if="questionMediaUrls && questionMediaUrls.length"
+              class="mt-3 flex justify-center"
+            >
               <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <img
-                  :src="questionMediaUrl"
-                  :alt="question?.text"
-                  class="max-h-full w-full object-contain"
-                />
+                <div
+                  class="w-full h-full grid gap-2"
+                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
+                >
+                  <div
+                    v-for="url in questionMediaUrls"
+                    :key="url"
+                    class="flex items-center justify-center bg-black"
+                  >
+                    <img
+                      :src="url"
+                      :alt="question?.text"
+                      class="max-h-52 w-full object-contain"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </PixelCard>
@@ -1240,6 +1311,44 @@ onUnmounted(cleanup);
         </div>
       </template>
     </template>
+
+    <!-- Pin-answer zoom overlay -->
+    <div
+      v-if="showPinZoom && isPinAnswer && pinMediaUrl && !pinImageFailed"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-3"
+      @click.self="showPinZoom = false"
+    >
+      <div class="relative w-full max-w-4xl max-h-[90vh] border-[3px] border-white bg-black overflow-hidden">
+        <button
+          type="button"
+          class="absolute top-2 right-2 z-20 px-3 py-1 text-xs font-bold border-[3px] border-black bg-white/90 hover:bg-white"
+          @click.stop="showPinZoom = false"
+        >
+          {{ t('common.close') || 'Close' }}
+        </button>
+        <div class="relative w-full h-full overflow-auto bg-black">
+          <div
+            class="relative inline-block cursor-crosshair select-none"
+            @click.stop="handlePinClick"
+            @touchstart.stop="handlePinTouch"
+          >
+            <img
+              :src="pinMediaUrl"
+              class="block max-w-none max-h-none"
+              alt="Pin target"
+              draggable="false"
+            />
+            <div
+              v-if="pinX != null && pinY != null"
+              class="absolute w-6 h-6 -ml-3 -mt-3 pointer-events-none"
+              :style="{ left: pinX + '%', top: pinY + '%' }"
+            >
+              <div class="w-6 h-6 bg-destructive border-[3px] border-black shadow-[3px_3px_0_#000] rotate-45"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 

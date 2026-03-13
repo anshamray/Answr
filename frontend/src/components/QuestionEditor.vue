@@ -37,6 +37,13 @@ const auth = useAuthStore();
 // Local copy of question for editing
 const localQuestion = ref({ ...props.question });
 
+// Ensure mediaUrls exists for multi-image support (backward compatible)
+if (!Array.isArray(localQuestion.value.mediaUrls)) {
+  localQuestion.value.mediaUrls = localQuestion.value.mediaUrl
+    ? [localQuestion.value.mediaUrl]
+    : [];
+}
+
 // Error state for file validation
 const fileError = ref('');
 
@@ -72,12 +79,22 @@ const scoredTypes = [
   'sort', 'quiz-audio', 'slider', 'pin-answer'
 ];
 
+// Types where partial points make sense
+const partialPointsTypes = [
+  'multiple-choice',
+  'sort'
+];
+
 // Computed
 const typeInfo = computed(() =>
   props.questionTypeInfo[localQuestion.value.type] || { label: 'Unknown', color: 'primary' }
 );
 
 const isScored = computed(() => scoredTypes.includes(localQuestion.value.type));
+
+const supportsPartialPoints = computed(() =>
+  partialPointsTypes.includes(localQuestion.value.type)
+);
 
 const canHaveMultipleAnswers = computed(() =>
   localQuestion.value.type === 'multiple-choice' ||
@@ -106,6 +123,11 @@ function handleAllowMultipleChange(event) {
 // Watch for external changes to the question prop
 watch(() => props.question, (newVal) => {
   localQuestion.value = { ...newVal };
+  if (!Array.isArray(localQuestion.value.mediaUrls)) {
+    localQuestion.value.mediaUrls = localQuestion.value.mediaUrl
+      ? [localQuestion.value.mediaUrl]
+      : [];
+  }
 }, { deep: true });
 
 // Emit update to parent (local state only, no debounce needed)
@@ -133,7 +155,29 @@ function updatePinConfig(config) {
 
 // Handle media URL change
 function updateMediaUrl(url) {
-  localQuestion.value.mediaUrl = url;
+  // Keep legacy single mediaUrl in sync with the first entry of mediaUrls
+  if (!Array.isArray(localQuestion.value.mediaUrls)) {
+    localQuestion.value.mediaUrls = [];
+  }
+
+  if (!url) {
+    localQuestion.value.mediaUrls = [];
+    localQuestion.value.mediaUrl = '';
+    emitUpdate();
+    return;
+  }
+
+  // Append new URL if not already present, up to 4 items
+  if (localQuestion.value.mediaUrls.length >= 4) {
+    fileError.value = t('questionEditor.fileSizeError');
+    return;
+  }
+
+  if (!localQuestion.value.mediaUrls.includes(url)) {
+    localQuestion.value.mediaUrls.push(url);
+  }
+
+  localQuestion.value.mediaUrl = localQuestion.value.mediaUrls[0] || '';
   emitUpdate();
 }
 
@@ -503,10 +547,15 @@ function getIcon(iconName) {
           <span class="text-sm font-medium">
             {{ t('questionEditor.mediaOptional') }}
             <span
-              v-if="localQuestion.mediaUrl"
+              v-if="(localQuestion.mediaUrls && localQuestion.mediaUrls.length) || localQuestion.mediaUrl"
               class="text-muted-foreground font-normal"
             >
-              {{ t('questionEditor.mediaOneItem') }}
+              <template v-if="(localQuestion.mediaUrls?.length || 0) === 1 || (!localQuestion.mediaUrls?.length && localQuestion.mediaUrl)">
+                {{ t('questionEditor.mediaOneItem') }}
+              </template>
+              <template v-else>
+                {{ t('questionEditor.mediaMultipleItems', { count: localQuestion.mediaUrls.length }) }}
+              </template>
             </span>
           </span>
           <svg
@@ -549,7 +598,7 @@ function getIcon(iconName) {
               <p class="text-xs text-muted-foreground">{{ uploadProgress }}%</p>
             </div>
             <!-- Media preview -->
-            <div v-else-if="localQuestion.mediaUrl" class="relative space-y-3">
+            <div v-else-if="(localQuestion.mediaUrls && localQuestion.mediaUrls.length) || localQuestion.mediaUrl" class="relative space-y-3">
               <div v-if="mediaKind === 'externalVideo'" class="max-w-xl mx-auto">
                 <div class="aspect-video border-2 border-black bg-black">
                   <iframe
@@ -565,20 +614,39 @@ function getIcon(iconName) {
                   {{ localQuestion.mediaUrl }}
                 </p>
               </div>
-              <img
-                v-else
-                :src="authMediaUrl(localQuestion.mediaUrl, auth.token)"
-                alt="Question media"
-                class="max-h-48 mx-auto object-contain"
-              />
-              <button
-                @click="updateMediaUrl('')"
-                class="absolute top-2 right-2 p-1 bg-destructive text-white hover:bg-destructive/80"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
+              <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-3 justify-items-center">
+                <div
+                  v-for="url in (localQuestion.mediaUrls && localQuestion.mediaUrls.length ? localQuestion.mediaUrls : [localQuestion.mediaUrl])"
+                  :key="url"
+                  class="relative"
+                >
+                  <img
+                    :src="authMediaUrl(url, auth.token)"
+                    alt="Question media"
+                    class="max-h-32 w-full object-contain border border-border bg-muted"
+                  />
+                  <button
+                    type="button"
+                    class="absolute top-1 right-1 p-0.5 bg-destructive text-white hover:bg-destructive/80"
+                    @click.stop="
+                      () => {
+                        const list = Array.isArray(localQuestion.mediaUrls) ? [...localQuestion.mediaUrls] : [];
+                        const index = list.indexOf(url);
+                        if (index !== -1) {
+                          list.splice(index, 1);
+                        }
+                        localQuestion.mediaUrls = list;
+                        localQuestion.mediaUrl = list[0] || '';
+                        emitUpdate();
+                      }
+                    "
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
             <!-- Upload prompt -->
             <div v-else class="space-y-4">
@@ -866,6 +934,29 @@ function getIcon(iconName) {
               </option>
             </select>
           </div>
+        </div>
+
+        <!-- Partial points toggle (where supported) -->
+        <div
+          v-if="isScored && supportsPartialPoints"
+          class="mt-4 border-t border-dashed border-border pt-3"
+        >
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="localQuestion.allowPartialPoints"
+              class="mt-0.5 w-4 h-4 border-2 border-border accent-primary"
+              @change="emitUpdate"
+            />
+            <div>
+              <div class="text-sm font-medium">
+                {{ t('questionEditor.partialPointsLabel') }}
+              </div>
+              <p class="text-xs text-muted-foreground">
+                {{ t('questionEditor.partialPointsHint') }}
+              </p>
+            </div>
+          </label>
         </div>
       </div>
     </div>

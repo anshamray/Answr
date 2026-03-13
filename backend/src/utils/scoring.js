@@ -2,19 +2,24 @@
  * WS-5: Scoring Utility
  *
  * Calculates points based on correctness and response time.
- * Configurable base points, time factor, and minimum points.
+ * Configurable base points and wrong‑answer behaviour.
  *
- * Default scoring formula:
- *   timeBonus = (timeLimit − timeTaken) / timeLimit
- *   points    = isCorrect ? max(round(basePoints × timeBonus), minPoints) : 0
+ * Kahoot‑style scoring formula (for correct answers):
+ *
+ * - If the player answers in < 0.5s: always award full pointsPossible.
+ * - Otherwise:
+ *   let r = responseTime / questionTimer
+ *   let v = 1 - (r / 2)
+ *   points = round(pointsPossible * v)
+ *
+ * Or, expressed as:
+ *   ⌊ ( 1 - (( responseTime / questionTimer ) / 2 )) × pointsPossible ⌉
  */
 
 // ─── Default Configuration ───────────────────────────────────────────────────
 
 export const DEFAULT_SCORING_CONFIG = {
   basePoints: 1000,        // Maximum points for instant correct answer
-  minCorrectPoints: 100,   // Minimum points for any correct answer
-  timeFactor: 1.0,         // Multiplier for time bonus (1.0 = linear decay)
   wrongAnswerPoints: 0     // Points for incorrect answers
 };
 
@@ -63,16 +68,18 @@ export function getStreakBonus(streak) {
  * @param {boolean} params.isCorrect - Whether the answer is correct
  * @param {number} params.timeTakenMs - Time taken to answer in milliseconds
  * @param {number} params.timeLimitSec - Question time limit in seconds
+ * @param {number} [params.pointsPossible] - Maximum points possible for this answer
  * @param {Object} [params.config] - Optional scoring configuration override
  * @returns {{ points: number, timeBonus: number, isCorrect: boolean }}
  */
-export function calculateScore({ isCorrect, timeTakenMs, timeLimitSec, config = {} }) {
+export function calculateScore({ isCorrect, timeTakenMs, timeLimitSec, pointsPossible, config = {} }) {
   const {
-    basePoints = DEFAULT_SCORING_CONFIG.basePoints,
-    minCorrectPoints = DEFAULT_SCORING_CONFIG.minCorrectPoints,
-    timeFactor = DEFAULT_SCORING_CONFIG.timeFactor,
     wrongAnswerPoints = DEFAULT_SCORING_CONFIG.wrongAnswerPoints
   } = config;
+
+  const maxPoints = typeof pointsPossible === 'number' && pointsPossible >= 0
+    ? pointsPossible
+    : DEFAULT_SCORING_CONFIG.basePoints;
 
   // Wrong answer = configured wrong answer points (default 0)
   if (!isCorrect) {
@@ -85,20 +92,28 @@ export function calculateScore({ isCorrect, timeTakenMs, timeLimitSec, config = 
 
   // Convert time taken to seconds and clamp to valid range
   const timeTakenSec = Math.max(0, (timeTakenMs || 0) / 1000);
-  const effectiveTimeLimit = Math.max(1, timeLimitSec || 30);
+  const effectiveTimeLimit = Math.max(0.5, timeLimitSec || 30);
 
-  // Calculate time bonus: 1.0 for instant answer, 0.0 for timeout
-  // Apply time factor for non-linear decay if configured
-  let timeBonus = Math.max(0, (effectiveTimeLimit - timeTakenSec) / effectiveTimeLimit);
-
-  if (timeFactor !== 1.0) {
-    // Apply power curve: timeFactor > 1 = steeper decay, < 1 = gentler decay
-    timeBonus = Math.pow(timeBonus, timeFactor);
+  // Fast answers (< 0.5s) always receive full points
+  if (timeTakenSec < 0.5) {
+    return {
+      points: Math.round(maxPoints),
+      timeBonus: 1,
+      isCorrect: true
+    };
   }
 
-  // Calculate points with minimum guarantee
-  let points = Math.round(basePoints * timeBonus);
-  points = Math.max(points, minCorrectPoints);
+  // Core formula:
+  // r = responseTime / questionTimer
+  // v = 1 - (r / 2)
+  // points = round(pointsPossible * v)
+  const r = Math.min(1, timeTakenSec / effectiveTimeLimit);
+  const timeBonus = 1 - (r / 2);
+
+  let points = Math.round(maxPoints * timeBonus);
+  if (!Number.isFinite(points) || points < 0) {
+    points = 0;
+  }
 
   return {
     points,
@@ -114,9 +129,10 @@ export function calculateScore({ isCorrect, timeTakenMs, timeLimitSec, config = 
  * @param {Set<string>|Array<string>} correctAnswerIds - IDs of correct answers
  * @param {number} timeLimitSec - Question time limit in seconds
  * @param {Object} [config] - Optional scoring configuration
+ * @param {number} [pointsPossible] - Maximum points possible for this question
  * @returns {Map<string, { playerId: string, points: number, timeBonus: number, isCorrect: boolean }>}
  */
-export function calculateScoresForQuestion(answers, correctAnswerIds, timeLimitSec, config = {}) {
+export function calculateScoresForQuestion(answers, correctAnswerIds, timeLimitSec, config = {}, pointsPossible) {
   const correctSet = correctAnswerIds instanceof Set
     ? correctAnswerIds
     : new Set(correctAnswerIds);
@@ -129,6 +145,7 @@ export function calculateScoresForQuestion(answers, correctAnswerIds, timeLimitS
       isCorrect,
       timeTakenMs: answer.timeTakenMs || answer.timeTaken,
       timeLimitSec,
+      pointsPossible,
       config
     });
 

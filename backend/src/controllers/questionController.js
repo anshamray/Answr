@@ -61,6 +61,7 @@ export async function addQuestion(req, res) {
       type,
       text,
       textToReadAloud,
+      mediaUrls,
       mediaUrl,
       mediaType,
       audioLanguage,
@@ -68,6 +69,7 @@ export async function addQuestion(req, res) {
       points,
       answers,
       allowMultipleAnswers,
+      allowPartialPoints,
       sliderConfig,
       pinConfig,
       scaleConfig,
@@ -84,6 +86,7 @@ export async function addQuestion(req, res) {
       type,
       text,
       textToReadAloud,
+      mediaUrls,
       mediaUrl,
       mediaType,
       revealMediaUrl,
@@ -93,6 +96,7 @@ export async function addQuestion(req, res) {
       order: nextOrder,
       answers,
       allowMultipleAnswers,
+      allowPartialPoints,
       sliderConfig,
       pinConfig,
       scaleConfig,
@@ -104,6 +108,13 @@ export async function addQuestion(req, res) {
     // Link media to quiz for access control
     if (question.mediaUrl) {
       await linkMediaToQuiz(question.mediaUrl, quizId);
+    }
+    if (Array.isArray(question.mediaUrls)) {
+      for (const url of question.mediaUrls) {
+        if (url) {
+          await linkMediaToQuiz(url, quizId);
+        }
+      }
     }
     if (question.revealMediaUrl) {
       await linkMediaToQuiz(question.revealMediaUrl, quizId);
@@ -152,6 +163,7 @@ export async function updateQuestion(req, res) {
       'type',
       'text',
       'textToReadAloud',
+      'mediaUrls',
       'mediaUrl',
       'mediaType',
       'revealMediaUrl',
@@ -160,6 +172,7 @@ export async function updateQuestion(req, res) {
       'points',
       'answers',
       'allowMultipleAnswers',
+      'allowPartialPoints',
       'sliderConfig',
       'pinConfig',
       'scaleConfig',
@@ -178,6 +191,13 @@ export async function updateQuestion(req, res) {
     // Link media to quiz for access control if media fields were updated
     if (req.body.mediaUrl) {
       await linkMediaToQuiz(question.mediaUrl, question.quizId);
+    }
+    if (Array.isArray(req.body.mediaUrls)) {
+      for (const url of req.body.mediaUrls) {
+        if (url) {
+          await linkMediaToQuiz(url, question.quizId);
+        }
+      }
     }
     if (req.body.revealMediaUrl) {
       await linkMediaToQuiz(question.revealMediaUrl, question.quizId);

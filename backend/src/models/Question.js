@@ -77,9 +77,15 @@ const questionSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  // Optional primary media shown with the question (legacy single URL)
   mediaUrl: {
     type: String,
     default: null
+  },
+  // Optional multiple media items (images) shown with the question
+  mediaUrls: {
+    type: [String],
+    default: []
   },
   mediaType: {
     type: String,
@@ -101,6 +107,11 @@ const questionSchema = new mongoose.Schema({
     type: Number,
     default: 1000,
     enum: [0, 1000, 2000]
+  },
+  // Optional: allow partial points for certain types (e.g. multi-select, sort)
+  allowPartialPoints: {
+    type: Boolean,
+    default: false
   },
   order: {
     type: Number,
