@@ -288,10 +288,6 @@ onMounted(fetchQuizzes);
           <div class="text-4xl font-bold text-success">{{ quizzes.filter(q => q.isPublished).length }}</div>
           <div class="text-sm text-muted-foreground">{{ t('dashboard.published') }}</div>
         </PixelCard>
-        <PixelCard class="text-center cursor-pointer hover:border-accent transition-colors" @click="handleFilterChange('favorites')">
-          <div class="text-4xl font-bold text-accent">{{ favoritesCount }}</div>
-          <div class="text-sm text-muted-foreground">{{ t('dashboard.favorites') }}</div>
-        </PixelCard>
         <PixelCard class="text-center">
           <div class="text-4xl font-bold text-foreground">{{ collectOpinionCount }}</div>
           <div class="text-sm text-muted-foreground">Opinion quizzes</div>

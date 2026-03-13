@@ -47,16 +47,16 @@ export const AVATARS = {
 export const ANSWER_COLORS = {
   // Gradients for answer buttons (player view)
   BUTTON_GRADIENTS: [
-    'bg-gradient-to-br from-red-500 to-red-600 text-white',
-    'bg-gradient-to-br from-blue-500 to-blue-600 text-white',
-    'bg-gradient-to-br from-yellow-400 to-yellow-500 text-black',
-    'bg-gradient-to-br from-green-500 to-green-600 text-white',
-    'bg-gradient-to-br from-purple-500 to-purple-600 text-white',
-    'bg-gradient-to-br from-orange-500 to-orange-600 text-white'
+    'bg-gradient-to-br from-primary to-primary-dark text-white',
+    'bg-gradient-to-br from-secondary to-secondary-dark text-white',
+    'bg-gradient-to-br from-accent to-accent-dark text-white',
+    'bg-gradient-to-br from-warning to-warning/80 text-warning-foreground',
+    'bg-gradient-to-br from-success to-success text-white',
+    'bg-gradient-to-br from-primary-light to-primary text-white'
   ],
 
   // Bar colors for answer distribution chart
-  BAR_COLORS: ['bg-red-500', 'bg-blue-500', 'bg-yellow-400', 'bg-green-500', 'bg-purple-500', 'bg-orange-500'],
+  BAR_COLORS: ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-success', 'bg-warning', 'bg-primary-light'],
 
   // Gradients for moderator view
   MODERATOR_GRADIENTS: [

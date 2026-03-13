@@ -536,6 +536,7 @@
     "revealMediaOptional": "Medien nach Auflösung (optional)",
     "mediaOneItem": "— 1 Medium",
     "mediaMultipleItems": "— {count} Medien",
+    "mediaMaxItemsError": "Du kannst bis zu {max} Medien pro Frage hinzufügen",
     "uploading": "Wird hochgeladen...",
     "uploadHint": "Ziehe ein Bild hierher oder klicke zum Auswählen",
     "revealMediaHint": "Wird erst nach dem Aufdecken der richtigen Antwort angezeigt. Füge einen Bild- oder Video-Link (z. B. YouTube) ein.",

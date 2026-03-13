@@ -62,8 +62,11 @@ const revealMediaExpanded = ref(false);
 // Media library modal state
 const showMediaLibrary = ref(false);
 
-function handleLibrarySelect(url) {
-  updateMediaUrl(url);
+function handleLibrarySelect(payload) {
+  const urls = Array.isArray(payload) ? payload : [payload];
+  for (const url of urls) {
+    updateMediaUrl(url);
+  }
   showMediaLibrary.value = false;
 }
 
@@ -168,12 +171,11 @@ function updateMediaUrl(url) {
   }
 
   // Append new URL if not already present, up to 4 items
-  if (localQuestion.value.mediaUrls.length >= 4) {
-    fileError.value = t('questionEditor.fileSizeError');
-    return;
-  }
-
   if (!localQuestion.value.mediaUrls.includes(url)) {
+    if (localQuestion.value.mediaUrls.length >= 4) {
+      fileError.value = t('questionEditor.mediaMaxItemsError', { max: 4 });
+      return;
+    }
     localQuestion.value.mediaUrls.push(url);
   }
 
