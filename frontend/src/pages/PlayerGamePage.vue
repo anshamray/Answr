@@ -337,11 +337,10 @@ function getTouchDistance(t1, t2) {
 
 function onZoomTouchStart(event) {
   if (event.touches.length === 2) {
+    event.preventDefault();
     isPinchingZoom.value = true;
     pinchStartDistance = getTouchDistance(event.touches[0], event.touches[1]);
     pinchStartScale = zoomScale.value;
-  } else if (event.touches.length === 1 && !isPinchingZoom.value) {
-    handlePinTouch(event);
   }
 }
 
@@ -358,6 +357,28 @@ function onZoomTouchEnd(event) {
   if (event.touches.length < 2) {
     isPinchingZoom.value = false;
   }
+}
+
+function onZoomTap(event) {
+  if (isPinchingZoom.value) return;
+  handlePinClick(event);
+}
+
+function onZoomGestureStart(event) {
+  event.preventDefault();
+  isPinchingZoom.value = true;
+  pinchStartScale = zoomScale.value;
+}
+
+function onZoomGestureChange(event) {
+  event.preventDefault();
+  const nextScale = pinchStartScale * (event.scale || 1);
+  zoomScale.value = Math.min(3, Math.max(1, nextScale));
+}
+
+function onZoomGestureEnd(event) {
+  event.preventDefault();
+  isPinchingZoom.value = false;
 }
 
 function submitPinAnswer() {
@@ -1377,11 +1398,14 @@ onUnmounted(cleanup);
           <div
             class="relative inline-block cursor-crosshair select-none"
             :style="{ width: (zoomScale * 100) + '%'}"
-            @click.stop="handlePinClick"
-            @touchstart.stop.prevent="onZoomTouchStart"
-            @touchmove.stop.prevent="onZoomTouchMove"
+            @click.stop="onZoomTap"
+            @touchstart.stop="onZoomTouchStart"
+            @touchmove.stop="onZoomTouchMove"
             @touchend.stop="onZoomTouchEnd"
             @touchcancel.stop="onZoomTouchEnd"
+            @gesturestart.prevent="onZoomGestureStart"
+            @gesturechange.prevent="onZoomGestureChange"
+            @gestureend.prevent="onZoomGestureEnd"
           >
             <img
               :src="pinMediaUrl"

@@ -79,11 +79,22 @@ const isSortQuestion = computed(() => currentQuestion.value?.type === 'sort');
 const isPinAnswerQuestion = computed(() => currentQuestion.value?.type === 'pin-answer');
 const isTypeAnswerQuestion = computed(() => currentQuestion.value?.type === 'type-answer');
 const isWordCloudQuestion = computed(() => currentQuestion.value?.type === 'word-cloud');
-const questionMediaUrl = computed(() => {
-  const url = currentQuestion.value?.mediaUrl;
-  if (!url) return null;
-  return authMediaUrl(url, auth.token);
+const questionMediaUrls = computed(() => {
+  const rawUrls = Array.isArray(currentQuestion.value?.mediaUrls)
+    ? currentQuestion.value.mediaUrls
+    : (currentQuestion.value?.mediaUrl ? [currentQuestion.value.mediaUrl] : []);
+
+  return rawUrls
+    .filter(Boolean)
+    .map((url) => {
+      // External URLs (e.g. YouTube) should not be wrapped
+      if (!url.startsWith('/')) {
+        return url;
+      }
+      return authMediaUrl(url, auth.token);
+    });
 });
+const questionMediaUrl = computed(() => questionMediaUrls.value[0] || null);
 const questionMediaEmbedUrl = computed(() => {
   const url = currentQuestion.value?.mediaUrl;
   if (!url || !isExternalVideoUrl(url)) return null;
@@ -1030,12 +1041,28 @@ onUnmounted(cleanup);
                   ></iframe>
                 </div>
               </div>
-              <div v-else-if="questionMediaUrl" class="mt-2 flex justify-center">
-                <img
-                  :src="questionMediaUrl"
-                  :alt="currentQuestion.text"
-                  class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] max-w-full object-contain"
-                />
+              <div
+                v-else-if="questionMediaUrls && questionMediaUrls.length"
+                class="mt-2 flex justify-center"
+              >
+                <div class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
+                  <div
+                    class="w-full h-full grid gap-2"
+                    :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
+                  >
+                    <div
+                      v-for="url in questionMediaUrls"
+                      :key="url"
+                      class="flex items-center justify-center bg-black"
+                    >
+                      <img
+                        :src="url"
+                        :alt="currentQuestion.text"
+                        class="max-h-[min(14rem,calc(100vh-24rem))] w-full object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </PixelCard>
 
@@ -1121,14 +1148,27 @@ onUnmounted(cleanup);
                 </div>
               </div>
               <div
-                v-else-if="questionMediaUrl && currentQuestion.type !== 'pin-answer'"
+                v-else-if="questionMediaUrls && questionMediaUrls.length && currentQuestion.type !== 'pin-answer'"
                 class="mt-1 flex justify-center"
               >
-                <img
-                  :src="questionMediaUrl"
-                  :alt="currentQuestion.text"
-                  class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] max-w-full object-contain"
-                />
+                <div class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
+                  <div
+                    class="w-full h-full grid gap-2"
+                    :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
+                  >
+                    <div
+                      v-for="url in questionMediaUrls"
+                      :key="url"
+                      class="flex items-center justify-center bg-black"
+                    >
+                      <img
+                        :src="url"
+                        :alt="currentQuestion.text"
+                        class="max-h-[min(14rem,calc(100vh-24rem))] w-full object-contain"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- MC / True-False / Poll: answer grid -->
