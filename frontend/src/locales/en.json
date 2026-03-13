@@ -536,6 +536,7 @@
     "revealMediaOptional": "Media after reveal (optional)",
     "mediaOneItem": "— 1 media item",
     "mediaMultipleItems": "— {count} media items",
+    "mediaMaxItemsError": "You can add up to {max} media items per question",
     "uploading": "Uploading...",
     "uploadHint": "Drag and drop an image, or click to browse",
     "revealMediaHint": "Shown only after you reveal the correct answer. Paste an image or video link (e.g. YouTube).",

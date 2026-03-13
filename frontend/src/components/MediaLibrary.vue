@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { apiUrl } from '../lib/api.js';
+import { apiUrl, authMediaUrl } from '../lib/api.js';
 import { uploadMedia } from '../lib/mediaService.js';
 import { useAuthStore } from '../stores/authStore.js';
 
@@ -23,7 +23,7 @@ const media = ref([]);
 const loading = ref(false);
 const error = ref('');
 const search = ref('');
-const selectedId = ref(null);
+const selectedIds = ref([]);
 
 // Upload state
 const isUploading = ref(false);
@@ -55,19 +55,25 @@ async function fetchMedia() {
 }
 
 function handleSelect(item) {
-  selectedId.value = item.id;
-}
-
-function confirmSelect() {
-  const selected = media.value.find(m => m.id === selectedId.value);
-  if (selected) {
-    emit('select', selected.url);
-    emit('close');
+  const id = item.id;
+  const idx = selectedIds.value.indexOf(id);
+  if (idx !== -1) {
+    selectedIds.value.splice(idx, 1);
+  } else {
+    selectedIds.value.push(id);
   }
 }
 
+function confirmSelect() {
+  const selected = media.value.filter(m => selectedIds.value.includes(m.id));
+  if (!selected.length) return;
+  const urls = selected.map(item => item.url);
+  emit('select', urls);
+  emit('close');
+}
+
 function handleClose() {
-  selectedId.value = null;
+  selectedIds.value = [];
   emit('close');
 }
 
@@ -76,18 +82,25 @@ function triggerUpload() {
 }
 
 async function handleFileSelect(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
 
   uploadError.value = '';
 
-  if (!file.type.startsWith('image/')) {
-    uploadError.value = 'Please select an image file';
-    return;
-  }
+  // Filter to valid image files under 5MB
+  const validFiles = files.filter((file) => {
+    if (!file.type.startsWith('image/')) {
+      uploadError.value = 'Please select an image file';
+      return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      uploadError.value = 'Image must be smaller than 5MB';
+      return false;
+    }
+    return true;
+  });
 
-  if (file.size > 5 * 1024 * 1024) {
-    uploadError.value = 'Image must be smaller than 5MB';
+  if (!validFiles.length) {
     return;
   }
 
@@ -95,21 +108,30 @@ async function handleFileSelect(event) {
   uploadProgress.value = 0;
 
   try {
-    const result = await uploadMedia(file, (percent) => {
-      uploadProgress.value = percent;
-    });
+    for (let index = 0; index < validFiles.length; index++) {
+      const file = validFiles[index];
 
-    // Add to the list and select it
-    media.value.unshift({
-      id: result.id,
-      url: result.url,
-      originalName: result.originalName,
-      mimeType: result.mimeType,
-      size: result.size,
-      width: result.width,
-      height: result.height
-    });
-    selectedId.value = result.id;
+      const result = await uploadMedia(file, (percent) => {
+        // Scale individual file progress into overall batch progress
+        const completedPortion = index / validFiles.length;
+        const currentPortion = (percent / 100) / validFiles.length;
+        uploadProgress.value = Math.round((completedPortion + currentPortion) * 100);
+      });
+
+      // Add to the list and mark it as selected
+      media.value.unshift({
+        id: result.id,
+        url: result.url,
+        originalName: result.originalName,
+        mimeType: result.mimeType,
+        size: result.size,
+        width: result.width,
+        height: result.height
+      });
+      if (!selectedIds.value.includes(result.id)) {
+        selectedIds.value.push(result.id);
+      }
+    }
   } catch (err) {
     uploadError.value = err.message || 'Upload failed';
   } finally {
@@ -170,6 +192,7 @@ onMounted(() => {
               ref="fileInputRef"
               type="file"
               accept="image/*"
+              multiple
               class="hidden"
               @change="handleFileSelect"
             />
@@ -210,15 +233,18 @@ onMounted(() => {
                 v-for="item in media"
                 :key="item.id"
                 class="relative aspect-square border-2 cursor-pointer overflow-hidden transition-all hover:border-primary"
-                :class="selectedId === item.id ? 'border-primary ring-2 ring-primary/30' : 'border-border'"
+                :class="selectedIds.includes(item.id) ? 'border-primary ring-2 ring-primary/30' : 'border-border'"
                 @click="handleSelect(item)"
               >
                 <img
-                  :src="apiUrl(item.url)"
+                  :src="authMediaUrl(item.url, auth.token)"
                   :alt="item.originalName"
                   class="w-full h-full object-cover"
                 />
-                <div v-if="selectedId === item.id" class="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                <div
+                  v-if="selectedIds.includes(item.id)"
+                  class="absolute inset-0 bg-primary/20 flex items-center justify-center"
+                >
                   <div class="w-6 h-6 bg-primary text-white flex items-center justify-center">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12" />
@@ -234,16 +260,22 @@ onMounted(() => {
 
           <!-- Footer -->
           <div class="flex items-center justify-between p-4 border-t-2 border-border bg-muted/30">
-            <div v-if="selectedId" class="text-sm text-muted-foreground">
-              {{ media.find(m => m.id === selectedId)?.originalName }}
-              ({{ formatSize(media.find(m => m.id === selectedId)?.size || 0) }})
-            </div>
-            <div v-else class="text-sm text-muted-foreground">
-              {{ media.length }} images
+            <div class="text-sm text-muted-foreground">
+              <template v-if="selectedIds.length">
+                {{ selectedIds.length }} selected
+              </template>
+              <template v-else>
+                {{ media.length }} images
+              </template>
             </div>
             <div class="flex gap-2">
               <PixelButton variant="outline" size="sm" @click="handleClose">Cancel</PixelButton>
-              <PixelButton variant="primary" size="sm" :disabled="!selectedId" @click="confirmSelect">
+              <PixelButton
+                variant="primary"
+                size="sm"
+                :disabled="!selectedIds.length"
+                @click="confirmSelect"
+              >
                 Select
               </PixelButton>
             </div>

@@ -103,6 +103,10 @@ const pinX = ref(null);
 const pinY = ref(null);
 const pinImageFailed = ref(false);
 const showPinZoom = ref(false);
+const zoomScale = ref(1);
+const isPinchingZoom = ref(false);
+let pinchStartDistance = 0;
+let pinchStartScale = 1;
 const pinMediaUrl = computed(() => {
   const url = question.value?.mediaUrl;
   if (!url) return null;
@@ -311,6 +315,49 @@ function handlePinTouch(event) {
   const rect = event.currentTarget.getBoundingClientRect();
   pinX.value = ((touch.clientX - rect.left) / rect.width) * 100;
   pinY.value = ((touch.clientY - rect.top) / rect.height) * 100;
+}
+
+function openPinZoom() {
+  if (!pinMediaUrl.value || pinImageFailed.value) return;
+  showPinZoom.value = true;
+  zoomScale.value = 1;
+}
+
+function closePinZoom() {
+  showPinZoom.value = false;
+  zoomScale.value = 1;
+  isPinchingZoom.value = false;
+}
+
+function getTouchDistance(t1, t2) {
+  const dx = t2.clientX - t1.clientX;
+  const dy = t2.clientY - t1.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function onZoomTouchStart(event) {
+  if (event.touches.length === 2) {
+    isPinchingZoom.value = true;
+    pinchStartDistance = getTouchDistance(event.touches[0], event.touches[1]);
+    pinchStartScale = zoomScale.value;
+  } else if (event.touches.length === 1 && !isPinchingZoom.value) {
+    handlePinTouch(event);
+  }
+}
+
+function onZoomTouchMove(event) {
+  if (!isPinchingZoom.value || event.touches.length !== 2) return;
+  event.preventDefault();
+  const distance = getTouchDistance(event.touches[0], event.touches[1]);
+  if (!pinchStartDistance) return;
+  const rawScale = (distance / pinchStartDistance) * pinchStartScale;
+  zoomScale.value = Math.min(3, Math.max(1, rawScale));
+}
+
+function onZoomTouchEnd(event) {
+  if (event.touches.length < 2) {
+    isPinchingZoom.value = false;
+  }
 }
 
 function submitPinAnswer() {
@@ -894,7 +941,7 @@ onUnmounted(cleanup);
               <button
                 type="button"
                 class="absolute top-2 right-2 z-10 px-2 py-1 text-[11px] font-bold border-[3px] border-black bg-white/90 hover:bg-white cursor-zoom-in"
-                @click.stop="showPinZoom = true"
+                @click.stop="openPinZoom"
               >
                 {{ t('playerGame.zoomImage') || 'Zoom' }}
               </button>
@@ -1316,25 +1363,29 @@ onUnmounted(cleanup);
     <div
       v-if="showPinZoom && isPinAnswer && pinMediaUrl && !pinImageFailed"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-3"
-      @click.self="showPinZoom = false"
+      @click.self="closePinZoom"
     >
       <div class="relative w-full max-w-4xl max-h-[90vh] border-[3px] border-white bg-black overflow-hidden">
         <button
           type="button"
           class="absolute top-2 right-2 z-20 px-3 py-1 text-xs font-bold border-[3px] border-black bg-white/90 hover:bg-white"
-          @click.stop="showPinZoom = false"
+          @click.stop="closePinZoom"
         >
           {{ t('common.close') || 'Close' }}
         </button>
         <div class="relative w-full h-full overflow-auto bg-black">
           <div
             class="relative inline-block cursor-crosshair select-none"
+            :style="{ width: (zoomScale * 100) + '%'}"
             @click.stop="handlePinClick"
-            @touchstart.stop="handlePinTouch"
+            @touchstart.stop.prevent="onZoomTouchStart"
+            @touchmove.stop.prevent="onZoomTouchMove"
+            @touchend.stop="onZoomTouchEnd"
+            @touchcancel.stop="onZoomTouchEnd"
           >
             <img
               :src="pinMediaUrl"
-              class="block max-w-none max-h-none"
+              class="block max-w-full h-auto"
               alt="Pin target"
               draggable="false"
             />

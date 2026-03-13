@@ -41,6 +41,7 @@ import {
 
 import Session from '../models/Session.js';
 import Participant from '../models/Participant.js';
+import { updateHostStats, updateUserStats } from '../services/badgeService.js';
 
 /**
  * Ensure that a practice session has a set of virtual bot players.
@@ -840,22 +841,50 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       // correctly show status and duration. We look up by PIN because
       // the WebSocket layer does not know the DB id.
       const finishedAt = new Date();
-      Session.findOneAndUpdate(
-        { pin: sessionPin },
-        {
-          $set: {
-            status: 'finished',
-            finishedAt
+      let dbSession = null;
+      try {
+        dbSession = await Session.findOneAndUpdate(
+          { pin: sessionPin },
+          {
+            $set: {
+              status: 'finished',
+              finishedAt
+            },
+            // Backfill startedAt if for some reason it was never set
+            $setOnInsert: {
+              startedAt: session.startedAt || null
+            }
           },
-          // Backfill startedAt if for some reason it was never set
-          $setOnInsert: {
-            startedAt: session.startedAt || null
+          {
+            upsert: false,
+            new: true
           }
-        },
-        { upsert: false }
-      ).catch((err) => {
+        );
+      } catch (err) {
         console.error('Failed to persist finished session state:', err);
-      });
+      }
+
+      // If this session is linked to an authenticated moderator account,
+      // update their hosting stats and quiz stats, then check for badges.
+      if (dbSession?.moderatorId) {
+        const moderatorId = dbSession.moderatorId.toString();
+
+        // Run updates in the background; failures should not affect game end.
+        Promise.allSettled([
+          updateHostStats(moderatorId, { sessionsHostedDelta: 1 }),
+          // Treat a completed hosted session as a completed quiz for
+          // participation-style stats/badges. We don't have per-question
+          // data for the moderator, so only the quiz count is incremented.
+          updateUserStats(moderatorId, {
+            correctAnswers: 0,
+            totalAnswers: 0,
+            won: false,
+            maxStreak: 0
+          })
+        ]).catch((err) => {
+          console.error('Failed to update moderator stats from moderator:end:', err);
+        });
+      }
 
       // Compute real final leaderboard with all player scores
       const finalResults = computeFinalResults(session);

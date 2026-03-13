@@ -187,6 +187,19 @@ const revealMediaExpanded = ref(false);
         Share results with care – comments may contain sensitive feedback.
       </p>
 
+      <!-- Question text -->
+      <PixelCard
+        v-if="currentQuestion && currentQuestion.text"
+        class="!p-4"
+      >
+        <p class="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          {{ t('session.question') }}
+        </p>
+        <p class="mt-1 text-lg lg:text-xl font-bold leading-snug break-words">
+          {{ currentQuestion.text }}
+        </p>
+      </PixelCard>
+
       <div class="grid gap-4" :class="hasLeaderboard ? 'lg:grid-cols-3' : ''">
         <!-- Answer Distribution / Results -->
         <div class="space-y-4" :class="hasLeaderboard ? 'lg:col-span-2' : ''">
