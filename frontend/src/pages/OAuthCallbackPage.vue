@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/authStore.js';
 import { TIMING, STORAGE_KEYS } from '../constants/index.js';
+import { apiRequest } from '../lib/api.js';
 
 import LoadingSpinner from '../components/LoadingSpinner.vue';
 
@@ -14,7 +15,8 @@ const error = ref('');
 const loading = ref(true);
 
 onMounted(async () => {
-  const token = route.query.token;
+  const code = route.query.code;
+  const tokenFromQuery = route.query.token; // legacy fallback for older backends
   const errorParam = route.query.error;
 
   if (errorParam) {
@@ -24,14 +26,23 @@ onMounted(async () => {
     return;
   }
 
-  if (!token) {
-    error.value = 'No authentication token received';
-    loading.value = false;
-    setTimeout(() => router.push('/login'), TIMING.REDIRECT_DELAY);
-    return;
-  }
-
   try {
+    let token = null;
+
+    if (typeof code === 'string' && code.trim()) {
+      const exchange = await apiRequest('/api/auth/oauth/exchange', {
+        method: 'POST',
+        body: JSON.stringify({ code: code.trim() })
+      });
+      token = exchange?.data?.token || null;
+    } else if (typeof tokenFromQuery === 'string' && tokenFromQuery.trim()) {
+      token = tokenFromQuery.trim();
+    }
+
+    if (!token) {
+      throw new Error('No authentication token received');
+    }
+
     // Store the token
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
     auth.token = token;

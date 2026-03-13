@@ -6,6 +6,7 @@ import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
 import User from '../models/User.js';
 import { badRequest, conflict, notFound } from '../utils/httpError.js';
+import { parsePagination } from '../utils/pagination.js';
 import { mapQuizToLibrarySummary } from '../utils/quizMapper.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 import {
@@ -72,6 +73,8 @@ export const importOfficialQuizzes = asyncHandler(async (req, res) => {
 
   for (let index = 0; index < quizzesInput.length; index += 1) {
     const quizInput = quizzesInput[index] || {};
+    let createdQuizId = null;
+    const createdQuestionIds = [];
 
     try {
       if (!quizInput.title) {
@@ -95,6 +98,7 @@ export const importOfficialQuizzes = asyncHandler(async (req, res) => {
       });
 
       await quiz.save();
+      createdQuizId = quiz._id;
 
       const questionIds = [];
       if (!Array.isArray(quizInput.questions) || quizInput.questions.length === 0) {
@@ -138,6 +142,7 @@ export const importOfficialQuizzes = asyncHandler(async (req, res) => {
 
         await question.save();
         questionIds.push(question._id);
+        createdQuestionIds.push(question._id);
         autoOrder += 1;
       }
 
@@ -152,6 +157,18 @@ export const importOfficialQuizzes = asyncHandler(async (req, res) => {
         questionCount: questionIds.length
       });
     } catch (error) {
+      // Best-effort rollback so failed imports do not leave orphaned/published rows.
+      try {
+        if (createdQuestionIds.length > 0) {
+          await Question.deleteMany({ _id: { $in: createdQuestionIds } });
+        }
+        if (createdQuizId) {
+          await Quiz.deleteOne({ _id: createdQuizId });
+        }
+      } catch {
+        // Swallow rollback issues and report original import error in results.
+      }
+
       results.push({
         index,
         status: 'failed',
@@ -243,9 +260,12 @@ export const browseLibrary = asyncHandler(async (req, res) => {
     }
 
     // Pagination
-    const pageNum = Math.max(1, parseInt(page));
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit)));
-    const skip = (pageNum - 1) * limitNum;
+  const { page: pageNum, limit: limitNum, skip } = parsePagination({
+    page,
+    limit,
+    defaultLimit: 20,
+    maxLimit: 50
+  });
 
     const [quizzes, total] = await Promise.all([
       Quiz.find(filter)

@@ -6,6 +6,7 @@ import Submission from '../models/Submission.js';
 import Question from '../models/Question.js';
 import { badRequest, conflict, notFound, unauthorized } from '../utils/httpError.js';
 import { logger } from '../utils/logger.js';
+import { parsePagination } from '../utils/pagination.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 import {
   sendSuccess,
@@ -210,7 +211,7 @@ export const getSessionResults = asyncHandler(async (req, res) => {
  * GET /api/sessions
  */
 export const getSessionHistory = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, status, quizId } = req.query;
+  const { page, limit, status, quizId } = req.query;
   const query = { moderatorId: req.user.userId };
 
   if (status) {
@@ -220,9 +221,12 @@ export const getSessionHistory = asyncHandler(async (req, res) => {
     query.quizId = quizId;
   }
 
-  const pageNum = Number.parseInt(page, 10);
-  const limitNum = Number.parseInt(limit, 10);
-  const skip = (pageNum - 1) * limitNum;
+  const { page: pageNum, limit: limitNum, skip } = parsePagination({
+    page,
+    limit,
+    defaultLimit: 10,
+    maxLimit: 100
+  });
   const total = await Session.countDocuments(query);
 
   const sessions = await Session.find(query)

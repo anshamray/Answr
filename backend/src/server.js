@@ -1,4 +1,5 @@
 import http from 'http';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,16 +29,39 @@ validateEnv();
 connectDatabase();
 
 const app = express();
+const allowedCorsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow same-origin/non-browser requests (no Origin header)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedCorsOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  credentials: true
+};
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST']
+    origin: allowedCorsOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' })); // Default 100kb too small for questions with images
 
 // Initialize Passport for OAuth
@@ -56,18 +80,29 @@ app.use('/media', mediaServeRoutes);
 const clientDistEnv = process.env.CLIENT_DIST_PATH;
 const defaultClientDist = path.resolve(__dirname, '../../frontend/dist');
 const dockerClientDist = path.resolve(__dirname, '../frontend-dist');
-const clientDistPath = clientDistEnv || dockerClientDist || defaultClientDist;
+const clientDistCandidates = [
+  clientDistEnv ? path.resolve(clientDistEnv) : null,
+  dockerClientDist,
+  defaultClientDist
+].filter(Boolean);
+const clientDistPath = clientDistCandidates.find((candidate) =>
+  fs.existsSync(path.join(candidate, 'index.html'))
+);
 
-app.use(express.static(clientDistPath));
+if (clientDistPath) {
+  app.use(express.static(clientDistPath));
 
-// SPA fallback: send index.html for all non-API/media routes
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/media')) {
-    return next();
-  }
+  // SPA fallback: send index.html for all non-API/media routes
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/media')) {
+      return next();
+    }
 
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+} else {
+  logger.warn('No frontend dist found; serving API only');
+}
 
 // Upload error handler
 app.use(handleUploadError);

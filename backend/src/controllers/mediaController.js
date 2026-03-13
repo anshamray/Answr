@@ -10,6 +10,7 @@ import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
 import { badRequest, notFound } from '../utils/httpError.js';
 import { logger } from '../utils/logger.js';
+import { parsePagination } from '../utils/pagination.js';
 import {
   sendSuccess,
   sendCreated,
@@ -281,9 +282,12 @@ export const listMedia = asyncHandler(async (req, res) => {
     query.originalName = { $regex: search, $options: 'i' };
   }
 
-  const pageNum = Number.parseInt(page, 10);
-  const limitNum = Number.parseInt(limit, 10);
-  const skip = (pageNum - 1) * limitNum;
+  const { page: pageNum, limit: limitNum, skip } = parsePagination({
+    page,
+    limit,
+    defaultLimit: 20,
+    maxLimit: 100
+  });
   const total = await Media.countDocuments(query);
 
   const media = await Media.find(query)
