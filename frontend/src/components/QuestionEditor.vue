@@ -236,7 +236,7 @@ function handlePaste(event) {
   let detectedType = null;
   const typePatterns = {
     'multiple-choice': /Multiple\s*Choice/i,
-    'true-false': /True\s*[\/_-]\s*False/i,
+    'true-false': /True\s*[/_-]\s*False/i,
     'sort': /\bSort\b/i,
     'slider': /\bSlider\b/i,
     'type-answer': /Type\s*Answer/i,
@@ -267,7 +267,7 @@ function handlePaste(event) {
 
   for (const line of lines) {
     // Skip type header lines
-    if (/^\d+\.\s*(Multiple\s*Choice|True\s*[\/_-]\s*False|Type\s*Answer|Sort|Slider|Poll|Umfrage)/i.test(line)) continue;
+    if (/^\d+\.\s*(Multiple\s*Choice|True\s*[/_-]\s*False|Type\s*Answer|Sort|Slider|Poll|Umfrage)/i.test(line)) continue;
 
     // Extract question from "Frage: ..." or "Question: ..."
     const qMatch = line.match(/^(?:Frage|Question)\s*:\s*(.+)/i);
@@ -283,7 +283,7 @@ function handlePaste(event) {
     }
 
     // Slider range: "Slider Range: 5 – 15" or "Range: 5 - 15"
-    const rangeMatch = line.match(/(?:Slider\s*)?Range\s*:\s*(\d+)\s*[–\-]\s*(\d+)/i);
+    const rangeMatch = line.match(/(?:Slider\s*)?Range\s*:\s*(\d+)\s*[–-]\s*(\d+)/i);
     if (rangeMatch) {
       sliderMin = parseInt(rangeMatch[1]);
       sliderMax = parseInt(rangeMatch[2]);
