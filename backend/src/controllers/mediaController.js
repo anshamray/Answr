@@ -3,17 +3,17 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import Media from '../models/Media.js';
 import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
+import { badRequest, notFound } from '../utils/httpError.js';
+import { logger } from '../utils/logger.js';
 import {
   sendSuccess,
   sendCreated,
-  sendBadRequest,
-  sendNotFound,
-  sendError,
-  sendServerError
+  sendError
 } from '../utils/responseHelper.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -94,41 +94,89 @@ async function processImage(buffer, mimeType) {
  * Upload media file
  * POST /api/media/upload
  */
-export async function uploadMedia(req, res) {
-  try {
-    if (!req.file) {
-      return sendBadRequest(res, 'No file uploaded');
+export const uploadMedia = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw badRequest('No file uploaded');
+  }
+
+  await ensureUploadDir();
+  const { buffer, originalname, mimetype } = req.file;
+  const processed = await processImage(buffer, mimetype);
+  const ext = getExtension(mimetype);
+  const filename = `${uuidv4()}${ext}`;
+  const filePath = path.join(UPLOAD_DIR, filename);
+
+  await fs.writeFile(filePath, processed.buffer);
+
+  const media = new Media({
+    filename,
+    originalName: originalname,
+    mimeType: mimetype,
+    size: processed.buffer.length,
+    width: processed.width,
+    height: processed.height,
+    uploadedBy: req.user.userId
+  });
+
+  await media.save();
+
+  sendCreated(res, 'Media uploaded', {
+    media: {
+      id: media._id,
+      url: `/media/${media._id}`,
+      originalName: media.originalName,
+      mimeType: media.mimeType,
+      size: media.size,
+      width: media.width,
+      height: media.height
     }
+  });
+});
 
-    await ensureUploadDir();
+/**
+ * Delete media file
+ * DELETE /api/media/:id
+ */
+export const deleteMedia = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const media = await Media.findById(id);
+  if (!media) {
+    throw notFound('Media not found');
+  }
 
-    const { buffer, originalname, mimetype } = req.file;
+  if (media.uploadedBy.toString() !== req.user.userId) {
+    return sendError(res, 403, 'Not authorized to delete this media');
+  }
 
-    // Process image
-    const processed = await processImage(buffer, mimetype);
+  const filePath = path.join(UPLOAD_DIR, media.filename);
+  try {
+    await fs.unlink(filePath);
+  } catch {
+    logger.warn('File not found during deletion', { filePath });
+  }
 
-    // Generate unique filename
-    const ext = getExtension(mimetype);
-    const filename = `${uuidv4()}${ext}`;
-    const filePath = path.join(UPLOAD_DIR, filename);
+  await media.deleteOne();
+  sendSuccess(res, { message: 'Media deleted' });
+});
 
-    // Write file to disk
-    await fs.writeFile(filePath, processed.buffer);
+/**
+ * Get media metadata
+ * GET /api/media/:id
+ */
+export const getMediaInfo = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const media = await Media.findById(id);
+  if (!media) {
+    throw notFound('Media not found');
+  }
 
-    // Create database record
-    const media = new Media({
-      filename,
-      originalName: originalname,
-      mimeType: mimetype,
-      size: processed.buffer.length,
-      width: processed.width,
-      height: processed.height,
-      uploadedBy: req.user.userId
-    });
+  if (media.uploadedBy.toString() !== req.user.userId) {
+    return sendError(res, 403, 'Not authorized to view this media');
+  }
 
-    await media.save();
-
-    sendCreated(res, 'Media uploaded', {
+  sendSuccess(res, {
+    message: 'Media info retrieved',
+    data: {
       media: {
         id: media._id,
         url: `/media/${media._id}`,
@@ -136,91 +184,13 @@ export async function uploadMedia(req, res) {
         mimeType: media.mimeType,
         size: media.size,
         width: media.width,
-        height: media.height
+        height: media.height,
+        quizId: media.quizId,
+        createdAt: media.createdAt
       }
-    });
-  } catch (error) {
-    console.error('Upload media error:', error);
-    sendServerError(res, 'Failed to process image');
-  }
-}
-
-/**
- * Delete media file
- * DELETE /api/media/:id
- */
-export async function deleteMedia(req, res) {
-  try {
-    const { id } = req.params;
-
-    const media = await Media.findById(id);
-    if (!media) {
-      return sendNotFound(res, 'Media not found');
     }
-
-    // Verify ownership
-    if (media.uploadedBy.toString() !== req.user.userId) {
-      return sendError(res, 403, 'Not authorized to delete this media');
-    }
-
-    // Delete file from disk
-    const filePath = path.join(UPLOAD_DIR, media.filename);
-    try {
-      await fs.unlink(filePath);
-    } catch {
-      // File might not exist, continue with database deletion
-      console.warn('File not found during deletion:', filePath);
-    }
-
-    // Delete database record
-    await media.deleteOne();
-
-    sendSuccess(res, { message: 'Media deleted' });
-  } catch (error) {
-    console.error('Delete media error:', error);
-    sendServerError(res, 'Failed to delete media');
-  }
-}
-
-/**
- * Get media metadata
- * GET /api/media/:id
- */
-export async function getMediaInfo(req, res) {
-  try {
-    const { id } = req.params;
-
-    const media = await Media.findById(id);
-    if (!media) {
-      return sendNotFound(res, 'Media not found');
-    }
-
-    // Only owner can view metadata
-    if (media.uploadedBy.toString() !== req.user.userId) {
-      return sendError(res, 403, 'Not authorized to view this media');
-    }
-
-    sendSuccess(res, {
-      message: 'Media info retrieved',
-      data: {
-        media: {
-          id: media._id,
-          url: `/media/${media._id}`,
-          originalName: media.originalName,
-          mimeType: media.mimeType,
-          size: media.size,
-          width: media.width,
-          height: media.height,
-          quizId: media.quizId,
-          createdAt: media.createdAt
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Get media info error:', error);
-    sendServerError(res, 'Failed to fetch media info');
-  }
-}
+  });
+});
 
 /**
  * Check if user/session has access to media
@@ -271,97 +241,82 @@ async function checkMediaAccess(media, user, sessionPin) {
  * Serve media file with access control
  * GET /media/:id
  */
-export async function serveMedia(req, res) {
-  try {
-    const { id } = req.params;
-    const sessionPin = req.query.sessionPin;
+export const serveMedia = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const sessionPin = req.query.sessionPin;
 
-    const media = await Media.findById(id);
-    if (!media) {
-      return sendNotFound(res, 'Media not found');
-    }
-
-    // Check access permissions
-    const canAccess = await checkMediaAccess(media, req.user, sessionPin);
-    if (!canAccess) {
-      return sendError(res, 403, 'Access denied');
-    }
-
-    // Stream the file
-    const filePath = path.join(UPLOAD_DIR, media.filename);
-
-    try {
-      await fs.access(filePath);
-    } catch {
-      return sendNotFound(res, 'Media file not found');
-    }
-
-    res.type(media.mimeType);
-    res.sendFile(filePath);
-  } catch (error) {
-    console.error('Serve media error:', error);
-    sendServerError(res, 'Failed to serve media');
+  const media = await Media.findById(id);
+  if (!media) {
+    throw notFound('Media not found');
   }
-}
+
+  const canAccess = await checkMediaAccess(media, req.user, sessionPin);
+  if (!canAccess) {
+    return sendError(res, 403, 'Access denied');
+  }
+
+  const filePath = path.join(UPLOAD_DIR, media.filename);
+  try {
+    await fs.access(filePath);
+  } catch {
+    throw notFound('Media file not found');
+  }
+
+  res.type(media.mimeType);
+  res.sendFile(filePath);
+});
 
 /**
  * List all media for the authenticated user
  * GET /api/media
  */
-export async function listMedia(req, res) {
-  try {
-    const { quizId, search, page = 1, limit = 20 } = req.query;
+export const listMedia = asyncHandler(async (req, res) => {
+  const { quizId, search, page = 1, limit = 20 } = req.query;
+  const query = { uploadedBy: req.user.userId };
 
-    const query = { uploadedBy: req.user.userId };
-
-    // Filter by quiz if provided
-    if (quizId) {
-      query.quizId = quizId;
-    }
-
-    // Search by original filename
-    if (search) {
-      query.originalName = { $regex: search, $options: 'i' };
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Media.countDocuments(query);
-
-    const media = await Media.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .select('filename originalName mimeType size width height quizId createdAt');
-
-    const items = media.map(m => ({
-      id: m._id,
-      url: `/media/${m._id}`,
-      originalName: m.originalName,
-      mimeType: m.mimeType,
-      size: m.size,
-      width: m.width,
-      height: m.height,
-      quizId: m.quizId,
-      createdAt: m.createdAt
-    }));
-
-    sendSuccess(res, {
-      message: 'Media list retrieved',
-      data: {
-        media: items,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-  } catch (error) {
-    console.error('List media error:', error);
-    sendServerError(res, 'Failed to fetch media list');
+  if (quizId) {
+    query.quizId = quizId;
   }
-}
+  if (search) {
+    query.originalName = { $regex: search, $options: 'i' };
+  }
+
+  const pageNum = Number.parseInt(page, 10);
+  const limitNum = Number.parseInt(limit, 10);
+  const skip = (pageNum - 1) * limitNum;
+  const total = await Media.countDocuments(query);
+
+  const media = await Media.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNum)
+    .select('filename originalName mimeType size width height quizId createdAt');
+
+  const items = media.map((m) => ({
+    id: m._id,
+    url: `/media/${m._id}`,
+    originalName: m.originalName,
+    mimeType: m.mimeType,
+    size: m.size,
+    width: m.width,
+    height: m.height,
+    quizId: m.quizId,
+    createdAt: m.createdAt
+  }));
+
+  sendSuccess(res, {
+    message: 'Media list retrieved',
+    data: {
+      media: items,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    }
+  });
+});
 
 /**
  * Link media to a quiz (called when question is created/updated)
@@ -378,6 +333,6 @@ export async function linkMediaToQuiz(mediaUrl, quizId) {
   try {
     await Media.findByIdAndUpdate(mediaId, { quizId });
   } catch (error) {
-    console.error('Failed to link media to quiz:', error);
+    logger.warn('Failed to link media to quiz', error);
   }
 }

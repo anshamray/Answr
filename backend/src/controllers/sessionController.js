@@ -1,17 +1,15 @@
 import Participant from '../models/Participant.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
 import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
 import Submission from '../models/Submission.js';
 import Question from '../models/Question.js';
+import { badRequest, conflict, notFound, unauthorized } from '../utils/httpError.js';
+import { logger } from '../utils/logger.js';
 import { generateUniquePin } from '../utils/pinGenerator.js';
 import {
   sendSuccess,
-  sendCreated,
-  sendBadRequest,
-  sendUnauthorized,
-  sendNotFound,
-  sendConflict,
-  sendServerError
+  sendCreated
 } from '../utils/responseHelper.js';
 import { updateHostStats } from '../services/badgeService.js';
 
@@ -28,66 +26,54 @@ function submissionCountsAsCorrect(submission) {
  * Create a new game session
  * POST /api/sessions
  */
-export async function createSession(req, res) {
-  try {
-    const { quizId, practice } = req.body;
+export const createSession = asyncHandler(async (req, res) => {
+  const { quizId, practice } = req.body;
 
-    if (!quizId) {
-      return sendBadRequest(res, 'quizId is required');
-    }
-
-    // Verify quiz exists and belongs to the user
-    const quiz = await Quiz.findOne({
-      _id: quizId,
-      moderatorId: req.user.userId
-    });
-
-    if (!quiz) {
-      return sendNotFound(res, 'Quiz not found');
-    }
-
-    const pin = await generateUniquePin();
-
-    const session = new Session({
-      quizId,
-      moderatorId: req.user.userId,
-      pin,
-      isPractice: !!practice,
-      mode: quiz.mode || 'competitive',
-      isAnonymous: !!quiz.isAnonymous,
-      showLiveResultsToPlayers: quiz.showLiveResultsToPlayers !== undefined
-        ? !!quiz.showLiveResultsToPlayers
-        : true
-    });
-
-    await session.save();
-
-    // Track plays for every non-practice quiz session, including private quizzes
-    // shown on the dashboard. Practice runs are excluded from play statistics.
-    if (!session.isPractice) {
-      await Quiz.findByIdAndUpdate(quiz._id, { $inc: { playCount: 1 } });
-
-      // If this quiz was cloned from a library quiz, also credit the original source quiz.
-      if (quiz.clonedFrom && quiz.clonedFrom.toString() !== quiz._id.toString()) {
-        await Quiz.findByIdAndUpdate(quiz.clonedFrom, { $inc: { playCount: 1 } });
-      }
-    }
-
-    sendCreated(res, 'Session created', {
-      session: {
-        id: session._id,
-        quizId: session.quizId,
-        pin: session.pin,
-        status: session.status,
-        createdAt: session.createdAt,
-        expiresAt: session.expiresAt
-      }
-    });
-  } catch (error) {
-    console.error('Create session error:', error);
-    sendServerError(res, 'Failed to create session');
+  if (!quizId) {
+    throw badRequest('quizId is required');
   }
-}
+
+  const quiz = await Quiz.findOne({
+    _id: quizId,
+    moderatorId: req.user.userId
+  });
+  if (!quiz) {
+    throw notFound('Quiz not found');
+  }
+
+  const pin = await generateUniquePin();
+  const session = new Session({
+    quizId,
+    moderatorId: req.user.userId,
+    pin,
+    isPractice: !!practice,
+    mode: quiz.mode || 'competitive',
+    isAnonymous: !!quiz.isAnonymous,
+    showLiveResultsToPlayers: quiz.showLiveResultsToPlayers !== undefined
+      ? !!quiz.showLiveResultsToPlayers
+      : true
+  });
+
+  await session.save();
+
+  if (!session.isPractice) {
+    await Quiz.findByIdAndUpdate(quiz._id, { $inc: { playCount: 1 } });
+    if (quiz.clonedFrom && quiz.clonedFrom.toString() !== quiz._id.toString()) {
+      await Quiz.findByIdAndUpdate(quiz.clonedFrom, { $inc: { playCount: 1 } });
+    }
+  }
+
+  sendCreated(res, 'Session created', {
+    session: {
+      id: session._id,
+      quizId: session.quizId,
+      pin: session.pin,
+      status: session.status,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt
+    }
+  });
+});
 
 /**
  * Get session details
@@ -97,227 +83,195 @@ export async function createSession(req, res) {
  *   - Authenticated moderator: session must belong to req.user.userId
  *   - Guest host: must provide ?guestToken=<token> matching the session
  */
-export async function getSession(req, res) {
-  try {
-    const { guestToken } = req.query;
+export const getSession = asyncHandler(async (req, res) => {
+  const { guestToken } = req.query;
+  let session;
 
-    let session;
-
-    const populateQuiz = {
-      path: 'quizId',
-      select: 'title questions mode isAnonymous showLiveResultsToPlayers',
-      populate: {
-        path: 'questions',
-        options: { sort: { order: 1 } }
-      }
-    };
-
-    if (guestToken) {
-      // Guest access via token
-      session = await Session.findOne({
-        _id: req.params.id,
-        guestToken
-      }).populate('participants').populate(populateQuiz);
-    } else if (req.user) {
-      // Authenticated moderator
-      session = await Session.findOne({
-        _id: req.params.id,
-        moderatorId: req.user.userId
-      }).populate('participants').populate(populateQuiz);
-    } else {
-      return sendUnauthorized(res, 'Authentication or guestToken required');
+  const populateQuiz = {
+    path: 'quizId',
+    select: 'title questions mode isAnonymous showLiveResultsToPlayers',
+    populate: {
+      path: 'questions',
+      options: { sort: { order: 1 } }
     }
+  };
 
-    if (!session) {
-      return sendNotFound(res, 'Session not found');
-    }
-
-    const sessionData = session.toObject();
-
-    // Finished sessions may have persisted participants even when the
-    // reference array was not populated on the document yet.
-    if ((!sessionData.participants || sessionData.participants.length === 0) && session.status === 'finished') {
-      sessionData.participants = await Participant.find({ sessionId: session._id })
-        .sort({ score: -1 });
-    }
-
-    sendSuccess(res, { message: 'Session retrieved', data: { session: sessionData } });
-  } catch (error) {
-    console.error('Get session error:', error);
-    sendServerError(res, 'Failed to fetch session');
+  if (guestToken) {
+    session = await Session.findOne({
+      _id: req.params.id,
+      guestToken
+    }).populate('participants').populate(populateQuiz);
+  } else if (req.user) {
+    session = await Session.findOne({
+      _id: req.params.id,
+      moderatorId: req.user.userId
+    }).populate('participants').populate(populateQuiz);
+  } else {
+    throw unauthorized('Authentication or guestToken required');
   }
-}
+
+  if (!session) {
+    throw notFound('Session not found');
+  }
+
+  const sessionData = session.toObject();
+  if ((!sessionData.participants || sessionData.participants.length === 0) && session.status === 'finished') {
+    sessionData.participants = await Participant.find({ sessionId: session._id })
+      .sort({ score: -1 });
+  }
+
+  sendSuccess(res, { message: 'Session retrieved', data: { session: sessionData } });
+});
 
 /**
  * End a session (set status to finished)
  * DELETE /api/sessions/:id
  */
-export async function endSession(req, res) {
-  try {
-    const session = await Session.findOne({
-      _id: req.params.id,
-      moderatorId: req.user.userId
-    });
+export const endSession = asyncHandler(async (req, res) => {
+  const session = await Session.findOne({
+    _id: req.params.id,
+    moderatorId: req.user.userId
+  });
 
-    if (!session) {
-      return sendNotFound(res, 'Session not found');
-    }
-
-    if (session.status === 'finished') {
-      return sendConflict(res, 'Session already finished');
-    }
-
-    session.status = 'finished';
-    session.finishedAt = new Date();
-    await session.save();
-
-    // Update moderator hosting stats and badges (non-blocking for the response)
-    updateHostStats(req.user.userId, { sessionsHostedDelta: 1 }).catch((err) => {
-      console.error('Failed to update host stats:', err);
-    });
-
-    sendSuccess(res, { message: 'Session ended', data: { session } });
-  } catch (error) {
-    console.error('End session error:', error);
-    sendServerError(res, 'Failed to end session');
+  if (!session) {
+    throw notFound('Session not found');
   }
-}
+  if (session.status === 'finished') {
+    throw conflict('Session already finished');
+  }
+
+  session.status = 'finished';
+  session.finishedAt = new Date();
+  await session.save();
+
+  updateHostStats(req.user.userId, { sessionsHostedDelta: 1 }).catch((err) => {
+    logger.warn('Failed to update host stats', err);
+  });
+
+  sendSuccess(res, { message: 'Session ended', data: { session } });
+});
 
 /**
  * Get final statistics for a finished session
  * GET /api/sessions/:id/results
  */
-export async function getSessionResults(req, res) {
-  try {
-    const session = await Session.findOne({
-      _id: req.params.id,
-      moderatorId: req.user.userId
-    }).populate('quizId', 'title questions');
+export const getSessionResults = asyncHandler(async (req, res) => {
+  const session = await Session.findOne({
+    _id: req.params.id,
+    moderatorId: req.user.userId
+  }).populate('quizId', 'title questions');
 
-    if (!session) {
-      return sendNotFound(res, 'Session not found');
-    }
-
-    if (session.status !== 'finished') {
-      return sendBadRequest(res, 'Session is not finished yet');
-    }
-
-    // Get all participants sorted by score descending
-    const participants = await Participant.find({ sessionId: session._id })
-      .sort({ score: -1 })
-      .select('name avatar score createdAt');
-
-    // Build ranked results
-    const rankings = participants.map((p, index) => ({
-      rank: index + 1,
-      name: p.name,
-      avatar: p.avatar,
-      score: p.score
-    }));
-
-    const totalScore = participants.reduce((sum, participant) => sum + (participant.score || 0), 0);
-    const avgScore = rankings.length > 0 ? Math.round(totalScore / rankings.length) : 0;
-
-    sendSuccess(res, {
-      message: 'Session results retrieved',
-      data: {
-        sessionId: session._id,
-        quizTitle: session.quizId?.title || '',
-        pin: session.pin,
-        status: session.status,
-        mode: session.mode || 'competitive',
-        totalParticipants: rankings.length,
-        totalQuestions: session.quizId?.questions?.length || 0,
-        avgScore,
-        finishedAt: session.finishedAt,
-        stats: {
-          mode: session.mode || 'competitive',
-          totalPlayers: rankings.length,
-          totalQuestions: session.quizId?.questions?.length || 0,
-          avgScore
-        },
-        rankings
-      }
-    });
-  } catch (error) {
-    console.error('Get session results error:', error);
-    sendServerError(res, 'Failed to fetch session results');
+  if (!session) {
+    throw notFound('Session not found');
   }
-}
+  if (session.status !== 'finished') {
+    throw badRequest('Session is not finished yet');
+  }
+
+  const participants = await Participant.find({ sessionId: session._id })
+    .sort({ score: -1 })
+    .select('name avatar score createdAt');
+
+  const rankings = participants.map((p, index) => ({
+    rank: index + 1,
+    name: p.name,
+    avatar: p.avatar,
+    score: p.score
+  }));
+
+  const totalScore = participants.reduce((sum, participant) => sum + (participant.score || 0), 0);
+  const avgScore = rankings.length > 0 ? Math.round(totalScore / rankings.length) : 0;
+
+  sendSuccess(res, {
+    message: 'Session results retrieved',
+    data: {
+      sessionId: session._id,
+      quizTitle: session.quizId?.title || '',
+      pin: session.pin,
+      status: session.status,
+      mode: session.mode || 'competitive',
+      totalParticipants: rankings.length,
+      totalQuestions: session.quizId?.questions?.length || 0,
+      avgScore,
+      finishedAt: session.finishedAt,
+      stats: {
+        mode: session.mode || 'competitive',
+        totalPlayers: rankings.length,
+        totalQuestions: session.quizId?.questions?.length || 0,
+        avgScore
+      },
+      rankings
+    }
+  });
+});
 
 /**
  * Get session history for the authenticated user
  * GET /api/sessions
  */
-export async function getSessionHistory(req, res) {
-  try {
-    const { page = 1, limit = 10, status, quizId } = req.query;
+export const getSessionHistory = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10, status, quizId } = req.query;
+  const query = { moderatorId: req.user.userId };
 
-    const query = { moderatorId: req.user.userId };
-
-    if (status) {
-      query.status = status;
-    }
-
-    if (quizId) {
-      query.quizId = quizId;
-    }
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Session.countDocuments(query);
-
-    const sessions = await Session.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .populate('quizId', 'title')
-      .populate('participants', 'name score');
-
-    const sessionList = sessions.map(s => ({
-      id: s._id,
-      quizTitle: s.quizId?.title || 'Deleted Quiz',
-      pin: s.pin,
-      status: s.status,
-      participantCount: s.participants?.length || 0,
-      startedAt: s.startedAt,
-      finishedAt: s.finishedAt,
-      createdAt: s.createdAt
-    }));
-
-    sendSuccess(res, {
-      message: 'Session history retrieved',
-      data: {
-        sessions: sessionList,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-  } catch (error) {
-    console.error('Get session history error:', error);
-    sendServerError(res, 'Failed to fetch session history');
+  if (status) {
+    query.status = status;
   }
-}
+  if (quizId) {
+    query.quizId = quizId;
+  }
+
+  const pageNum = Number.parseInt(page, 10);
+  const limitNum = Number.parseInt(limit, 10);
+  const skip = (pageNum - 1) * limitNum;
+  const total = await Session.countDocuments(query);
+
+  const sessions = await Session.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNum)
+    .populate('quizId', 'title')
+    .populate('participants', 'name score');
+
+  const sessionList = sessions.map((s) => ({
+    id: s._id,
+    quizTitle: s.quizId?.title || 'Deleted Quiz',
+    pin: s.pin,
+    status: s.status,
+    participantCount: s.participants?.length || 0,
+    startedAt: s.startedAt,
+    finishedAt: s.finishedAt,
+    createdAt: s.createdAt
+  }));
+
+  sendSuccess(res, {
+    message: 'Session history retrieved',
+    data: {
+      sessions: sessionList,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    }
+  });
+});
 
 /**
  * Get detailed analytics for a session
  * GET /api/sessions/:id/analytics
  */
-export async function getSessionAnalytics(req, res) {
-  try {
-    const session = await Session.findOne({
-      _id: req.params.id,
-      moderatorId: req.user.userId
-    })
-      .populate('quizId', 'title questions')
-      .populate('participants');
+export const getSessionAnalytics = asyncHandler(async (req, res) => {
+  const session = await Session.findOne({
+    _id: req.params.id,
+    moderatorId: req.user.userId
+  })
+    .populate('quizId', 'title questions')
+    .populate('participants');
 
-    if (!session) {
-      return sendNotFound(res, 'Session not found');
-    }
+  if (!session) {
+    throw notFound('Session not found');
+  }
 
     // Get all submissions for this session
     const submissions = await Submission.find({ sessionId: session._id })
@@ -457,51 +411,46 @@ export async function getSessionAnalytics(req, res) {
       delete stat.order;
     });
 
-    sendSuccess(res, {
-      message: 'Session analytics retrieved',
-      data: {
-        session: {
-          id: session._id,
-          quizTitle: session.quizId?.title || 'Deleted Quiz',
-          pin: session.pin,
-          status: session.status,
-          mode: session.mode || 'competitive',
-          startedAt: session.startedAt,
-          finishedAt: session.finishedAt,
-          duration: durationMs
-        },
-        summary: {
-          totalParticipants,
-          avgScore,
-          avgAccuracy,
-          totalQuestions: questionStats.length
-        },
-        participants: participantDetails,
-        questions: questionStats
-      }
-    });
-  } catch (error) {
-    console.error('Get session analytics error:', error);
-    sendServerError(res, 'Failed to fetch session analytics');
-  }
-}
+  sendSuccess(res, {
+    message: 'Session analytics retrieved',
+    data: {
+      session: {
+        id: session._id,
+        quizTitle: session.quizId?.title || 'Deleted Quiz',
+        pin: session.pin,
+        status: session.status,
+        mode: session.mode || 'competitive',
+        startedAt: session.startedAt,
+        finishedAt: session.finishedAt,
+        duration: durationMs
+      },
+      summary: {
+        totalParticipants,
+        avgScore,
+        avgAccuracy,
+        totalQuestions: questionStats.length
+      },
+      participants: participantDetails,
+      questions: questionStats
+    }
+  });
+});
 
 /**
  * Export session data as CSV
  * GET /api/sessions/:id/export
  */
-export async function exportSessionCSV(req, res) {
-  try {
-    const session = await Session.findOne({
-      _id: req.params.id,
-      moderatorId: req.user.userId
-    })
-      .populate('quizId', 'title')
-      .populate('participants');
+export const exportSessionCSV = asyncHandler(async (req, res) => {
+  const session = await Session.findOne({
+    _id: req.params.id,
+    moderatorId: req.user.userId
+  })
+    .populate('quizId', 'title')
+    .populate('participants');
 
-    if (!session) {
-      return sendNotFound(res, 'Session not found');
-    }
+  if (!session) {
+    throw notFound('Session not found');
+  }
 
     const submissions = await Submission.find({ sessionId: session._id })
       .populate('questionId', 'text')
@@ -530,51 +479,40 @@ export async function exportSessionCSV(req, res) {
     lines.push(`Started,${session.startedAt || ''}`);
     lines.push(`Finished,${session.finishedAt || ''}`);
 
-    const csv = lines.join('\n');
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="session-${session.pin}.csv"`);
-    res.send(csv);
-  } catch (error) {
-    console.error('Export session CSV error:', error);
-    sendServerError(res, 'Failed to export session data');
-  }
-}
+  const csv = lines.join('\n');
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="session-${session.pin}.csv"`);
+  res.send(csv);
+});
 
 /**
  * Permanently delete a session and its related data (participants + submissions).
  * DELETE /api/sessions/:id/permanent
  */
-export async function deleteSessionPermanently(req, res) {
-  try {
-    const session = await Session.findOne({
-      _id: req.params.id,
-      moderatorId: req.user.userId
-    }).select('_id status');
+export const deleteSessionPermanently = asyncHandler(async (req, res) => {
+  const session = await Session.findOne({
+    _id: req.params.id,
+    moderatorId: req.user.userId
+  }).select('_id status');
 
-    if (!session) {
-      return sendNotFound(res, 'Session not found');
-    }
-
-    const isActiveSession = session.status === 'playing' || session.status === 'paused';
-    const confirmActiveDelete = req.query.confirmActive === 'true';
-
-    // Keep active sessions protected unless the user explicitly confirms force deletion.
-    if (isActiveSession && !confirmActiveDelete) {
-      return res.status(409).json({
-        success: false,
-        error: 'Session is currently active',
-        code: 'SESSION_ACTIVE_CONFIRM_REQUIRED'
-      });
-    }
-
-    await Submission.deleteMany({ sessionId: session._id });
-    await Participant.deleteMany({ sessionId: session._id });
-    await Session.deleteOne({ _id: session._id });
-
-    return sendSuccess(res, { message: 'Session deleted', data: { id: req.params.id } });
-  } catch (error) {
-    console.error('Delete session error:', error);
-    return sendServerError(res, 'Failed to delete session');
+  if (!session) {
+    throw notFound('Session not found');
   }
-}
+
+  const isActiveSession = session.status === 'playing' || session.status === 'paused';
+  const confirmActiveDelete = req.query.confirmActive === 'true';
+
+  if (isActiveSession && !confirmActiveDelete) {
+    return res.status(409).json({
+      success: false,
+      error: 'Session is currently active',
+      code: 'SESSION_ACTIVE_CONFIRM_REQUIRED'
+    });
+  }
+
+  await Submission.deleteMany({ sessionId: session._id });
+  await Participant.deleteMany({ sessionId: session._id });
+  await Session.deleteOne({ _id: session._id });
+
+  return sendSuccess(res, { message: 'Session deleted', data: { id: req.params.id } });
+});

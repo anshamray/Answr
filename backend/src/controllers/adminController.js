@@ -1,5 +1,6 @@
 import User from '../models/User.js';
-import { sendSuccess, sendServerError } from '../utils/responseHelper.js';
+import { asyncHandler } from '../middleware/asyncHandler.js';
+import { sendSuccess } from '../utils/responseHelper.js';
 
 /**
  * Basic admin statistics.
@@ -9,23 +10,18 @@ import { sendSuccess, sendServerError } from '../utils/responseHelper.js';
  * - total number of registered users
  * - total number of admin users
  */
-export async function getAdminStats(req, res) {
-  try {
-    const [totalUsers, totalAdmins] = await Promise.all([
-      User.countDocuments(),
-      User.countDocuments({ role: 'admin' })
-    ]);
+export const getAdminStats = asyncHandler(async (req, res) => {
+  const [totalUsers, totalAdmins] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ role: 'admin' })
+  ]);
 
-    sendSuccess(res, {
-      message: 'Admin stats retrieved',
-      data: {
-        totalUsers,
-        totalAdmins
-      }
-    });
-  } catch (error) {
-    console.error('Get admin stats error:', error);
-    sendServerError(res, 'Failed to fetch admin stats');
-  }
-}
+  sendSuccess(res, {
+    message: 'Admin stats retrieved',
+    data: {
+      totalUsers,
+      totalAdmins
+    }
+  });
+});
 
