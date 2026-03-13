@@ -229,7 +229,6 @@
     "preview": "Vorschau",
     "joining": "Beitritt...",
     "changePin": "PIN ändern",
-    "backToLobby": "Zurück zur Lobby",
     "saveProfile": "Speichern",
     "changeNameEmoji": "Name & Emoji ändern",
     "nameMinLength": "Name muss mindestens 2 Zeichen haben",
@@ -356,6 +355,7 @@
     "completeOrderToSubmit": "Ordne erst alle Antworten ein, bevor du abschickst",
     "removeItem": "Element aus der Reihenfolge entfernen",
     "tapOnImage": "Tippe auf das Bild, um deinen Pin zu setzen",
+    "zoomImage": "Zoom",
     "imageNotAvailable": "Bild nicht verfügbar",
     "typeYourAnswer": "Deine Antwort eingeben..."
   },
@@ -624,5 +624,8 @@
     "avgResponseTime": "Durchschn. Antwortzeit",
     "seconds": "Sekunden",
     "noData": "Keine Daten verfügbar"
+  },
+  "SESSION": {
+    "QUESTION": "Frage"
   }
 }

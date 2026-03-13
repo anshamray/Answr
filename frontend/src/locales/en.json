@@ -356,6 +356,7 @@
     "completeOrderToSubmit": "Place every answer before submitting",
     "removeItem": "Remove item from order",
     "tapOnImage": "Tap on the image to place your pin",
+    "zoomImage": "Zoom",
     "imageNotAvailable": "Image not available",
     "typeYourAnswer": "Type your answer..."
   },
@@ -626,5 +627,8 @@
     "avgResponseTime": "Avg. Response Time",
     "seconds": "seconds",
     "noData": "No data available"
+  },
+  "SESSION": {
+    "QUESTION": "Question"
   }
 }

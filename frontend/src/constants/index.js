@@ -47,23 +47,44 @@ export const AVATARS = {
 export const ANSWER_COLORS = {
   // Gradients for answer buttons (player view)
   BUTTON_GRADIENTS: [
-    'bg-gradient-to-br from-primary to-primary-dark text-white',
-    'bg-gradient-to-br from-secondary to-secondary-dark text-white',
-    'bg-gradient-to-br from-accent to-accent-dark text-white',
-    'bg-gradient-to-br from-warning to-warning/80 text-warning-foreground',
-    'bg-gradient-to-br from-success to-success text-white',
-    'bg-gradient-to-br from-primary-light to-primary text-white'
+    // A
+    'bg-gradient-to-br from-purple-500 to-purple-600 text-white',
+    // B
+    'bg-gradient-to-br from-sky-500 to-sky-600 text-white',
+    // C
+    'bg-gradient-to-br from-rose-500 to-rose-600 text-white',
+    // D
+    'bg-gradient-to-br from-amber-400 to-amber-500 text-black',
+    // E
+    'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white',
+    // F
+    'bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-white'
   ],
 
   // Bar colors for answer distribution chart
-  BAR_COLORS: ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-success', 'bg-warning', 'bg-primary-light'],
+  BAR_COLORS: [
+    'bg-purple-500',  // A
+    'bg-sky-500',     // B
+    'bg-rose-500',    // C
+    'bg-amber-400',   // D
+    'bg-emerald-500', // E
+    'bg-fuchsia-500'  // F
+  ],
 
   // Gradients for moderator view
   MODERATOR_GRADIENTS: [
-    'from-primary to-primary-dark',
-    'from-secondary to-secondary-dark',
-    'from-accent to-accent-dark',
-    'from-warning to-warning/80'
+    // A
+    'from-purple-500 to-purple-600',
+    // B
+    'from-sky-500 to-sky-600',
+    // C
+    'from-rose-500 to-rose-600',
+    // D
+    'from-amber-400 to-amber-500',
+    // E
+    'from-emerald-500 to-emerald-600',
+    // F
+    'from-fuchsia-500 to-fuchsia-600'
   ],
 
   // Answer labels (A, B, C, D, E, F)

@@ -935,8 +935,6 @@ onUnmounted(cleanup);
             <p class="text-sm text-muted-foreground font-bold">{{ t('playerGame.tapOnImage') }}</p>
             <div
               class="relative w-full max-w-md max-h-[50vh] border-[3px] border-black cursor-crosshair select-none bg-black overflow-hidden"
-              @click="handlePinClick"
-              @touchstart="handlePinTouch"
             >
               <button
                 type="button"
@@ -951,6 +949,8 @@ onUnmounted(cleanup);
                 class="w-full h-auto max-h-[50vh] block object-contain"
                 alt="Pin target"
                 draggable="false"
+                @click="handlePinClick"
+                @touchstart="handlePinTouch"
                 @error="pinImageFailed = true"
               />
               <div v-else class="w-full h-48 bg-muted flex items-center justify-center text-muted-foreground">
