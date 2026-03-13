@@ -1,5 +1,5 @@
 import { logger } from '../utils/logger.js';
-import { sendBadRequest, sendServerError } from '../utils/responseHelper.js';
+import { sendBadRequest, sendError, sendServerError } from '../utils/responseHelper.js';
 
 /**
  * Central Express error-handling middleware.
@@ -24,6 +24,11 @@ export function errorHandler(err, req, res, next) {
   // Special-case structured validation errors
   if (err && err.name === 'QuestionValidationError') {
     return sendBadRequest(res, err.message);
+  }
+
+  // Standard app-level HTTP errors thrown from controllers/services
+  if (err && Number.isInteger(err.status) && err.status >= 400 && err.status < 600) {
+    return sendError(res, err.status, err.message || 'Request failed');
   }
 
   // Fallback: generic 500
