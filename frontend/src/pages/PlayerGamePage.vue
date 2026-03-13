@@ -109,6 +109,13 @@ const pinImageFailed = ref(false);
 const showPinZoom = ref(false);
 const zoomScale = ref(1);
 const isPinchingZoom = ref(false);
+const isPanningZoom = ref(false);
+const didPanZoom = ref(false);
+const zoomScrollContainer = ref(null);
+let panStartX = 0;
+let panStartY = 0;
+let panStartScrollLeft = 0;
+let panStartScrollTop = 0;
 let pinchStartDistance = 0;
 let pinchStartScale = 1;
 const pinMediaUrl = computed(() => {
@@ -346,6 +353,8 @@ function closePinZoom() {
   showPinZoom.value = false;
   zoomScale.value = 1;
   isPinchingZoom.value = false;
+  isPanningZoom.value = false;
+  didPanZoom.value = false;
 }
 
 function getTouchDistance(t1, t2) {
@@ -358,27 +367,65 @@ function onZoomTouchStart(event) {
   if (event.touches.length === 2) {
     event.preventDefault();
     isPinchingZoom.value = true;
+    isPanningZoom.value = false;
     pinchStartDistance = getTouchDistance(event.touches[0], event.touches[1]);
     pinchStartScale = zoomScale.value;
+    return;
+  }
+
+  if (event.touches.length === 1 && zoomScale.value > 1 && zoomScrollContainer.value) {
+    const touch = event.touches[0];
+    isPanningZoom.value = true;
+    didPanZoom.value = false;
+    panStartX = touch.clientX;
+    panStartY = touch.clientY;
+    panStartScrollLeft = zoomScrollContainer.value.scrollLeft;
+    panStartScrollTop = zoomScrollContainer.value.scrollTop;
   }
 }
 
 function onZoomTouchMove(event) {
-  if (!isPinchingZoom.value || event.touches.length !== 2) return;
-  event.preventDefault();
-  const distance = getTouchDistance(event.touches[0], event.touches[1]);
-  if (!pinchStartDistance) return;
-  const rawScale = (distance / pinchStartDistance) * pinchStartScale;
-  zoomScale.value = Math.min(3, Math.max(1, rawScale));
+  if (isPinchingZoom.value && event.touches.length === 2) {
+    event.preventDefault();
+    const distance = getTouchDistance(event.touches[0], event.touches[1]);
+    if (!pinchStartDistance) return;
+    const rawScale = (distance / pinchStartDistance) * pinchStartScale;
+    zoomScale.value = Math.min(3, Math.max(1, rawScale));
+    return;
+  }
+
+  if (isPanningZoom.value && event.touches.length === 1 && zoomScrollContainer.value) {
+    event.preventDefault();
+    const touch = event.touches[0];
+    const dx = touch.clientX - panStartX;
+    const dy = touch.clientY - panStartY;
+
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      didPanZoom.value = true;
+    }
+
+    zoomScrollContainer.value.scrollLeft = panStartScrollLeft - dx;
+    zoomScrollContainer.value.scrollTop = panStartScrollTop - dy;
+  }
 }
 
 function onZoomTouchEnd(event) {
   if (event.touches.length < 2) {
     isPinchingZoom.value = false;
   }
+  if (event.touches.length === 0) {
+    isPanningZoom.value = false;
+    // Let potential synthetic click be ignored once after a pan gesture.
+    if (didPanZoom.value) {
+      setTimeout(() => {
+        didPanZoom.value = false;
+      }, 0);
+    }
+  }
 }
 
 function onZoomTap(event) {
+  if (didPanZoom.value) return;
   if (isPinchingZoom.value) return;
   handlePinClick(event);
 }
@@ -1438,7 +1485,7 @@ onUnmounted(cleanup);
         >
           {{ t('common.close') || 'Close' }}
         </button>
-        <div class="relative w-full h-full overflow-auto bg-black">
+        <div ref="zoomScrollContainer" class="relative w-full h-full overflow-auto bg-black">
           <div
             class="relative inline-block cursor-crosshair select-none"
             :style="{ width: (zoomScale * 100) + '%'}"

@@ -1,6 +1,8 @@
 import Question from '../models/Question.js';
 import Quiz from '../models/Quiz.js';
 import Session from '../models/Session.js';
+import Participant from '../models/Participant.js';
+import Submission from '../models/Submission.js';
 import {
   sendSuccess,
   sendCreated,
@@ -163,7 +165,7 @@ export async function updateQuiz(req, res) {
 }
 
 /**
- * Delete a quiz and all its associated questions
+ * Delete a quiz and all associated data (questions + analytics history)
  * DELETE /api/quizzes/:id
  */
 export async function deleteQuiz(req, res) {
@@ -177,13 +179,23 @@ export async function deleteQuiz(req, res) {
       return sendNotFound(res, 'Quiz not found');
     }
 
-    // Delete all questions belonging to this quiz
+    // Delete all questions belonging to this quiz.
     await Question.deleteMany({ quizId: quiz._id });
 
-    // Delete the quiz itself
+    // Delete analytics/history records tied to this quiz.
+    const sessions = await Session.find({ quizId: quiz._id }).select('_id').lean();
+    const sessionIds = sessions.map((session) => session._id);
+
+    if (sessionIds.length > 0) {
+      await Submission.deleteMany({ sessionId: { $in: sessionIds } });
+      await Participant.deleteMany({ sessionId: { $in: sessionIds } });
+      await Session.deleteMany({ _id: { $in: sessionIds } });
+    }
+
+    // Delete the quiz itself.
     await quiz.deleteOne();
 
-    sendSuccess(res, { message: 'Quiz deleted' });
+    sendSuccess(res, { message: 'Quiz and associated analytics deleted' });
   } catch (error) {
     console.error('Delete quiz error:', error);
     sendServerError(res, 'Failed to delete quiz');

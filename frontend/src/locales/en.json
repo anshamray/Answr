@@ -137,7 +137,7 @@
     "noFavoritesTitle": "No favorites yet",
     "noFavoritesSubtitle": "Browse the library and save quizzes you want to play later",
     "loadingFavorites": "Loading favorites...",
-    "deleteConfirm": "Are you sure you want to delete this quiz?",
+    "deleteConfirm": "Delete this quiz? All related analytics sessions and results will also be permanently deleted.",
     "publish": "Publish",
     "unpublish": "Unpublish",
     "private": "Private",
