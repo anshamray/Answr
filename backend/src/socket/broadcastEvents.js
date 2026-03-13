@@ -145,15 +145,43 @@ function scoreCurrentQuestion(session) {
   // Use session-level scoring config if available, otherwise defaults
   const scoringConfig = session.scoringConfig || DEFAULT_SCORING_CONFIG;
 
+  // Determine the maximum points possible for this question.
+  // `session.currentPoints` is the per-question setting:
+  // 0 = no points, 1000 = standard, 2000 = double.
+  const basePointsSetting = typeof session.currentPoints === 'number'
+    ? session.currentPoints
+    : scoringConfig.basePoints || DEFAULT_SCORING_CONFIG.basePoints;
+
+  const questionType = session.currentQuestionType || 'multiple-choice';
+  const isMultiAnswer = !!session.currentAllowMultipleAnswers && questionType === 'multiple-choice';
+  const correctCount = correctIds.size;
+
+  let pointsPossiblePerQuestion = 0;
+
+  if (basePointsSetting <= 0) {
+    pointsPossiblePerQuestion = 0;
+  } else if (isMultiAnswer && correctCount > 0) {
+    // Multi-select questions: standard = 500 per correct answer,
+    // double points = 1000 per correct answer.
+    const perCorrect = basePointsSetting >= 2000 ? 1000 : 500;
+    pointsPossiblePerQuestion = perCorrect * correctCount;
+  } else {
+    // Single-select and all other scored question types:
+    // standard = 1000 points, double = 2000 points.
+    pointsPossiblePerQuestion = basePointsSetting;
+  }
+
   // Initialize streak tracking if not present
   if (!session.playerStreaks) {
     session.playerStreaks = new Map();
   }
 
+  const allowPartial = !!session.currentAllowPartialPoints;
+
   for (const [playerId, answer] of questionAnswers) {
     // Determine correctness based on question type
-    let isCorrect;
-    const questionType = session.currentQuestionType || 'multiple-choice';
+    let isCorrect = false;
+    let correctnessFraction = 0;
 
     if (questionType === 'slider') {
       // Slider: compare numeric value against correctValue with margin
@@ -168,13 +196,28 @@ function scoreCurrentQuestion(session) {
       } else {
         isCorrect = false;
       }
+      correctnessFraction = isCorrect ? 1 : 0;
     } else if (questionType === 'sort') {
       // Sort: compare submitted order array against correct order
       if (Array.isArray(answer.answerId) && Array.isArray(session.currentCorrectAnswerIds)) {
-        isCorrect = answer.answerId.length === session.currentCorrectAnswerIds.length &&
-          answer.answerId.every((id, i) => id === session.currentCorrectAnswerIds[i]);
+        const expected = session.currentCorrectAnswerIds;
+        const sameLength = answer.answerId.length === expected.length;
+        isCorrect = sameLength && answer.answerId.every((id, i) => id === expected[i]);
+
+        if (allowPartial && sameLength && expected.length > 0) {
+          let matches = 0;
+          for (let i = 0; i < expected.length; i++) {
+            if (answer.answerId[i] === expected[i]) {
+              matches++;
+            }
+          }
+          correctnessFraction = matches / expected.length;
+        } else {
+          correctnessFraction = isCorrect ? 1 : 0;
+        }
       } else {
         isCorrect = false;
+        correctnessFraction = 0;
       }
     } else if (questionType === 'pin-answer') {
       // Pin: compare {x,y} coordinates against pinConfig within radius
@@ -193,6 +236,7 @@ function scoreCurrentQuestion(session) {
       } else {
         isCorrect = false;
       }
+      correctnessFraction = isCorrect ? 1 : 0;
     } else if (questionType === 'type-answer') {
       // Type-answer: case-insensitive text match against accepted answers
       const accepted = session.currentAcceptedAnswers;
@@ -202,15 +246,25 @@ function scoreCurrentQuestion(session) {
       } else {
         isCorrect = false;
       }
+      correctnessFraction = isCorrect ? 1 : 0;
     } else if (Array.isArray(answer.answerId)) {
       // Multi-answer: player must select ALL correct answers and NO incorrect ones
-      const selectedSet = new Set(answer.answerId);
+      const selected = answer.answerId;
+      const selectedSet = new Set(selected);
       const allCorrectSelected = [...correctIds].every(id => selectedSet.has(id));
-      const noIncorrectSelected = answer.answerId.every(id => correctIds.has(id));
+      const noIncorrectSelected = selected.every(id => correctIds.has(id));
       isCorrect = allCorrectSelected && noIncorrectSelected;
+
+      if (allowPartial && isMultiAnswer && correctCount > 0 && noIncorrectSelected) {
+        const correctChosen = selected.filter(id => correctIds.has(id)).length;
+        correctnessFraction = correctChosen / correctCount;
+      } else {
+        correctnessFraction = isCorrect ? 1 : 0;
+      }
     } else {
       // Single answer: for single-correct questions
       isCorrect = correctIds.has(answer.answerId);
+      correctnessFraction = isCorrect ? 1 : 0;
     }
 
     // Get current streak for player
@@ -224,11 +278,18 @@ function scoreCurrentQuestion(session) {
     }
     session.playerStreaks.set(playerId, currentStreak);
 
-    // Delegate scoring calculation to the utility
+    // Delegate scoring calculation to the utility.
+    // Partial points: scale the per-question maximum by correctnessFraction.
+    const hasAnyCredit = correctnessFraction > 0 && pointsPossiblePerQuestion > 0;
+    const effectivePointsPossible = hasAnyCredit
+      ? pointsPossiblePerQuestion * correctnessFraction
+      : 0;
+
     const result = calculateScore({
-      isCorrect,
+      isCorrect: hasAnyCredit,
       timeTakenMs: answer.timeTaken || 0,
       timeLimitSec,
+      pointsPossible: effectivePointsPossible,
       config: scoringConfig
     });
 

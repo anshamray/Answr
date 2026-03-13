@@ -7,6 +7,7 @@ import { connectSocket, getSocket, disconnectSocket } from '../lib/socket.js';
 import { apiUrl } from '../lib/api.js';
 import { TIMING, STORAGE_KEYS, AVATARS } from '../constants/index.js';
 import { useGameSettings } from '../composables/useGameSettings.js';
+import { isExternalVideoUrl, getExternalVideoEmbedUrl } from '../lib/mediaService.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -24,6 +25,7 @@ const pin = ref('------');
 const quizTitle = ref('');
 const quizId = ref(null);
 const questionCount = ref(0);
+const quizQuestions = ref([]);
 const status = ref('loading');
 const error = ref('');
 const players = ref([]);
@@ -62,6 +64,13 @@ const isGuest = !auth.isAuthenticated && !!guestToken;
 
 const playerCount = computed(() => players.value.length);
 const isCollectOpinions = computed(() => sessionMode.value === 'collect-opinions');
+const revealMediaQuestions = computed(() =>
+  (quizQuestions.value || []).filter(
+    (q) => typeof q?.revealMediaUrl === 'string' && q.revealMediaUrl.trim() !== ''
+  )
+);
+const hasRevealMediaQuestions = computed(() => revealMediaQuestions.value.length > 0);
+const expandedRevealQuestionId = ref(null);
 
 // Generate the join URL for QR code
 const joinUrl = computed(() => {
@@ -92,7 +101,8 @@ async function fetchSession() {
     pin.value = session.pin;
     quizTitle.value = session.quizId?.title || 'Quiz';
     quizId.value = typeof session.quizId === 'object' ? session.quizId._id : session.quizId;
-    questionCount.value = session.quizId?.questions?.length || 0;
+    quizQuestions.value = session.quizId?.questions || [];
+    questionCount.value = quizQuestions.value.length || 0;
     sessionMode.value = session.mode || 'competitive';
     status.value = 'lobby';
 
@@ -249,6 +259,80 @@ function getAvatar(index) {
                   <span class="text-muted-foreground">{{ t('libraryDetail.questions') }}</span>
                 </div>
               </template>
+            </div>
+          </PixelCard>
+        </div>
+
+        <div v-if="hasRevealMediaQuestions" class="mb-4">
+          <PixelCard class="space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <div class="w-6 h-6 flex items-center justify-center border-[2px] border-black bg-primary text-primary-foreground text-[10px] font-bold pixel-font">
+                  ▶
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-xs font-medium text-muted-foreground">
+                    {{ t('gameControl.revealMedia') }}
+                  </span>
+                  <span class="text-[11px] text-muted-foreground/80">
+                    {{ t('sessionLobby.revealMediaHint') }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <div
+                v-for="(q, index) in revealMediaQuestions"
+                :key="q._id || index"
+                class="border border-border bg-white px-3 py-2 text-xs cursor-pointer hover:bg-muted/40"
+                @click="expandedRevealQuestionId === (q._id || index) ? expandedRevealQuestionId = null : expandedRevealQuestionId = (q._id || index)"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium truncate">
+                      {{ index + 1 }}. {{ q.text || t('sessionLobby.untitledQuestion') }}
+                    </div>
+                  </div>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="flex-shrink-0 transition-transform"
+                    :class="{ 'rotate-180': expandedRevealQuestionId === (q._id || index) }"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+
+                <div v-if="expandedRevealQuestionId === (q._id || index)" class="mt-2">
+                  <div
+                    v-if="isExternalVideoUrl(q.revealMediaUrl)"
+                    class="w-full max-w-2xl aspect-video border-[3px] border-black bg-black overflow-hidden mx-auto"
+                  >
+                    <iframe
+                      :src="getExternalVideoEmbedUrl(q.revealMediaUrl)"
+                      class="w-full h-full"
+                      frameborder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowfullscreen
+                    ></iframe>
+                  </div>
+                  <div
+                    v-else
+                    class="mt-2 flex justify-center w-full"
+                  >
+                    <img
+                      :src="q.revealMediaUrl"
+                      :alt="q.text || `Reveal media ${index + 1}`"
+                      class="border-[3px] border-black max-h-48 max-w-full object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </PixelCard>
         </div>

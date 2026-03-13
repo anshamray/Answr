@@ -49,7 +49,10 @@ export function broadcastQuestion(io, sessionPin, questionData) {
     timeLimit: questionData.timeLimit,
     allowMultipleAnswers: questionData.allowMultipleAnswers || false,
     sliderConfig: questionData.sliderConfig || null,
-    mediaUrl: questionData.mediaUrl || null
+    mediaUrl: questionData.mediaUrl || null,
+    mediaUrls: Array.isArray(questionData.mediaUrls)
+      ? questionData.mediaUrls
+      : (questionData.mediaUrl ? [questionData.mediaUrl] : [])
   });
 }
 

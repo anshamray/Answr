@@ -468,6 +468,11 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         session.currentSliderConfig = firstQuestion.sliderConfig || null;
         session.currentPinConfig = firstQuestion.pinConfig || null;
         session.currentAcceptedAnswers = firstQuestion.acceptedAnswers || null;
+        session.currentAllowPartialPoints = !!firstQuestion.allowPartialPoints;
+        // Points configuration: 0 = no points, 1000 = standard, 2000 = double
+        session.currentPoints = typeof firstQuestion.points === 'number'
+          ? firstQuestion.points
+          : 1000;
 
         const questionPayload = {
           questionId: session.currentQuestionId,
@@ -479,7 +484,9 @@ export function registerModeratorEvents(io, socket, activeSessions) {
           timeLimit: firstQuestion.timeLimit,
           allowMultipleAnswers: session.currentAllowMultipleAnswers,
           sliderConfig: session.currentSliderConfig,
-          mediaUrl: firstQuestion.mediaUrl || null
+          mediaUrl: firstQuestion.mediaUrl || null,
+          points: session.currentPoints,
+          allowPartialPoints: session.currentAllowPartialPoints
         };
 
         session.currentQuestionPayload = questionPayload;
@@ -561,6 +568,11 @@ export function registerModeratorEvents(io, socket, activeSessions) {
       session.currentSliderConfig = question.sliderConfig || null;
       session.currentPinConfig = question.pinConfig || null;
       session.currentAcceptedAnswers = question.acceptedAnswers || null;
+      session.currentAllowPartialPoints = !!question.allowPartialPoints;
+      // Points configuration: 0 = no points, 1000 = standard, 2000 = double
+      session.currentPoints = typeof question.points === 'number'
+        ? question.points
+        : 1000;
 
       const questionPayload = {
         questionId: session.currentQuestionId,
@@ -572,7 +584,9 @@ export function registerModeratorEvents(io, socket, activeSessions) {
         timeLimit: question.timeLimit,
         allowMultipleAnswers: session.currentAllowMultipleAnswers,
         sliderConfig: session.currentSliderConfig,
-        mediaUrl: question.mediaUrl || null
+        mediaUrl: question.mediaUrl || null,
+        points: session.currentPoints,
+        allowPartialPoints: session.currentAllowPartialPoints
       };
 
       session.currentQuestionPayload = questionPayload;

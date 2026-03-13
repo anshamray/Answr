@@ -820,12 +820,16 @@ function buildQuestionPayload(q) {
     totalQuestions: totalQuestions.value,
     text: q.text,
     mediaUrl: q.mediaUrl || null,
+    mediaUrls: Array.isArray(q.mediaUrls)
+      ? q.mediaUrls
+      : (q.mediaUrl ? [q.mediaUrl] : []),
     mediaType: q.mediaType || null,
     type: qType,
     options,
     timeLimit: q.timeLimit,
     correctAnswerIds,
     allowMultipleAnswers: q.allowMultipleAnswers || correctAnswerIds.length > 1,
+    allowPartialPoints: q.allowPartialPoints || false,
     sliderConfig: q.sliderConfig || null,
     revealMediaUrl: q.revealMediaUrl || null
   };
@@ -842,6 +846,9 @@ function buildQuestionPayload(q) {
   // Pin-answer: include mediaUrl for image display and pinConfig for scoring
   if (qType === 'pin-answer') {
     payload.mediaUrl = q.mediaUrl || null;
+    payload.mediaUrls = Array.isArray(q.mediaUrls)
+      ? q.mediaUrls
+      : (q.mediaUrl ? [q.mediaUrl] : []);
     payload.pinConfig = q.pinConfig || null;
   }
 
