@@ -5,10 +5,12 @@
  * After successful auth, redirects to frontend with JWT token.
  */
 
-import { Router } from 'express';
 import crypto from 'crypto';
-import passport from 'passport';
+
+import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import passport from 'passport';
+
 import { logger } from '../utils/logger.js';
 
 const router = Router();
@@ -155,5 +157,11 @@ router.post('/oauth/exchange', (req, res) => {
     data: { token }
   });
 });
+
+export const __testing = {
+  storeOAuthToken,
+  consumeOAuthToken,
+  oauthCodeStore
+};
 
 export default router;
