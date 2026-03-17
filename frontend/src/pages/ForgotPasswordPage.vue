@@ -3,10 +3,9 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { apiUrl } from '../lib/api.js';
 
-import PixelCard from '../components/PixelCard.vue';
 import PixelButton from '../components/PixelButton.vue';
 import PixelInput from '../components/PixelInput.vue';
-import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+import AuthLayout from '../components/AuthLayout.vue';
 
 const { t } = useI18n();
 
@@ -54,16 +53,8 @@ function resetForm() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4 bg-gradient-to-br from-primary/10 to-secondary/10">
-    <div class="w-full max-w-md">
-      <div class="flex justify-end mb-3">
-        <LanguageSwitcher />
-      </div>
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
-      </div>
-
-      <PixelCard class="p-6">
+  <AuthLayout>
+    <template #default>
         <!-- Form -->
         <div v-if="status === 'form' || status === 'loading' || status === 'error'" class="space-y-4">
           <div class="text-center">
@@ -127,11 +118,12 @@ function resetForm() {
             </router-link>
           </div>
         </div>
-      </PixelCard>
+    </template>
 
-      <p class="mt-4 text-center">
-        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; {{ t('common.backToHome') }}</router-link>
-      </p>
-    </div>
-  </div>
+    <template #footer>
+      <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">
+        &larr; {{ t('common.backToHome') }}
+      </router-link>
+    </template>
+  </AuthLayout>
 </template>

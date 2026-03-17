@@ -24,6 +24,7 @@ import PixelClock from '../components/icons/PixelClock.vue';
 import PixelUsers from '../components/icons/PixelUsers.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
 import ModeratorRevealView from '../components/game/ModeratorRevealView.vue';
+import QuestionMediaDisplay from '../components/QuestionMediaDisplay.vue';
 
 const { t } = useI18n();
 
@@ -1031,40 +1032,12 @@ onUnmounted(cleanup);
               <h1 class="text-2xl lg:text-4xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
-              <div v-if="questionMediaEmbedUrl" class="mt-4 flex justify-center">
-                <div class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden">
-                  <iframe
-                    :src="questionMediaEmbedUrl"
-                    class="w-full h-full"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                  ></iframe>
-                </div>
-              </div>
-              <div
-                v-else-if="questionMediaUrls && questionMediaUrls.length"
-                class="mt-2 flex justify-center"
-              >
-                <div class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
-                  <div
-                    class="w-full h-full grid gap-2"
-                    :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
-                  >
-                    <div
-                      v-for="url in questionMediaUrls"
-                      :key="url"
-                      class="flex items-center justify-center bg-black"
-                    >
-                      <img
-                        :src="url"
-                        :alt="currentQuestion.text"
-                        class="max-h-[min(14rem,calc(100vh-24rem))] w-full object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <QuestionMediaDisplay
+                :media-url="currentQuestion.mediaUrl"
+                :media-urls="currentQuestion.mediaUrls"
+                :auth-token="auth.token"
+                :pin="pin"
+              />
             </PixelCard>
 
             <div class="space-y-3">
@@ -1134,43 +1107,14 @@ onUnmounted(cleanup);
               <h1 class="text-2xl lg:text-3xl font-bold leading-tight">
                 {{ currentQuestion.text }}
               </h1>
-              <div
-                v-if="questionMediaEmbedUrl && currentQuestion.type !== 'pin-answer'"
-                class="mt-3 flex justify-center"
-              >
-                <div class="w-full max-w-3xl aspect-video border-[4px] border-black bg-black overflow-hidden">
-                  <iframe
-                    :src="questionMediaEmbedUrl"
-                    class="w-full h-full"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen
-                  ></iframe>
-                </div>
-              </div>
-              <div
-                v-else-if="questionMediaUrls && questionMediaUrls.length && currentQuestion.type !== 'pin-answer'"
-                class="mt-1 flex justify-center"
-              >
-                <div class="border-[4px] border-black max-h-[min(14rem,calc(100vh-24rem))] w-full max-w-3xl flex items-center justify-center overflow-hidden bg-black">
-                  <div
-                    class="w-full h-full grid gap-2"
-                    :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
-                  >
-                    <div
-                      v-for="url in questionMediaUrls"
-                      :key="url"
-                      class="flex items-center justify-center bg-black"
-                    >
-                      <img
-                        :src="url"
-                        :alt="currentQuestion.text"
-                        class="max-h-[min(14rem,calc(100vh-24rem))] w-full object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <QuestionMediaDisplay
+                v-if="currentQuestion.type !== 'pin-answer'"
+                :media-url="currentQuestion.mediaUrl"
+                :media-urls="currentQuestion.mediaUrls"
+                :auth-token="auth.token"
+                :pin="pin"
+                mode="compact"
+              />
 
               <!-- MC / True-False / Poll: answer grid -->
               <div

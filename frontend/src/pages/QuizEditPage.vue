@@ -7,11 +7,14 @@ import { apiUrl } from '../lib/api.js';
 import { QUESTION_TYPES } from '../lib/questionTypes.js';
 import { validateAllQuestions } from '../lib/validateQuestion.js';
 import { TIMING } from '../constants/index.js';
+import { CATEGORY_OPTIONS } from '../lib/constants/categories.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelBadge from '../components/PixelBadge.vue';
 import QuestionTypeSelector from '../components/QuestionTypeSelector.vue';
 import QuestionEditor from '../components/QuestionEditor.vue';
+import QuestionListSidebar from '../components/QuestionListSidebar.vue';
+import QuizSettingsSidebar from '../components/QuizSettingsSidebar.vue';
 
 const { t } = useI18n();
 
@@ -32,7 +35,6 @@ const quiz = ref({
   isAnonymous: false,
   showLiveResultsToPlayers: true
 });
-const newTag = ref('');
 const questions = ref([]);
 const selectedQuestionId = ref(null);
 const showTypeSelector = ref(false);
@@ -126,76 +128,6 @@ const selectedQuestion = computed(() =>
 
 // Question type icons and info - use shared definitions
 const questionTypeInfo = QUESTION_TYPES;
-
-// Category options
-const categoryOptions = [
-  { value: '', labelKey: 'quizEditor.selectCategory' },
-  { value: 'General', labelKey: 'quizEditor.categoryGeneral' },
-  { value: 'Science', labelKey: 'quizEditor.categoryScience' },
-  { value: 'History', labelKey: 'quizEditor.categoryHistory' },
-  { value: 'Geography', labelKey: 'quizEditor.categoryGeography' },
-  { value: 'Art', labelKey: 'quizEditor.categoryArt' },
-  { value: 'Music', labelKey: 'quizEditor.categoryMusic' },
-  { value: 'Sports', labelKey: 'quizEditor.categorySports' },
-  { value: 'Technology', labelKey: 'quizEditor.categoryTechnology' },
-  { value: 'Literature', labelKey: 'quizEditor.categoryLiterature' },
-  { value: 'Movies', labelKey: 'quizEditor.categoryMovies' },
-  { value: 'TV Shows', labelKey: 'quizEditor.categoryTVShows' },
-  { value: 'Food', labelKey: 'quizEditor.categoryFood' },
-  { value: 'Nature', labelKey: 'quizEditor.categoryNature' },
-  { value: 'Math', labelKey: 'quizEditor.categoryMath' },
-  { value: 'Language', labelKey: 'quizEditor.categoryLanguage' },
-  { value: 'Other', labelKey: 'quizEditor.categoryOther' }
-];
-
-// Language options with flag-icons country codes
-const languageOptions = [
-  { value: 'en', label: 'English', flag: 'gb' },
-  { value: 'de', label: 'Deutsch', flag: 'de' },
-  { value: 'es', label: 'Español', flag: 'es' },
-  { value: 'fr', label: 'Français', flag: 'fr' },
-  { value: 'it', label: 'Italiano', flag: 'it' },
-  { value: 'pt', label: 'Português', flag: 'pt' },
-  { value: 'nl', label: 'Nederlands', flag: 'nl' },
-  { value: 'pl', label: 'Polski', flag: 'pl' },
-  { value: 'ru', label: 'Русский', flag: 'ru' },
-  { value: 'ja', label: '日本語', flag: 'jp' },
-  { value: 'zh', label: '中文', flag: 'cn' },
-  { value: 'ko', label: '한국어', flag: 'kr' }
-];
-
-const modeOptions = [
-  {
-    value: 'competitive',
-    label: 'Competitive (scored)'
-  },
-  {
-    value: 'collect-opinions',
-    label: 'Collect opinions (no scores)'
-  }
-];
-
-// Tag management functions
-function addTag() {
-  const tag = newTag.value.trim().toLowerCase();
-  if (tag && !quiz.value.tags.includes(tag) && quiz.value.tags.length < 10) {
-    quiz.value.tags.push(tag);
-    newTag.value = '';
-    hasUnsavedChanges.value = true;
-  }
-}
-
-function removeTag(tagToRemove) {
-  quiz.value.tags = quiz.value.tags.filter(tag => tag !== tagToRemove);
-  hasUnsavedChanges.value = true;
-}
-
-function handleTagKeydown(event) {
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    addTag();
-  }
-}
 
 // Helper to check if ID is temporary (local-only)
 function isTemporaryId(id) {
@@ -758,107 +690,26 @@ onUnmounted(() => {
     </div>
 
     <!-- Main Editor -->
-    <div v-else class="flex-1 flex overflow-hidden min-w-0">
+    <div v-else class="flex-1 flex flex-col lg:flex-row overflow-hidden min-w-0">
       <!-- Sidebar: Question List -->
-      <aside class="w-64 shrink-0 border-r-[3px] border-black bg-white flex flex-col">
-        <div class="p-4 border-b-[3px] border-border">
-          <PixelButton
-            variant="primary"
-            size="sm"
-            class="w-full"
-            @click="showTypeSelector = true"
-          >
-            <svg class="inline mr-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            {{ t('quizEditor.addQuestion') }}
-          </PixelButton>
-        </div>
-
-        <!-- Question List -->
-        <div class="flex-1 overflow-y-auto">
-          <div v-if="questions.length === 0" class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 bg-primary/10 border-2 border-primary flex items-center justify-center">
-              <svg class="text-primary" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </div>
-            <p class="text-sm text-muted-foreground">{{ t('quizEditor.noQuestionsYet') }}</p>
-            <p class="text-xs text-muted-foreground mt-1">{{ t('quizEditor.clickToStart') }}</p>
-          </div>
-
-          <div
-            v-for="(question, index) in questions"
-            :key="question._id"
-            class="group cursor-pointer"
-            draggable="true"
-            @dragstart="onDragStart(index, $event)"
-            @dragover="onDragOver(index, $event)"
-            @dragleave="onDragLeave"
-            @drop="onDrop(index)"
-            @dragend="onDragEnd"
-          >
-            <div
-              class="w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors"
-              :class="{
-                'bg-primary/10 border-l-4 border-l-primary': selectedQuestionId === question._id,
-                'border-l-4 border-l-warning': isTemporaryId(question._id) && selectedQuestionId !== question._id,
-                'opacity-50': dragIndex === index,
-                'border-t-2 border-t-primary': dropTargetIndex === index && dragIndex !== index
-              }"
-              @click="selectedQuestionId = question._id"
-            >
-              <div class="flex items-start gap-2">
-                <svg class="shrink-0 mt-1 text-muted-foreground/50 group-hover:text-muted-foreground cursor-grab active:cursor-grabbing" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="8" cy="4" r="2"/><circle cx="16" cy="4" r="2"/>
-                  <circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>
-                  <circle cx="8" cy="20" r="2"/><circle cx="16" cy="20" r="2"/>
-                </svg>
-                <span class="text-sm font-bold text-muted-foreground min-w-[20px]">
-                  {{ index + 1 }}
-                </span>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <PixelBadge
-                      :variant="questionTypeInfo[question.type]?.color || 'primary'"
-                      class="text-[10px]"
-                    >
-                      {{ questionTypeInfo[question.type]?.label || question.type }}
-                    </PixelBadge>
-                    <span v-if="isTemporaryId(question._id)" class="text-[10px] text-warning">{{ t('quizEditor.new') }}</span>
-                  </div>
-                  <p class="text-sm text-foreground truncate">
-                    {{ getQuestionPreview(question) }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Hover actions -->
-              <div class="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  class="p-1 text-muted-foreground hover:text-primary"
-                  :title="t('quizEditor.duplicate')"
-                  @click.stop="duplicateQuestion(question._id)"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                </button>
-                <button
-                  class="p-1 text-muted-foreground hover:text-destructive"
-                  :title="t('common.delete')"
-                  @click.stop="deleteQuestion(question._id)"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </aside>
+      <QuestionListSidebar
+        :questions="questions"
+        :selected-question-id="selectedQuestionId"
+        :question-type-info="questionTypeInfo"
+        :drag-index="dragIndex"
+        :drop-target-index="dropTargetIndex"
+        :is-temporary-id="isTemporaryId"
+        :get-question-preview="getQuestionPreview"
+        @open-type-selector="showTypeSelector = true"
+        @select="selectedQuestionId = $event"
+        @duplicate="duplicateQuestion"
+        @delete="deleteQuestion"
+        @dragstart="onDragStart"
+        @dragover="onDragOver"
+        @dragleave="onDragLeave"
+        @drop="onDrop"
+        @dragend="onDragEnd"
+      />
 
       <!-- Main Content: Question Editor -->
       <main class="flex-1 overflow-y-auto bg-muted/30 min-w-0">
@@ -894,236 +745,11 @@ onUnmounted(() => {
       </main>
 
       <!-- Right Sidebar: Quiz Settings -->
-      <!-- Collapsed state - just the gear icon -->
-      <aside
-        v-if="!showSettings"
-        class="shrink-0 border-l-[3px] border-black bg-white"
-      >
-        <button
-          class="p-4 text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-          :title="t('quizEditor.quizSettings')"
-          @click="showSettings = true"
-        >
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </button>
-      </aside>
-
-      <!-- Expanded state - full settings panel -->
-      <aside
-        v-else
-        class="w-80 shrink-0 border-l-[3px] border-black bg-white flex flex-col overflow-y-auto"
-      >
-        <div class="p-4 border-b-[3px] border-border flex items-center justify-between">
-          <span class="flex items-center gap-2 font-bold text-sm">
-            <svg class="w-5 h-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            {{ t('quizEditor.quizSettings') }}
-          </span>
-          <button
-            class="p-1 text-muted-foreground hover:text-foreground transition-colors"
-            @click="showSettings = false"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
-
-        <div class="p-4 space-y-5">
-          <!-- Quiz Mode -->
-          <div>
-            <label class="text-xs font-medium text-muted-foreground mb-2 block">
-              Quiz mode
-            </label>
-            <div class="inline-flex rounded-none border-2 border-border bg-muted/40">
-              <button
-                v-for="option in modeOptions"
-                :key="option.value"
-                type="button"
-                class="px-3 py-1.5 text-xs font-medium border-r-2 border-border last:border-r-0 transition-colors"
-                :class="quiz.mode === option.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-white hover:bg-muted/60 text-foreground'"
-                @click="() => { if (quiz.mode !== option.value) { quiz.mode = option.value; hasUnsavedChanges = true; } }"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-            <p class="mt-1 text-[11px] text-muted-foreground">
-              Use <strong>Collect opinions</strong> for survey-style sessions where players are not ranked by score.
-            </p>
-          </div>
-
-          <!-- Description -->
-          <div>
-            <label class="text-xs font-medium text-muted-foreground mb-2 block">{{ t('quizEditor.description') }}</label>
-            <textarea
-              v-model="quiz.description"
-              :placeholder="t('quizEditor.addDescription')"
-              class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none resize-none"
-              rows="4"
-              @input="hasUnsavedChanges = true"
-            ></textarea>
-          </div>
-
-          <!-- Category -->
-          <div>
-            <label class="text-xs font-medium text-muted-foreground mb-2 block">{{ t('quizEditor.category') }}</label>
-            <select
-              v-model="quiz.category"
-              class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
-              @change="hasUnsavedChanges = true"
-            >
-              <option v-for="option in categoryOptions" :key="option.value" :value="option.value">
-                {{ t(option.labelKey) }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Language -->
-          <div>
-            <label class="text-xs font-medium text-muted-foreground mb-2 block">{{ t('quizEditor.language') }}</label>
-            <select
-              v-model="quiz.language"
-              class="w-full px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none cursor-pointer"
-              @change="hasUnsavedChanges = true"
-            >
-              <option
-                v-for="lang in languageOptions"
-                :key="lang.value"
-                :value="lang.value"
-              >
-                {{ lang.label }}
-              </option>
-            </select>
-            <p class="mt-1 text-[11px] text-muted-foreground">
-              {{ t('quizEditor.languageHint') }}
-            </p>
-          </div>
-
-          <!-- Tags -->
-          <div>
-            <label class="text-xs font-medium text-muted-foreground mb-2 block">{{ t('quizEditor.tags') }}</label>
-            <div class="flex gap-2">
-              <input
-                v-model="newTag"
-                type="text"
-                :placeholder="t('quizEditor.addTag')"
-                class="flex-1 px-3 py-2 text-sm border-2 border-border bg-white focus:border-primary focus:outline-none"
-                :disabled="quiz.tags.length >= 10"
-                @keydown="handleTagKeydown"
-              />
-              <button
-                type="button"
-                class="px-3 py-2 text-sm border-2 border-border bg-white hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="!newTag.trim() || quiz.tags.length >= 10"
-                @click="addTag"
-              >
-                {{ t('quizEditor.addTagButton') }}
-              </button>
-            </div>
-            <!-- Tags display -->
-            <div v-if="quiz.tags.length > 0" class="flex flex-wrap gap-2 mt-3">
-              <span
-                v-for="tag in quiz.tags"
-                :key="tag"
-                class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-primary/10 border border-primary/30 text-primary"
-              >
-                {{ tag }}
-                <button
-                  type="button"
-                  class="hover:text-destructive transition-colors"
-                  @click="removeTag(tag)"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </span>
-            </div>
-            <p v-if="quiz.tags.length >= 10" class="text-xs text-muted-foreground mt-2">
-              {{ t('quizEditor.maxTags') }}
-            </p>
-          </div>
-
-          <!-- Per-quiz defaults explanation -->
-          <div class="pt-4 mt-2 border-t border-dashed border-border space-y-2">
-            <h4 class="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-              {{ t('quizEditor.quizDefaultsTitle') }}
-            </h4>
-            <p class="text-xs text-muted-foreground">
-              {{
-                t('quizEditor.quizDefaultsDescription1', {
-                  timeLimit: 30,
-                  points: 1000
-                })
-              }}
-            </p>
-            <p class="text-[11px] text-muted-foreground">
-              {{ t('quizEditor.quizDefaultsDescription2') }}
-            </p>
-          </div>
-
-          <!-- Advanced / Opinion settings (folded by default, most users can ignore) -->
-          <div class="mt-4 border border-dashed border-border/70 p-3 space-y-2 bg-muted/20">
-            <button
-              type="button"
-              class="w-full flex items-center justify-between text-left"
-              @click="advancedSettingsExpanded = !advancedSettingsExpanded"
-            >
-              <div class="flex flex-col">
-                <span class="text-xs font-semibold uppercase tracking-wide">
-                  ADVANCED SETTINGS
-                </span>
-                <span class="text-[11px] text-muted-foreground">
-                  Opinion settings & privacy (most quizzes don’t need changes)
-                </span>
-              </div>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                class="flex-shrink-0 transition-transform"
-                :class="{ 'rotate-180': advancedSettingsExpanded }"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-
-            <div v-show="advancedSettingsExpanded" class="mt-3 space-y-2">
-              <label class="text-xs font-medium text-muted-foreground mb-1 block">
-                Opinion settings
-              </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input
-                  v-model="quiz.isAnonymous"
-                  type="checkbox"
-                  class="w-4 h-4 border-2 border-border accent-primary"
-                  @change="hasUnsavedChanges = true"
-                />
-                <span>Hide player names in analytics</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input
-                  v-model="quiz.showLiveResultsToPlayers"
-                  type="checkbox"
-                  class="w-4 h-4 border-2 border-border accent-primary"
-                  @change="hasUnsavedChanges = true"
-                />
-                <span>Show aggregated results on player devices</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </aside>
+      <QuizSettingsSidebar
+        v-model:show-settings="showSettings"
+        :quiz="quiz"
+        @dirty="hasUnsavedChanges = true"
+      />
     </div>
 
     <!-- Question Type Selector Modal -->

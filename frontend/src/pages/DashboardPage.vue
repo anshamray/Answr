@@ -8,6 +8,7 @@ import { apiUrl } from '../lib/api.js';
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
 import PixelBadge from '../components/PixelBadge.vue';
+import PixelModal from '../components/PixelModal.vue';
 import AppHeader from '../components/AppHeader.vue';
 
 const { t } = useI18n();
@@ -676,13 +677,12 @@ onMounted(fetchQuizzes);
     </main>
 
     <!-- Publish Dialog -->
-    <div
+    <PixelModal
       v-if="publishDialogQuiz"
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      @click.self="closePublishDialog"
+      v-model="publishDialogQuiz"
+      :title="t('dashboard.publishToLibrary')"
     >
-      <div class="bg-white border-[3px] border-black pixel-shadow max-w-lg w-full p-6 space-y-4">
-        <h3 class="text-xl font-bold">{{ t('dashboard.publishToLibrary') }}</h3>
+      <div class="p-6 space-y-4">
         <p class="text-muted-foreground">
           {{ t('dashboard.publishDescription') }}
         </p>
@@ -724,6 +724,8 @@ onMounted(fetchQuizzes);
             </p>
           </div>
         </div>
+      </div>
+      <template #footer>
         <div class="flex gap-2 flex-wrap">
           <PixelButton variant="outline" size="sm" @click="editQuiz(publishDialogQuiz._id || publishDialogQuiz.id); closePublishDialog()">
             {{ t('common.edit') }}
@@ -735,21 +737,22 @@ onMounted(fetchQuizzes);
             {{ t('common.cancel') }}
           </PixelButton>
         </div>
-      </div>
-    </div>
+      </template>
+    </PixelModal>
 
     <!-- Unpublish Dialog -->
-    <div
+    <PixelModal
       v-if="unpublishDialogQuiz"
-      class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-      @click.self="closeUnpublishDialog"
+      v-model="unpublishDialogQuiz"
+      :title="t('dashboard.unpublishTitle')"
     >
-      <div class="bg-white border-[3px] border-black pixel-shadow max-w-lg w-full p-6 space-y-4">
-        <h3 class="text-xl font-bold">{{ t('dashboard.unpublishTitle') }}</h3>
+      <div class="p-6 space-y-4">
         <p class="text-muted-foreground">
           {{ t('dashboard.unpublishDescription') }}
         </p>
         <p class="font-medium">{{ unpublishDialogQuiz.title || t('dashboard.untitledQuiz') }}</p>
+      </div>
+      <template #footer>
         <div class="flex gap-2">
           <PixelButton variant="outline" size="sm" @click="confirmUnpublish">
             {{ t('dashboard.unpublish') }}
@@ -758,7 +761,7 @@ onMounted(fetchQuizzes);
             {{ t('common.cancel') }}
           </PixelButton>
         </div>
-      </div>
-    </div>
+      </template>
+    </PixelModal>
   </div>
 </template>

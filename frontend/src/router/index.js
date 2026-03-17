@@ -69,7 +69,10 @@ const routes = [
   { path: '/play/profile', component: PlayerProfilePage },
   { path: '/play/lobby', component: PlayerLobbyPage },
   { path: '/play/game', component: PlayerGamePage },
-  { path: '/play/results', component: PlayerResultsPage }
+  { path: '/play/results', component: PlayerResultsPage },
+
+  // Legacy /auth link support (redirect to login)
+  { path: '/auth', redirect: '/login' }
 ];
 
 const router = createRouter({

@@ -5,9 +5,8 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../stores/authStore.js';
 
 import PixelButton from '../components/PixelButton.vue';
-import PixelCard from '../components/PixelCard.vue';
 import PixelInput from '../components/PixelInput.vue';
-import LanguageSwitcher from '../components/LanguageSwitcher.vue';
+import AuthLayout from '../components/AuthLayout.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -72,17 +71,8 @@ function loginWithGitHub() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center px-4 py-6 bg-gradient-to-br from-primary/10 to-secondary/10 overflow-y-auto">
-    <div class="w-full max-w-md flex flex-col">
-      <div class="flex justify-end mb-3">
-        <LanguageSwitcher />
-      </div>
-      <div class="text-center mb-3">
-        <h1 class="text-2xl font-bold pixel-font text-primary mb-1">Answr</h1>
-        <p class="text-muted-foreground text-sm">{{ t('auth.tagline') }}</p>
-      </div>
-
-      <PixelCard class="space-y-4 !p-4">
+  <AuthLayout :subtitle="t('auth.tagline')">
+    <template #default>
         <!-- Tab Switcher -->
         <div class="grid grid-cols-2 gap-1 p-1 bg-muted">
           <div
@@ -175,11 +165,12 @@ function loginWithGitHub() {
             GitHub
           </button>
         </div>
-      </PixelCard>
+    </template>
 
-      <p class="mt-3 text-center">
-        <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">&larr; {{ t('common.backToHome') }}</router-link>
-      </p>
-    </div>
-  </div>
+    <template #footer>
+      <router-link to="/" class="text-sm text-muted-foreground hover:text-primary">
+        &larr; {{ t('common.backToHome') }}
+      </router-link>
+    </template>
+  </AuthLayout>
 </template>

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import { apiUrl } from '../lib/api.js';
 import { useAuthStore } from '../stores/authStore.js';
 import { TIMING } from '../constants/index.js';
+import { CATEGORY_OPTIONS } from '../lib/constants/categories.js';
 
 import PixelButton from '../components/PixelButton.vue';
 import PixelCard from '../components/PixelCard.vue';
@@ -173,22 +174,13 @@ onMounted(fetchLibrary);
                 class="w-full px-4 py-3 border-[3px] border-black bg-white focus:outline-none focus:ring-4 focus:ring-primary/30"
               >
                 <option value="">{{ t('library.filterAnyCategory') }}</option>
-                <option value="General">{{ t('quizEditor.categoryGeneral') }}</option>
-                <option value="Science">{{ t('quizEditor.categoryScience') }}</option>
-                <option value="History">{{ t('quizEditor.categoryHistory') }}</option>
-                <option value="Geography">{{ t('quizEditor.categoryGeography') }}</option>
-                <option value="Art">{{ t('quizEditor.categoryArt') }}</option>
-                <option value="Music">{{ t('quizEditor.categoryMusic') }}</option>
-                <option value="Sports">{{ t('quizEditor.categorySports') }}</option>
-                <option value="Technology">{{ t('quizEditor.categoryTechnology') }}</option>
-                <option value="Literature">{{ t('quizEditor.categoryLiterature') }}</option>
-                <option value="Movies">{{ t('quizEditor.categoryMovies') }}</option>
-                <option value="TV Shows">{{ t('quizEditor.categoryTVShows') }}</option>
-                <option value="Food">{{ t('quizEditor.categoryFood') }}</option>
-                <option value="Nature">{{ t('quizEditor.categoryNature') }}</option>
-                <option value="Math">{{ t('quizEditor.categoryMath') }}</option>
-                <option value="Language">{{ t('quizEditor.categoryLanguage') }}</option>
-                <option value="Other">{{ t('quizEditor.categoryOther') }}</option>
+                <option
+                  v-for="option in CATEGORY_OPTIONS.filter(o => o.value)"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ t(option.labelKey) }}
+                </option>
               </select>
             </div>
 

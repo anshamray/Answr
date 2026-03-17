@@ -16,6 +16,7 @@ import PixelCard from '../components/PixelCard.vue';
 import PixelClock from '../components/icons/PixelClock.vue';
 import PixelCheck from '../components/icons/PixelCheck.vue';
 import StreakCounter from '../components/game/StreakCounter.vue';
+import QuestionMediaDisplay from '../components/QuestionMediaDisplay.vue';
 
 const { t } = useI18n();
 
@@ -190,9 +191,13 @@ const answerTextLength = computed(() => textAnswer.value.length);
 // Grid layout for shape buttons based on number of options
 const shapeButtonGridClass = computed(() => {
   const count = options.value.length;
-  if (count <= 2) return 'grid-cols-2 grid-rows-1';
-  if (count <= 4) return 'grid-cols-2 grid-rows-2';
-  return 'grid-cols-2 grid-rows-3'; // 5-6 options
+  if (count <= 2) {
+    return 'grid-cols-1 sm:grid-cols-2';
+  }
+  if (count <= 4) {
+    return 'grid-cols-1 sm:grid-cols-2';
+  }
+  return 'grid-cols-1 sm:grid-cols-2'; // 5-6 options stack on small screens
 });
 
 // Use shared answer colors from constants
@@ -774,40 +779,13 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
-              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
-                <iframe
-                  :src="questionMediaEmbedUrl"
-                  class="w-full h-full"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                ></iframe>
-              </div>
-            </div>
-            <div
-              v-else-if="questionMediaUrls && questionMediaUrls.length"
-              class="mt-3 flex justify-center"
-            >
-              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <div
-                  class="w-full h-full grid gap-2"
-                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
-                >
-                  <div
-                    v-for="url in questionMediaUrls"
-                    :key="url"
-                    class="flex items-center justify-center bg-black"
-                  >
-                    <img
-                      :src="url"
-                      :alt="question?.text"
-                      class="max-h-52 w-full object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <QuestionMediaDisplay
+              :media-url="question?.mediaUrl"
+              :media-urls="question?.mediaUrls"
+              :pin="game.pin"
+              mode="compact"
+              max-height="13rem"
+            />
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">
@@ -888,40 +866,13 @@ onUnmounted(cleanup);
             <h2 class="text-lg sm:text-xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
-              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
-                <iframe
-                  :src="questionMediaEmbedUrl"
-                  class="w-full h-full"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                ></iframe>
-              </div>
-            </div>
-            <div
-              v-else-if="questionMediaUrls && questionMediaUrls.length"
-              class="mt-3 flex justify-center"
-            >
-              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <div
-                  class="w-full h-full grid gap-2"
-                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
-                >
-                  <div
-                    v-for="url in questionMediaUrls"
-                    :key="url"
-                    class="flex items-center justify-center bg-black"
-                  >
-                    <img
-                      :src="url"
-                      :alt="question?.text"
-                      class="max-h-52 w-full object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <QuestionMediaDisplay
+              :media-url="question?.mediaUrl"
+              :media-urls="question?.mediaUrls"
+              :pin="game.pin"
+              mode="compact"
+              max-height="13rem"
+            />
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-4 text-center">
@@ -1088,40 +1039,13 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
-              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
-                <iframe
-                  :src="questionMediaEmbedUrl"
-                  class="w-full h-full"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                ></iframe>
-              </div>
-            </div>
-            <div
-              v-else-if="questionMediaUrls && questionMediaUrls.length"
-              class="mt-3 flex justify-center"
-            >
-              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <div
-                  class="w-full h-full grid gap-2"
-                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
-                >
-                  <div
-                    v-for="url in questionMediaUrls"
-                    :key="url"
-                    class="flex items-center justify-center bg-black"
-                  >
-                    <img
-                      :src="url"
-                      :alt="question?.text"
-                      class="max-h-52 w-full object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <QuestionMediaDisplay
+              :media-url="question?.mediaUrl"
+              :media-urls="question?.mediaUrls"
+              :pin="game.pin"
+              mode="compact"
+              max-height="13rem"
+            />
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">
@@ -1232,40 +1156,13 @@ onUnmounted(cleanup);
             <h2 class="text-xl sm:text-2xl font-bold leading-tight">
               {{ question?.text || t('playerGame.waitingForQuestion') }}
             </h2>
-            <div v-if="questionMediaEmbedUrl" class="mt-3 flex justify-center">
-              <div class="w-full max-w-xl aspect-video border-[3px] border-black bg-black overflow-hidden">
-                <iframe
-                  :src="questionMediaEmbedUrl"
-                  class="w-full h-full"
-                  frameborder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowfullscreen
-                ></iframe>
-              </div>
-            </div>
-            <div
-              v-else-if="questionMediaUrls && questionMediaUrls.length"
-              class="mt-3 flex justify-center"
-            >
-              <div class="border-[3px] border-black max-h-52 w-full max-w-2xl flex items-center justify-center overflow-hidden bg-black">
-                <div
-                  class="w-full h-full grid gap-2"
-                  :class="questionMediaUrls.length === 1 ? 'grid-cols-1' : questionMediaUrls.length === 2 ? 'grid-cols-2' : 'grid-cols-2'"
-                >
-                  <div
-                    v-for="url in questionMediaUrls"
-                    :key="url"
-                    class="flex items-center justify-center bg-black"
-                  >
-                    <img
-                      :src="url"
-                      :alt="question?.text"
-                      class="max-h-52 w-full object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <QuestionMediaDisplay
+              :media-url="question?.mediaUrl"
+              :media-urls="question?.mediaUrls"
+              :pin="game.pin"
+              mode="compact"
+              max-height="13rem"
+            />
           </PixelCard>
 
           <div v-if="timedOut && !submitted" class="mb-6 text-center">

@@ -30,6 +30,8 @@ const heroAnswers = ['Paris', 'London', 'Rome', 'Berlin'];
 const { shake, triggerShake } = useShakeAnimation();
 const { loading, error, checkPin, cleanupListeners } = usePinValidation();
 
+const isMobileMenuOpen = ref(false);
+
 onMounted(() => {
   // Fetch user info if authenticated
   if (auth.isAuthenticated && !auth.user) {
@@ -79,13 +81,15 @@ function handlePinSubmit() {
             <span class="text-2xl font-bold text-primary pixel-font">Answr</span>
           </div>
 
+          <!-- Desktop nav -->
           <div class="hidden md:flex items-center gap-6">
             <a href="#features" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.features') }}</a>
             <a href="#how-it-works" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.howItWorks') }}</a>
             <router-link to="/library" class="font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.library') }}</router-link>
           </div>
 
-          <div class="flex items-center gap-4">
+          <!-- Desktop auth/actions -->
+          <div class="hidden md:flex items-center gap-4">
             <template v-if="auth.isAuthenticated">
               <router-link to="/dashboard" class="text-sm text-muted-foreground hover:text-primary transition">{{ t('nav.dashboard') }}</router-link>
               <UserDropdown />
@@ -99,6 +103,70 @@ function handlePinSubmit() {
                 <PixelButton variant="primary" size="sm">{{ t('nav.hostQuiz') }}</PixelButton>
               </router-link>
             </template>
+          </div>
+
+          <!-- Mobile actions -->
+          <div class="flex items-center gap-3 md:hidden">
+            <LanguageSwitcher v-if="!auth.isAuthenticated" />
+            <button
+              type="button"
+              class="inline-flex items-center justify-center rounded border-[3px] border-black bg-white px-2 py-1"
+              @click="isMobileMenuOpen = !isMobileMenuOpen"
+            >
+              <span class="sr-only">Toggle navigation</span>
+              <span class="flex flex-col gap-[3px]">
+                <span
+                  class="h-[2px] w-5 bg-black transition-transform"
+                  :class="isMobileMenuOpen ? 'translate-y-[5px] rotate-45' : ''"
+                />
+                <span
+                  class="h-[2px] w-5 bg-black transition-opacity"
+                  :class="isMobileMenuOpen ? 'opacity-0' : 'opacity-100'"
+                />
+                <span
+                  class="h-[2px] w-5 bg-black transition-transform"
+                  :class="isMobileMenuOpen ? '-translate-y-[5px] -rotate-45' : ''"
+                />
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mobile menu -->
+        <div v-if="isMobileMenuOpen" class="md:hidden border-t-[3px] border-black bg-white">
+          <div class="px-4 py-3 space-y-3">
+            <div class="flex flex-col space-y-2">
+              <a href="#features" class="text-sm font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.features') }}</a>
+              <a href="#how-it-works" class="text-sm font-medium text-foreground hover:text-primary transition-colors">{{ t('nav.howItWorks') }}</a>
+              <router-link to="/library" class="text-sm font-medium text-foreground hover:text-primary transition-colors" @click="isMobileMenuOpen = false">{{ t('nav.library') }}</router-link>
+            </div>
+
+            <div class="pt-2 border-t border-border">
+              <template v-if="auth.isAuthenticated">
+                <router-link
+                  to="/dashboard"
+                  class="block text-sm text-muted-foreground hover:text-primary transition mb-2"
+                  @click="isMobileMenuOpen = false"
+                >
+                  {{ t('nav.dashboard') }}
+                </router-link>
+                <UserDropdown />
+              </template>
+              <template v-else>
+                <div class="flex flex-col gap-2">
+                  <router-link to="/login" @click="isMobileMenuOpen = false">
+                    <PixelButton variant="outline" size="sm" class="w-full">
+                      {{ t('nav.login') }}
+                    </PixelButton>
+                  </router-link>
+                  <router-link to="/login" @click="isMobileMenuOpen = false">
+                    <PixelButton variant="primary" size="sm" class="w-full">
+                      {{ t('nav.hostQuiz') }}
+                    </PixelButton>
+                  </router-link>
+                </div>
+              </template>
+            </div>
           </div>
         </div>
       </div>
